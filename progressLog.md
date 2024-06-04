@@ -12,3 +12,10 @@ Wikipedia provides lots of different data formats to download data. However the 
 
 - I initally selected [PUGIXML](https://pugixml.org/) as the XML parser of choice due to it being very small, simple, and well documented. However, after doing further research, I found that using a DOM based parser would not be suitable due to the size of the files. and instead a SAX based parser is required.
 - Instead, I will use libxml2 and [libxml++](https://libxmlplusplus.sourceforge.net/) (a C++ wrapper for libxml2). Looks like a pain to install.
+
+## Setting up Conan
+- CMake was getting me nowhere and I could not build the libxml++ libraries from scratch. Their documentation website is also down.
+- Trying to use the package manager Conan as it would be good to learn to use one and hopefully it should simplify the process.
+- Using the [tutorial](https://docs.conan.io/2/tutorial/consuming_packages/build_simple_cmake_project.html) to get the build steps.
+- The package page for libxmlpp on Conan can be found [here](https://conan.io/center/recipes/libxmlpp?version=5.2.0).
+https://github.com/libxmlplusplus/libxmlplusplus?tab=readme-ov-file

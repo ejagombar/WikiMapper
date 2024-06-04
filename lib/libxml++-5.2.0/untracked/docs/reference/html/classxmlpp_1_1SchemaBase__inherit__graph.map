@@ -1,6 +1,0 @@
-<map id="xmlpp::SchemaBase" name="xmlpp::SchemaBase">
-<area shape="rect" id="node1" title="Base class for schemas, used for validation of XML files." alt="" coords="106,80,253,107"/>
-<area shape="rect" id="node3" href="$classxmlpp_1_1RelaxNGSchema.html" title="Represents a RelaxNG schema for validating XML files." alt="" coords="5,155,175,181"/>
-<area shape="rect" id="node4" href="$classxmlpp_1_1XsdSchema.html" title="Represents an XSD schema for validating XML files." alt="" coords="199,155,338,181"/>
-<area shape="rect" id="node2" href="$classxmlpp_1_1NonCopyable.html" title="A base for classes which cannot be copied or moved." alt="" coords="104,5,255,32"/>
-</map>

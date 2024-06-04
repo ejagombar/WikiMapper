@@ -1,0 +1,1 @@
+. "/home/ejago/Repos/Projects/WikiMapper/build/deactivate_conanbuildenv-debug-x86_64.sh"

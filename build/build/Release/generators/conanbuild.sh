@@ -1,0 +1,1 @@
+. "/home/ejago/Repos/Projects/WikiMapper/build/build/Release/generators/conanbuildenv-release-x86_64.sh"

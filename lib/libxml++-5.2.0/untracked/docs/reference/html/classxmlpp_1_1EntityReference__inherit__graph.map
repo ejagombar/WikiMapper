@@ -1,5 +1,0 @@
-<map id="xmlpp::EntityReference" name="xmlpp::EntityReference">
-<area shape="rect" id="node1" title="Entity references refer to previously declared entities." alt="" coords="5,155,172,181"/>
-<area shape="rect" id="node2" href="$classxmlpp_1_1Node.html" title="Represents XML Nodes." alt="" coords="37,80,140,107"/>
-<area shape="rect" id="node3" href="$classxmlpp_1_1NonCopyable.html" title="A base for classes which cannot be copied or moved." alt="" coords="13,5,164,32"/>
-</map>
