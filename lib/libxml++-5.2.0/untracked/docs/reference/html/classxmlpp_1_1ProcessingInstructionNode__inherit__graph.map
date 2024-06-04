@@ -1,0 +1,6 @@
+<map id="xmlpp::ProcessingInstructionNode" name="xmlpp::ProcessingInstructionNode">
+<area shape="rect" id="node1" title=" " alt="" coords="5,229,241,256"/>
+<area shape="rect" id="node2" href="$classxmlpp_1_1ContentNode.html" title="Content node." alt="" coords="47,155,199,181"/>
+<area shape="rect" id="node3" href="$classxmlpp_1_1Node.html" title="Represents XML Nodes." alt="" coords="72,80,175,107"/>
+<area shape="rect" id="node4" href="$classxmlpp_1_1NonCopyable.html" title="A base for classes which cannot be copied or moved." alt="" coords="48,5,199,32"/>
+</map>

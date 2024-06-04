@@ -1,0 +1,6 @@
+<map id="xmlpp::Parser" name="xmlpp::Parser">
+<area shape="rect" id="node1" title="XML parser." alt="" coords="99,80,208,107"/>
+<area shape="rect" id="node3" href="$classxmlpp_1_1DomParser.html" title="DOM XML parser." alt="" coords="5,155,144,181"/>
+<area shape="rect" id="node4" href="$classxmlpp_1_1SaxParser.html" title="SAX XML parser." alt="" coords="168,155,299,181"/>
+<area shape="rect" id="node2" href="$classxmlpp_1_1NonCopyable.html" title="A base for classes which cannot be copied or moved." alt="" coords="78,5,229,32"/>
+</map>
