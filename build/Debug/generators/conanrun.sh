@@ -1,1 +1,0 @@
-. "/home/ejago/Repos/Projects/WikiMapper/build/Debug/generators/conanrunenv-debug-x86_64.sh"

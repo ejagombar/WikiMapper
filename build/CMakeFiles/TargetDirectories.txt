@@ -1,3 +1,0 @@
-/home/ejago/Repos/Projects/WikiMapper/build/CMakeFiles/WikiMapper.dir
-/home/ejago/Repos/Projects/WikiMapper/build/CMakeFiles/edit_cache.dir
-/home/ejago/Repos/Projects/WikiMapper/build/CMakeFiles/rebuild_cache.dir

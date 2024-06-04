@@ -1,1 +1,0 @@
-/usr/lib64/ccache/c++ -m64 -O3 -DNDEBUG -m64 CMakeFiles/WikiMapper.dir/src/main.cpp.o -o WikiMapper 
