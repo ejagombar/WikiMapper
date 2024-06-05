@@ -1,54 +1,95 @@
+#include <fmt/core.h>
+#include <fstream>
+#include <iostream>
+#include <libxml++/libxml++.h>
+
+class MySaxParser : public xmlpp::SaxParser {
+  public:
+    MySaxParser();
+    virtual ~MySaxParser();
+
+  protected:
+    // overrides:
+#ifdef LIBXMLCPP_EXCEPTIONS_ENABLED
+    virtual void on_start_document();
+    virtual void on_end_document();
+    virtual void on_start_element(const xmlpp::string &name,
+                                  const AttributeList &properties);
+    virtual void on_end_element(const xmlpp::string &name);
+    virtual void on_characters(const xmlpp::string &characters);
+    virtual void on_comment(const xmlpp::string &text);
+    virtual void on_warning(const xmlpp::string &text);
+    virtual void on_error(const xmlpp::string &text);
+    virtual void on_fatal_error(const xmlpp::string &text);
+#endif
+};
+
+#include <iostream>
+
+MySaxParser::MySaxParser() : xmlpp::SaxParser() {}
+
+MySaxParser::~MySaxParser() {}
+
+#ifdef LIBXMLCPP_EXCEPTIONS_ENABLED
+void MySaxParser::on_start_document() {
+    std::cout << "on_start_document()" << std::endl;
+}
+
+void MySaxParser::on_end_document() {
+    std::cout << "on_end_document()" << std::endl;
+}
+
+void MySaxParser::on_start_element(const xmlpp::string &name,
+                                   const AttributeList &attributes) {
+    std::cout << "node name=" << name << std::endl;
+
+    // Print attributes:
+    for (xmlpp::SaxParser::AttributeList::const_iterator iter =
+             attributes.begin();
+         iter != attributes.end(); ++iter) {
+        std::cout << "  Attribute name=" << iter->name << std::endl;
+
+        std::cout << "    , value= " << iter->value << std::endl;
+    }
+}
+
+void MySaxParser::on_end_element(const xmlpp::string & /* name */) {
+    std::cout << "on_end_element()" << std::endl;
+}
+
+void MySaxParser::on_characters(const xmlpp::string &text) {
+    std::cout << "on_characters(): " << text << std::endl;
+}
+
+void MySaxParser::on_comment(const xmlpp::string &text) {
+    std::cout << "on_comment(): " << text << std::endl;
+}
+
+void MySaxParser::on_warning(const xmlpp::string &text) {
+    std::cout << "on_warning(): " << text << std::endl;
+}
+
+void MySaxParser::on_error(const xmlpp::string &text) {
+    std::cout << "on_error(): " << text << std::endl;
+}
+
+void MySaxParser::on_fatal_error(const xmlpp::string &text) {
+    std::cout << "on_fatal_error(): " << text << std::endl;
+}
+#endif
 
 // int main() {
 //     std::cout << "Hello World" << std::endl;
 //     std::cout << "Hello World 2" << std::endl;
-//
-//     // pugi::xml_document doc;
-//     //
-//     // pugi::xml_parse_result result = doc.load_file("tree.xml");
-//     //
-//     // std::cout << "Load result: " << result.description()
-//     //           << ", mesh name: " <<
-//     //           doc.child("mesh").attribute("name").value()
-//     //           << std::endl;
-//
-//     char buffer_in[256] = {"Conan is a MIT-licensed, Open Source package "
-//                            "manager for C and C++ development "
-//                            "for C and C++ development, allowing development "
-//                            "teams to easily and efficiently "
-//                            "manage their packages and dependencies across "
-//                            "platforms and build systems."};
-//     char buffer_out[256] = {0};
-//
-//     z_stream defstream;
-//     defstream.zalloc = Z_NULL;
-//     defstream.zfree = Z_NULL;
-//     defstream.opaque = Z_NULL;
-//     defstream.avail_in = (uInt)strlen(buffer_in);
-//     defstream.next_in = (Bytef *)buffer_in;
-//     defstream.avail_out = (uInt)sizeof(buffer_out);
-//     defstream.next_out = (Bytef *)buffer_out;
-//
-//     // deflateInit(&defstream, Z_BEST_COMPRESSION);
-//     // deflate(&defstream, Z_FINISH);
-//     // deflateEnd(&defstream);
-//
-//     printf("Uncompressed size is: %lu\n", strlen(buffer_in));
-//     printf("Compressed size is: %lu\n", strlen(buffer_out));
-//
-//     return EXIT_SUCCESS;
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <cstdlib>
-#include <cstring> // std::memset()
-#include <fstream>
-#include <iostream>
-
-#include "myparser.h"
+//     fmt::print("Hello World 3\n");
+// }
 
 int main(int argc, char *argv[]) {
+    // Set the global C and C++ locale to the user-configured locale,
+    // so we can use std::cout with UTF-8, via xmlpp::string, without
+    // exceptions.
+    std::locale::global(std::locale(""));
+
     std::string filepath;
     if (argc > 1)
         filepath =
@@ -56,48 +97,49 @@ int main(int argc, char *argv[]) {
     else
         filepath = "example.xml";
 
-    // Parse the entire document in one go:
-    auto return_code = EXIT_SUCCESS;
+// Parse the entire document in one go:
+#ifdef LIBXMLCPP_EXCEPTIONS_ENABLED
     try {
+#endif // LIBXMLCPP_EXCEPTIONS_ENABLED
         MySaxParser parser;
-        parser.set_substitute_entities(true);
+        parser.set_substitute_entities(true); //
         parser.parse_file(filepath);
+#ifdef LIBXMLCPP_EXCEPTIONS_ENABLED
     } catch (const xmlpp::exception &ex) {
-        std::cerr << "libxml++ exception: " << ex.what() << std::endl;
-        return_code = EXIT_FAILURE;
+        std::cout << "libxml++ exception: " << ex.what() << std::endl;
     }
+#endif // LIBXMLCPP_EXCEPTIONS_ENABLED
 
-    // Incremental parsing, sometimes useful for network connections:
-    try {
-        std::cout << std::endl << "Incremental SAX Parser:" << std::endl;
+    // Demonstrate incremental parsing, sometimes useful for network
+    // connections:
+    {
+        // std::cout << "Incremental SAX Parser:" << std:endl;
 
         std::ifstream is(filepath.c_str());
-        if (!is)
-            throw xmlpp::exception("Could not open file " + filepath);
-
-        char buffer[64];
-        const size_t buffer_size = sizeof(buffer) / sizeof(char);
+        /* char buffer[64];
+        const size_t buffer_size = sizeof(buffer) / sizeof(char); */
 
         // Parse the file:
         MySaxParser parser;
-        parser.set_substitute_entities(true);
-        do {
-            std::memset(buffer, 0, buffer_size);
-            is.read(buffer, buffer_size - 1);
-            if (is.gcount()) {
-                xmlpp::ustring input(buffer, buffer + is.gcount());
-                parser.parse_chunk(input);
-            }
-        } while (is);
+        parser.parse_file(filepath);
 
-        parser.finish_chunk_parsing();
-    } catch (const xmlpp::exception &ex) {
-        std::cerr << "Incremental parsing, libxml++ exception: " << ex.what()
-                  << std::endl;
-        return_code = EXIT_FAILURE;
+        // Or parse chunks (though this seems to have problems):
+        /*
+            do
+            {
+              memset(buffer, 0, buffer_size);
+              is.read(buffer, buffer_size-1);
+              if(is && is.gcount())
+              {
+                xmlpp::string input(buffer, is.gcount());
+                parser.parse_chunk(input);
+              }
+            }
+            while(is);
+
+            parser.finish_chunk_parsing();
+        */
     }
 
-    return return_code;
-}
-/
+    return 0;
 }
