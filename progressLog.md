@@ -29,6 +29,6 @@ Wikipedia provides lots of different data formats to download data. However the 
 ### PkgConfig and CMake
 - It turns out that Libxml++ does not have a CMake configuration by design, as it is instead handled by PkgConfig which requires a special configuration in the CMakeLists.txt file, as I discovered [here](https://stackoverflow.com/questions/63749077/c-cmake-cant-find-libxml)
 - [This](https://stackoverflow.com/questions/29191855/what-is-the-proper-way-to-use-pkg-config-from-cmake) guide shows how to properly configure CMake with PkgConfig. Now that this is done, Libxml++ successfully links and builds in the project. An example from the libxml++ Github was tested to confirm this.
-- Next, the documentation needs to be built, and the Clang language server needs to be configured so that it can see the libraries included by CMake as currently it shows errors.
+- Next, the documentation needs to be built, and the Clang language server needs to be configured so that it can see the libraries included by CMake as currently it shows errors in my editor and no autocomplete.
 
-
+## Building Documentation fixing Language Server
