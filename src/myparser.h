@@ -2,11 +2,26 @@
 #define __LIBXMLPP_EXAMPLES_MYPARSER_H
 
 #include <libxml++/libxml++.h>
+#include <vector>
+
+struct Page {
+    std::string title;
+    std::string content;
+};
+
+enum ElementType { title, content, other };
 
 class MySaxParser : public xmlpp::SaxParser {
   public:
     MySaxParser();
     ~MySaxParser() override;
+    std::vector<Page> GetPages();
+
+  private:
+    std::vector<Page> pages;
+    Page page;
+    int depth = 0;
+    ElementType nextElement;
 
   protected:
     // overrides:

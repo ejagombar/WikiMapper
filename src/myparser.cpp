@@ -1,6 +1,7 @@
 #include "myparser.h"
 
 #include <iostream>
+#include <ostream>
 
 MySaxParser::MySaxParser() : xmlpp::SaxParser() {}
 
@@ -18,19 +19,37 @@ void MySaxParser::on_start_element(const xmlpp::ustring &name,
                                    const AttributeList &attributes) {
     std::cout << "node name=" << name << std::endl;
 
-    // Print attributes:
-    for (const auto &attr_pair : attributes) {
-        std::cout << "  Attribute name=" << attr_pair.name << std::endl;
-        std::cout << "    , value= " << attr_pair.value << std::endl;
+    depth++;
+    if (name == "title") {
+        nextElement = title;
+    } else if (name == "text") {
+        std::cout << "next elemeent is text" << std::endl;
+        nextElement = content;
+    } else {
+        nextElement = other;
     }
 }
 
 void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
-    std::cout << "on_end_element()" << std::endl;
+    std::cout << "on_end_element() Depth: " << depth << std::endl;
+    nextElement = other;
+
+    if (depth == 2) {
+
+        std::cout << page.content << std::endl;
+        pages.push_back(page);
+        page = {};
+    }
+
+    depth--;
 }
 
 void MySaxParser::on_characters(const xmlpp::ustring &text) {
-    std::cout << "on_characters(): " << text << std::endl;
+    if (nextElement == title) {
+        page.title = text;
+    } else if (nextElement == content) {
+        page.content = page.content + text;
+    }
 }
 
 void MySaxParser::on_comment(const xmlpp::ustring &text) {
@@ -48,3 +67,5 @@ void MySaxParser::on_error(const xmlpp::ustring &text) {
 void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
     std::cout << "on_fatal_error(): " << text << std::endl;
 }
+
+std::vector<Page> MySaxParser::GetPages() { return pages; }

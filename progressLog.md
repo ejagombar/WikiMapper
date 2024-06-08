@@ -31,4 +31,7 @@ Wikipedia provides lots of different data formats to download data. However the 
 - [This](https://stackoverflow.com/questions/29191855/what-is-the-proper-way-to-use-pkg-config-from-cmake) guide shows how to properly configure CMake with PkgConfig. Now that this is done, Libxml++ successfully links and builds in the project. An example from the libxml++ Github was tested to confirm this.
 - Next, the documentation needs to be built, and the Clang language server needs to be configured so that it can see the libraries included by CMake as currently it shows errors in my editor and no autocomplete.
 
-## Building Documentation fixing Language Server
+## Setting up ClangD Language Server
+In order for ClangD to recognise the libraries included with CMake, a compile_commands.json file must be generated. This is done by adding a line into the CMake configuration which generates it in the build folder. It can then by symlinked into the root directoy for it to be detected by ClangD.
+
+## SAX Vs Text
