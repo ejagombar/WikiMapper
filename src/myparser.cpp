@@ -17,11 +17,9 @@ void MySaxParser::on_end_document() {
 
 void MySaxParser::on_start_element(const xmlpp::ustring &name,
                                    const AttributeList &attributes) {
-    // std::cout << "node name=" << name << std::endl;
-
-    depth++;
     if (name == "title") {
         nextElement = TITLE;
+        processedPageCount++;
     } else if (name == "text") {
         nextElement = CONTENT;
     } else if (name == "redirect") {
@@ -29,6 +27,8 @@ void MySaxParser::on_start_element(const xmlpp::ustring &name,
     } else {
         nextElement = OTHER;
     }
+
+    depth++;
 }
 
 void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
@@ -37,19 +37,8 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 
     if (depth == 2) {
 
-        // std::cout << content << std::endl;
         ExtractAllLinks();
-        // pages.push_back(page);
-
-        if (page.redirect)
-            std::cout << "\n\n---------" << page.title
-                      << "---------- (REDIRECT)" << std::endl;
-        else
-            std::cout << "\n\n----------" << page.title << "----------"
-                      << std::endl;
-        for (std::string s : page.links) {
-            std::cout << s;
-        }
+        pages.push_back(page);
         page = {};
         content = "";
     }
@@ -74,11 +63,15 @@ void MySaxParser::on_warning(const xmlpp::ustring &text) {
 }
 
 void MySaxParser::on_error(const xmlpp::ustring &text) {
-    // std::cout << "on_error(): " << text << std::endl;
+    std::cout << "ERROR on page " << processedPageCount
+              << ". Most recent page title: " << page.title
+              << ". Error: " << text << std::endl;
 }
 
 void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
-    // std::cout << "on_fatal_error(): " << text << std::endl;
+    std::cout << "FATAL ERROR on page " << processedPageCount
+              << ". Most recent page title: " << page.title
+              << ". Error: " << text << std::endl;
 }
 
 std::vector<Page> MySaxParser::GetPages() { return pages; }

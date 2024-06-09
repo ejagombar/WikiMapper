@@ -22,6 +22,7 @@ class MySaxParser : public xmlpp::SaxParser {
 
   private:
     int depth = 0;
+    int processedPageCount = 0;
     Page page;
     std::vector<Page> pages;
     ElementType nextElement;
