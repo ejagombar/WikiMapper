@@ -39,7 +39,17 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 
         // std::cout << content << std::endl;
         ExtractAllLinks();
-        pages.push_back(page);
+        // pages.push_back(page);
+
+        if (page.redirect)
+            std::cout << "\n\n---------" << page.title
+                      << "---------- (REDIRECT)" << std::endl;
+        else
+            std::cout << "\n\n----------" << page.title << "----------"
+                      << std::endl;
+        for (std::string s : page.links) {
+            std::cout << s;
+        }
         page = {};
         content = "";
     }
@@ -81,6 +91,21 @@ void MySaxParser::ExtractAllLinks() {
     re2::StringPiece match;
     while (RE2::FindAndConsume(&input, re, &match)) {
 
-        page.links.push_back(std::string(match));
+        // Filters out any Wikipedia Namespaces
+        // https://en.wikipedia.org/wiki/Wikipedia:Namespace
+        if (RE2::PartialMatch(match, "^.+:")) {
+            continue;
+        }
+
+        std::string str(match);
+        transform(str.begin(), str.end(), str.begin(), ::tolower);
+
+        // Sometimes the page that is being linked to is not the same as the
+        // text being shown in the link. This ensures that only the true page
+        // name is shown
+        auto x = find(str.begin(), str.end(), '|');
+        auto subStr = std::string(str.begin(), x);
+
+        page.links.push_back(subStr);
     }
 }

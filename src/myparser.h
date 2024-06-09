@@ -1,6 +1,7 @@
 #ifndef __LIBXMLPP_EXAMPLES_MYPARSER_H
 #define __LIBXMLPP_EXAMPLES_MYPARSER_H
 
+#include <bits/stdc++.h>
 #include <libxml++/libxml++.h>
 #include <re2/re2.h>
 #include <vector>

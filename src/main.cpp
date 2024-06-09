@@ -1,3 +1,4 @@
+#include <ostream>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -33,7 +34,7 @@ int main(int argc, char *argv[]) {
                 std::cout << "\n----------" << page.title << "----------"
                           << std::endl;
             for (std::string s : page.links) {
-                std::cout << s;
+                std::cout << s << std::endl;
             }
         }
     } catch (const xmlpp::exception &ex) {
