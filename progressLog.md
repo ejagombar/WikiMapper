@@ -34,4 +34,14 @@ Wikipedia provides lots of different data formats to download data. However the 
 ## Setting up ClangD Language Server
 In order for ClangD to recognise the libraries included with CMake, a compile_commands.json file must be generated. This is done by adding a line into the CMake configuration which generates it in the build folder. It can then by symlinked into the root directoy for it to be detected by ClangD.
 
-## SAX Vs Text
+## Actually building it
+
+### SAX Vs TextParser
+Libxml2 supports both SAX and a TextParser parser. Both of these options are suitable for large files as they do not use a tree structure that requires large amounts of memory. After playing around with both options, I decided to use the SAX parser as this is most comonly used. However, I would later like to implement a TextParser to comapre the performance.
+
+### LibXML++ SAX Format
+LibXML++ presents the SAX as a class which can be overloaded to add functionality to the parser. It provides functions that are called on various events that occur when the text is parsed, such as on_start_element() and on_character(). Using these functions, the title and contents of the web pages can be extracted.
+
+### REGEX and Faster Alternatives
+Once the contents of the webpages can be extracted, the links in these pages need to be collated. This could be done with a REGEX library such as the C++ standard one. However, this is slow, which is a big problem due to the raw amount of data that needs to be processed. After researching alternatives, I decided to use RE2 which is a much faster alternative.
+
