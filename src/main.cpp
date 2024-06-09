@@ -4,7 +4,7 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
+// #include <fstream>
 #include <iostream>
 
 #include "myparser.h"
@@ -18,42 +18,60 @@ int main(int argc, char *argv[]) {
 
     auto return_code = EXIT_SUCCESS;
 
-    // Incremental parsing, sometimes useful for network connections:
+    // Parse document in one go
     try {
-        std::cout << std::endl << "Incremental SAX Parser:" << std::endl;
-
-        std::ifstream is(filepath.c_str());
-        if (!is)
-            throw xmlpp::exception("Could not open file " + filepath);
-
-        char buffer[512];
-        const size_t buffer_size = sizeof(buffer) / sizeof(char);
-
-        // Parse the file:
         MySaxParser parser;
-        // xmlpp::SaxParser parser;
         parser.set_substitute_entities(true);
-        do {
-            std::memset(buffer, 0, buffer_size);
-            is.read(buffer, buffer_size - 1);
-            if (is.gcount()) {
-                xmlpp::ustring input(buffer, buffer + is.gcount());
-                parser.parse_chunk(input);
-            }
-        } while (is);
-
-        parser.finish_chunk_parsing();
+        parser.parse_file(filepath);
 
         auto pages = parser.GetPages();
         for (Page page : pages) {
-            std::cout << "----------" << page.title << "\n " << page.content
-                      << std::endl;
+            if (page.redirect)
+                std::cout << "\nR---------" << page.title << "----------"
+                          << std::endl;
+            else
+                std::cout << "\n----------" << page.title << "----------"
+                          << std::endl;
+            for (std::string s : page.links) {
+                std::cout << s;
+            }
         }
     } catch (const xmlpp::exception &ex) {
-        std::cerr << "Incremental parsing, libxml++ exception: " << ex.what()
-                  << std::endl;
+        std::cerr << "libxml++ exception: " << ex.what() << std::endl;
         return_code = EXIT_FAILURE;
     }
+
+    // // Incremental parsing, sometimes useful for network connections:
+    // try {
+    //     std::cout << std::endl << "Incremental SAX Parser:" << std::endl;
+    //
+    //     std::ifstream is(filepath.c_str());
+    //     if (!is)
+    //         throw xmlpp::exception("Could not open file " + filepath);
+    //
+    //     char buffer[512];
+    //     const size_t buffer_size = sizeof(buffer) / sizeof(char);
+    //
+    //     // Parse the file:
+    //     MySaxParser parser;
+    //     // xmlpp::SaxParser parser;
+    //     parser.set_substitute_entities(true);
+    //     do {
+    //         std::memset(buffer, 0, buffer_size);
+    //         is.read(buffer, buffer_size - 1);
+    //         if (is.gcount()) {
+    //             xmlpp::ustring input(buffer, buffer + is.gcount());
+    //             parser.parse_chunk(input);
+    //         }
+    //     } while (is);
+    //
+    //     parser.finish_chunk_parsing();
+    //
+    // } catch (const xmlpp::exception &ex) {
+    //     std::cerr << "Incremental parsing, libxml++ exception: " << ex.what()
+    //               << std::endl;
+    //     return_code = EXIT_FAILURE;
+    // }
 
     return return_code;
 }

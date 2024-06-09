@@ -2,14 +2,16 @@
 #define __LIBXMLPP_EXAMPLES_MYPARSER_H
 
 #include <libxml++/libxml++.h>
+#include <re2/re2.h>
 #include <vector>
 
 struct Page {
     std::string title;
-    std::string content;
+    bool redirect = false;
+    std::vector<std::string> links;
 };
 
-enum ElementType { title, content, other };
+enum ElementType { TITLE, CONTENT, OTHER };
 
 class MySaxParser : public xmlpp::SaxParser {
   public:
@@ -18,10 +20,13 @@ class MySaxParser : public xmlpp::SaxParser {
     std::vector<Page> GetPages();
 
   private:
-    std::vector<Page> pages;
-    Page page;
     int depth = 0;
+    Page page;
+    std::vector<Page> pages;
     ElementType nextElement;
+    std::string content;
+
+    void ExtractAllLinks();
 
   protected:
     // overrides:
