@@ -9,6 +9,8 @@
 #include <re2/re2.h>
 #include <vector>
 
+#define cursup "\033[A"
+
 struct Page {
     std::string title;
     bool redirect = false;

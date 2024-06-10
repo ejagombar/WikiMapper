@@ -1,8 +1,6 @@
 #include "myparser.h"
 #include <fstream>
 
-#define cursup "\033[A"
-
 MySaxParser::MySaxParser() : xmlpp::SaxParser() {
     std::thread(&MySaxParser::OutputPageCount, this).detach();
 }
