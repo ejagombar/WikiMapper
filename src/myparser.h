@@ -25,7 +25,8 @@ class MySaxParser : public xmlpp::SaxParser {
 
   private:
     int depth = 0;
-    int processedPageCount = 0;
+    std::atomic<int> processedPageCount = 0;
+    std::atomic<bool> stopOutputThread = false;
     Page page;
     std::vector<Page> pages;
     ElementType nextElement;
@@ -33,6 +34,7 @@ class MySaxParser : public xmlpp::SaxParser {
     std::ofstream CSVFile;
 
     void ExtractAllLinks();
+    void OutputPageCount();
 
   protected:
     // overrides:

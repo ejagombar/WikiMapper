@@ -1,9 +1,24 @@
 #include "myparser.h"
 #include <fstream>
 
-MySaxParser::MySaxParser() : xmlpp::SaxParser() {}
+MySaxParser::MySaxParser() : xmlpp::SaxParser() {
+    std::thread(&MySaxParser::OutputPageCount, this).detach();
+}
 
-MySaxParser::~MySaxParser() {}
+MySaxParser::~MySaxParser() {
+    stopOutputThread = true;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+
+void MySaxParser::OutputPageCount() {
+    while (!stopOutputThread) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        int count = processedPageCount.load();
+        float percentageDone = (static_cast<float>(count) / 3800000) * 100.0;
+        std::cout << "Processed page count: " << count << " " << percentageDone
+                  << "%" << std::endl;
+    }
+}
 
 void MySaxParser::on_start_document() { CSVFile.open("out.csv"); }
 
