@@ -1,13 +1,11 @@
 #include "myparser.h"
-
-#include <iostream>
-#include <ostream>
+#include <fstream>
 
 MySaxParser::MySaxParser() : xmlpp::SaxParser() {}
 
 MySaxParser::~MySaxParser() {}
 
-void MySaxParser::on_start_document() {}
+void MySaxParser::on_start_document() { CSVFile.open("out.csv"); }
 
 void MySaxParser::on_comment(const xmlpp::ustring &text) {}
 
@@ -18,6 +16,7 @@ std::vector<Page> MySaxParser::GetPages() { return pages; }
 void MySaxParser::on_end_document() {
     std::cout << "Finished processing document. \nPage Count: "
               << processedPageCount << std::endl;
+    CSVFile.close();
 }
 
 void MySaxParser::on_start_element(const xmlpp::ustring &name,
@@ -42,7 +41,13 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     if (depth == 2) {
 
         ExtractAllLinks();
-        pages.push_back(page);
+
+        // pages.push_back(page);
+        if (!page.redirect) {
+            for (auto x : page.links)
+                CSVFile << page.title << ',' << x << ",links" << std::endl;
+        }
+
         page = {};
         content = "";
     }
@@ -52,7 +57,11 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 
 void MySaxParser::on_characters(const xmlpp::ustring &text) {
     if (nextElement == TITLE) {
-        page.title = text;
+        std::string lowerString = text;
+        transform(lowerString.begin(), lowerString.end(), lowerString.begin(),
+                  ::tolower);
+
+        page.title = lowerString;
     } else if (nextElement == CONTENT) {
         content = content + text;
     }

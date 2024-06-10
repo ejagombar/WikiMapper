@@ -45,3 +45,5 @@ LibXML++ presents the SAX as a class which can be overloaded to add functionalit
 ### REGEX and Faster Alternatives
 Once the contents of the webpages can be extracted, the links in these pages need to be collated. This could be done with a REGEX library such as the C++ standard one. However, this is slow, which is a big problem due to the raw amount of data that needs to be processed. After researching alternatives, I decided to use RE2 which is a much faster alternative.
 
+### Neo4j and Docker
+For the first tests, I have decided to use Neo4j, a graph database to store the wikipedia data. A good article can be found [here](https://medium.com/@matthewghannoum/simple-graph-database-setup-with-neo4j-and-docker-compose-061253593b5a) which shows how to install Neo4j using docker

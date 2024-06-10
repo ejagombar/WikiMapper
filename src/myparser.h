@@ -2,7 +2,10 @@
 #define __LIBXMLPP_EXAMPLES_MYPARSER_H
 
 #include <bits/stdc++.h>
+#include <fstream>
+#include <iostream>
 #include <libxml++/libxml++.h>
+#include <ostream>
 #include <re2/re2.h>
 #include <vector>
 
@@ -27,6 +30,7 @@ class MySaxParser : public xmlpp::SaxParser {
     std::vector<Page> pages;
     ElementType nextElement;
     std::string content;
+    std::ofstream CSVFile;
 
     void ExtractAllLinks();
 
