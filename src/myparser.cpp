@@ -11,16 +11,38 @@ MySaxParser::~MySaxParser() {
 }
 
 void MySaxParser::OutputPageCount() {
+    const int totalPages = 3800000;
+
     while (!stopOutputThread) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         int count = processedPageCount.load();
-        float percentageDone = (static_cast<float>(count) / 3800000) * 100.0;
-        std::cout << "Processed page count: " << count << " " << percentageDone
-                  << "%" << std::endl;
+
+        auto start = startTime.load();
+        auto end = std::chrono::system_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = end - start;
+
+        auto remainingSeconds =
+            ((elapsed_seconds / count) * totalPages).count();
+
+        int hours = static_cast<int>(remainingSeconds) / 3600;
+        int minutes = (static_cast<int>(remainingSeconds) % 3600) / 60;
+        int seconds = static_cast<int>(remainingSeconds) % 60;
+
+        float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
+        // std::cout << "Page: " << count << " | " << percentageDone << "% "
+        //           << minsLeft.count() << " mins remaining." << std::endl;
+
+        std::cout << "Page: " << count << " " << percentageDone << "% " << hours
+                  << " hrs " << minutes << " mins " << seconds
+                  << " secs remaining." << std::endl;
     }
 }
 
-void MySaxParser::on_start_document() { CSVFile.open("out.csv"); }
+void MySaxParser::on_start_document() {
+    CSVFile.open("out.csv");
+    startTime = std::chrono::system_clock::now();
+}
 
 void MySaxParser::on_comment(const xmlpp::ustring &text) {}
 

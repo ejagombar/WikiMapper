@@ -2,10 +2,10 @@
 #define __LIBXMLPP_EXAMPLES_MYPARSER_H
 
 #include <bits/stdc++.h>
+#include <chrono>
+#include <ctime>
 #include <fstream>
-#include <iostream>
 #include <libxml++/libxml++.h>
-#include <ostream>
 #include <re2/re2.h>
 #include <vector>
 
@@ -27,6 +27,7 @@ class MySaxParser : public xmlpp::SaxParser {
     int depth = 0;
     std::atomic<int> processedPageCount = 0;
     std::atomic<bool> stopOutputThread = false;
+    std::atomic<std::chrono::time_point<std::chrono::system_clock>> startTime;
     Page page;
     std::vector<Page> pages;
     ElementType nextElement;
