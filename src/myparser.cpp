@@ -1,6 +1,8 @@
 #include "myparser.h"
 #include <fstream>
 
+#define cursup "\033[A"
+
 MySaxParser::MySaxParser() : xmlpp::SaxParser() {
     std::thread(&MySaxParser::OutputPageCount, this).detach();
 }
@@ -12,6 +14,9 @@ MySaxParser::~MySaxParser() {
 
 void MySaxParser::OutputPageCount() {
     const int totalPages = 3800000;
+
+    std::cout << "---------Info---------\n\n-------Loading--------\n"
+              << std::endl;
 
     while (!stopOutputThread) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -30,13 +35,15 @@ void MySaxParser::OutputPageCount() {
         int seconds = static_cast<int>(remainingSeconds) % 60;
 
         float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
-        // std::cout << "Page: " << count << " | " << percentageDone << "% "
-        //           << minsLeft.count() << " mins remaining." << std::endl;
 
-        std::cout << "Page: " << count << " " << percentageDone << "% " << hours
-                  << " hrs " << minutes << " mins " << seconds
-                  << " secs remaining." << std::endl;
+        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup
+                  << cursup << cursup << "Page Number: " << count
+                  << "            \nProgress: " << percentageDone
+                  << "%           \nTime Left: " << hours << " hrs " << minutes
+                  << " mins " << seconds << " secs         \n"
+                  << std::flush;
     }
+    std::cout << "Done!\a" << std::endl;
 }
 
 void MySaxParser::on_start_document() {

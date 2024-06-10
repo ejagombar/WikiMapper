@@ -47,3 +47,4 @@ Once the contents of the webpages can be extracted, the links in these pages nee
 
 ### Neo4j and Docker
 For the first tests, I have decided to use Neo4j, a graph database to store the wikipedia data. A good article can be found [here](https://medium.com/@matthewghannoum/simple-graph-database-setup-with-neo4j-and-docker-compose-061253593b5a) which shows how to install Neo4j using docker
+https://neo4j.com/docs/operations-manual/current/tutorial/neo4j-admin-import/

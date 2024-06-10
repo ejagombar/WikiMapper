@@ -25,18 +25,18 @@ int main(int argc, char *argv[]) {
         parser.set_substitute_entities(true);
         parser.parse_file(filepath);
 
-        auto pages = parser.GetPages();
-        for (Page page : pages) {
-            if (page.redirect)
-                std::cout << "\nR---------" << page.title << "----------"
-                          << std::endl;
-            else
-                std::cout << "\n----------" << page.title << "----------"
-                          << std::endl;
-            for (std::string s : page.links) {
-                std::cout << s << std::endl;
-            }
-        }
+        // auto pages = parser.GetPages();
+        // for (Page page : pages) {
+        //     if (page.redirect)
+        //         std::cout << "\nR---------" << page.title << "----------"
+        //                   << std::endl;
+        //     else
+        //         std::cout << "\n----------" << page.title << "----------"
+        //                   << std::endl;
+        //     for (std::string s : page.links) {
+        //         std::cout << s << std::endl;
+        //     }
+        // }
     } catch (const xmlpp::exception &ex) {
         std::cerr << "libxml++ exception: " << ex.what() << std::endl;
         return_code = EXIT_FAILURE;
