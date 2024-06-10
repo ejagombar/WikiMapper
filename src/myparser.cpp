@@ -7,12 +7,17 @@ MySaxParser::MySaxParser() : xmlpp::SaxParser() {}
 
 MySaxParser::~MySaxParser() {}
 
-void MySaxParser::on_start_document() {
-    // std::cout << "on_start_document()" << std::endl;
-}
+void MySaxParser::on_start_document() {}
+
+void MySaxParser::on_comment(const xmlpp::ustring &text) {}
+
+void MySaxParser::on_warning(const xmlpp::ustring &text) {}
+
+std::vector<Page> MySaxParser::GetPages() { return pages; }
 
 void MySaxParser::on_end_document() {
-    // std::cout << "on_end_document()" << std::endl;
+    std::cout << "Finished processing document. \nPage Count: "
+              << processedPageCount << std::endl;
 }
 
 void MySaxParser::on_start_element(const xmlpp::ustring &name,
@@ -32,7 +37,6 @@ void MySaxParser::on_start_element(const xmlpp::ustring &name,
 }
 
 void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
-    // std::cout << "on_end_element() Depth: " << depth << std::endl;
     nextElement = OTHER;
 
     if (depth == 2) {
@@ -54,14 +58,6 @@ void MySaxParser::on_characters(const xmlpp::ustring &text) {
     }
 }
 
-void MySaxParser::on_comment(const xmlpp::ustring &text) {
-    // std::cout << "on_comment(): " << text << std::endl;
-}
-
-void MySaxParser::on_warning(const xmlpp::ustring &text) {
-    // std::cout << "on_warning(): " << text << std::endl;
-}
-
 void MySaxParser::on_error(const xmlpp::ustring &text) {
     std::cout << "ERROR on page " << processedPageCount
               << ". Most recent page title: " << page.title
@@ -73,8 +69,6 @@ void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
               << ". Most recent page title: " << page.title
               << ". Error: " << text << std::endl;
 }
-
-std::vector<Page> MySaxParser::GetPages() { return pages; }
 
 void MySaxParser::ExtractAllLinks() {
 
