@@ -46,5 +46,15 @@ LibXML++ presents the SAX as a class which can be overloaded to add functionalit
 Once the contents of the webpages can be extracted, the links in these pages need to be collated. This could be done with a REGEX library such as the C++ standard one. However, this is slow, which is a big problem due to the raw amount of data that needs to be processed. After researching alternatives, I decided to use RE2 which is a much faster alternative.
 
 ### Neo4j and Docker
-For the first tests, I have decided to use Neo4j, a graph database to store the wikipedia data. A good article can be found [here](https://medium.com/@matthewghannoum/simple-graph-database-setup-with-neo4j-and-docker-compose-061253593b5a) which shows how to install Neo4j using docker
-https://neo4j.com/docs/operations-manual/current/tutorial/neo4j-admin-import/
+For the first tests, I have decided to use Neo4j, a graph database to store the wikipedia data. A good article can be found [here](https://medium.com/@matthewghannoum/simple-graph-database-setup-with-neo4j-and-docker-compose-061253593b5a) which shows how to install Neo4j using docker.
+After doing this, I decided to follow some neo4j [academy tutorials](https://graphacademy.neo4j.com/) to learn some Cypher (the language used for neo4j) before I did anything further.
+I followed the [bitesize tutorials](https://github.com/cj2001/bite_sized_data_science?tab=readme-ov-file) to learn how to use [neo4j-admin-import](https://neo4j.com/docs/operations-manual/current/tutorial/neo4j-admin-import/), the tool that is used to import massive CSV files into Neo4j.
+Although I prevously set up a container using a docker-compose.yaml file, I will use the commands below to do it all directly for now as it is simpler and I do not need the additional functinality for these tests.
+
+Run the neo4j-admin command, linking the folders at these locations to use as volumes for the container
+
+```sudo docker run -v $HOME/graph_data/data:/data -v $HOME/graph_data/gameofthrones:/var/lib/neo4j/import neo4j:latest neo4j-admin database import full --nodes=/var/lib/neo4j/import/got-s1-nodes.csv --relationships=/var/lib/neo4j/import/got-s1-edges.csv```
+
+Run the container, port forwarding the db and mounting the data
+
+```sudo docker run -p7474:7474 -p7687:7687 -v $HOME/graph_data/data:/data -v $HOME/graph_data/gameofthrones:/var/lib/neo4j/import --env NEO4J_AUTH=neo4j/test1234 neo4j:latest```
