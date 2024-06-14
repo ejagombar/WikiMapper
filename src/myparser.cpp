@@ -7,7 +7,7 @@ MySaxParser::MySaxParser() : xmlpp::SaxParser() {
 
 MySaxParser::~MySaxParser() {
     stopOutputThread = true;
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    // std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void MySaxParser::OutputPageCount() {
@@ -87,7 +87,7 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
         // pages.push_back(page);
         if (!page.redirect) {
             for (auto x : page.links)
-                CSVFile << page.title << ',' << x << ",links" << std::endl;
+                CSVFile << page.title << '|' << x << std::endl;
         }
 
         page = {};
@@ -100,8 +100,9 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 void MySaxParser::on_characters(const xmlpp::ustring &text) {
     if (nextElement == TITLE) {
         std::string lowerString = text;
-        transform(lowerString.begin(), lowerString.end(), lowerString.begin(),
-                  ::tolower);
+        // transform(lowerString.begin(), lowerString.end(),
+        // lowerString.begin(),
+        //           ::tolower);
 
         page.title = lowerString;
     } else if (nextElement == CONTENT) {
