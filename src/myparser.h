@@ -35,6 +35,7 @@ class MySaxParser : public xmlpp::SaxParser {
     ElementType nextElement;
     std::string content;
     std::ofstream CSVFile;
+    std::ofstream CSVFileHeader;
 
     void ExtractAllLinks();
     void OutputPageCount();

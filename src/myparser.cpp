@@ -1,5 +1,6 @@
 #include "myparser.h"
 #include <fstream>
+#include <ostream>
 
 MySaxParser::MySaxParser() : xmlpp::SaxParser() {
     std::thread(&MySaxParser::OutputPageCount, this).detach();
@@ -28,24 +29,38 @@ void MySaxParser::OutputPageCount() {
         auto remainingSeconds =
             ((elapsed_seconds / count) * totalPages).count();
 
-        int hours = static_cast<int>(remainingSeconds) / 3600;
-        int minutes = (static_cast<int>(remainingSeconds) % 3600) / 60;
-        int seconds = static_cast<int>(remainingSeconds) % 60;
+        int hoursLeft = static_cast<int>(remainingSeconds) / 3600;
+        int minutesLeft = (static_cast<int>(remainingSeconds) % 3600) / 60;
+        int secondsLeft = static_cast<int>(remainingSeconds) % 60;
+
+        int hoursTaken = static_cast<int>(elapsed_seconds.count()) / 3600;
+        int minutesTaken =
+            (static_cast<int>(elapsed_seconds.count()) % 3600) / 60;
+        int secondsTaken = static_cast<int>(elapsed_seconds.count()) % 60;
 
         float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
 
         std::cout << std::setprecision(3) << std::fixed << "\r" << cursup
-                  << cursup << cursup << "Page Number: " << count
+                  << cursup << cursup << cursup << "Page Number: " << count
                   << "            \nProgress: " << percentageDone
-                  << "%           \nTime Left: " << hours << " hrs " << minutes
-                  << " mins " << seconds << " secs         \n"
+                  << "%           \nTime Left: " << hoursLeft << " hrs "
+                  << minutesLeft << " mins " << secondsLeft
+                  << " secs         \nTime Taken: " << hoursTaken << " hrs "
+                  << minutesTaken << " mins " << secondsTaken
+                  << " secs         \n"
+
                   << std::flush;
     }
     std::cout << "Done!\a" << std::endl;
 }
 
 void MySaxParser::on_start_document() {
-    CSVFile.open("out.csv");
+    CSVFile.open("links.csv");
+    CSVFileHeader.open("nodes.csv");
+
+    CSVFile << "pageName:ID" << std::endl;
+    CSVFileHeader << ":START_ID,:END_ID,:TYPE" << std::endl;
+
     startTime = std::chrono::system_clock::now();
 }
 
@@ -59,6 +74,7 @@ void MySaxParser::on_end_document() {
     std::cout << "Finished processing document. \nPage Count: "
               << processedPageCount << std::endl;
     CSVFile.close();
+    CSVFileHeader.close();
 }
 
 void MySaxParser::on_start_element(const xmlpp::ustring &name,
@@ -86,8 +102,10 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 
         // pages.push_back(page);
         if (!page.redirect) {
-            for (auto x : page.links)
-                CSVFile << page.title << '|' << x << std::endl;
+            for (auto x : page.links) {
+                CSVFile << page.title << '|' << x << "|LINK" << std::endl;
+                CSVFileHeader << page.title << std::endl;
+            }
         }
 
         page = {};
