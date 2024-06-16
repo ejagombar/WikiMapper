@@ -13,7 +13,7 @@ find_package(re2 REQUIRED)
 pkg_check_modules(libxmlpp REQUIRED IMPORTED_TARGET libxml++-5.0)
 
 
-add_executable(${CMAKE_PROJECT_NAME} src/main.cpp src/myparser.cpp)
+add_executable(${CMAKE_PROJECT_NAME} src/main.cpp src/saxparser.cpp)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::libxmlpp)

@@ -11,11 +11,12 @@ Wikipedia provides lots of different data formats to download data. However the 
 ## Selecting a suitable XML parser
 
 - I initally selected [PUGIXML](https://pugixml.org/) as the XML parser of choice due to it being very small, simple, and well documented. However, after doing further research, I found that using a DOM based parser would not be suitable due to the size of the files. and instead a SAX based parser is required.
-- Instead, I will use libxml2 which is a GNOME project. [Libxml++](https://libxmlplusplus.sourceforge.net/) is a C++ wrapper for libxml2 and this will be used as I am going to develop this project in C++. 
+- Instead, I will use libxml2 which is a GNOME project. [Libxml++](https://libxmlplusplus.github.io/libxmlplusplus/) is a C++ wrapper for libxml2 and this will be used as I am going to develop this project in C++. 
 
 ## Setting up a Package Manager and Build System
 - After attempting to build Libxml++ and implement it into my project with CMake and getting nowhere, I decided to try to use a package manager.
 - The Libxml++ documentation website returns a 404 error however the documentation can be built from the release tar.
+- A secondary version was found [here](https://libxmlplusplus.github.io/libxmlplusplus/)
 
 ### Conan
 - I initially selected Conan as the package manager for this project and followed [this tutorial](https://docs.conan.io/2/tutorial/consuming_packages/build_simple_cmake_project.html) to set it up. The package page for libxmlpp on Conan can be found [here](https://conan.io/center/recipes/libxmlpp?version=5.2.0) and the source code can be found [here](https://github.com/libxmlplusplus/libxmlplusplus?tab=readme-ov-file).
@@ -58,3 +59,9 @@ Run the neo4j-admin command, linking the folders at these locations to use as vo
 Run the container, port forwarding the db and mounting the data
 
 ```sudo docker run -p7474:7474 -p7687:7687 -v $HOME/graph_data/data:/data -v $HOME/graph_data/gameofthrones:/var/lib/neo4j/import --env NEO4J_AUTH=neo4j/test1234 neo4j:latest```
+
+This is the command I used. THere are many issues as my csv file currently has lots of duplicates. It also has broken links but this is expected as I am not importing all items
+
+``` sudo docker run -v $HOME/graph_data/data:/data -v $HOME/graph_data/gameofthrones:/var/lib/neo4j/import neo4j:latest neo4j-admin database import full --nodes=import/nodes.csv --relationships=import/links.csv --delimiter="U+007C" --overwrite-destination --verbose --skip-duplicate-nodes=true --bad-tolerance=999999999 --skip-bad-relationships```
+
+This works and I am able to view the graph and look at the relationship between nodes. However, there are several issues with this solution. Firstly, only up to 300 nodes can be viewed at one time using the online Neo4j viewer. Furthermore, some of the links are broken. For example, there is a page called "é the Giant" which should be called "André the Giant" and I am not sure why the CSV file has generate this.

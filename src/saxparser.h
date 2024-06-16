@@ -34,8 +34,8 @@ class MySaxParser : public xmlpp::SaxParser {
     std::vector<Page> pages;
     ElementType nextElement;
     std::string content;
-    std::ofstream CSVFile;
-    std::ofstream CSVFileHeader;
+    std::ofstream CSVFileLinks;
+    std::ofstream CSVFileNodes;
 
     void ExtractAllLinks();
     void OutputPageCount();

@@ -1,4 +1,5 @@
-#include "myparser.h"
+#include "saxparser.h"
+#include <cstdlib>
 #include <fstream>
 #include <ostream>
 
@@ -14,7 +15,7 @@ MySaxParser::~MySaxParser() {
 void MySaxParser::OutputPageCount() {
     const int totalPages = 3800000;
 
-    std::cout << "---------Info---------\n\n-------Loading--------\n"
+    std::cout << "---------Info---------\n\n-------Loading--------\n\n"
               << std::endl;
 
     while (!stopOutputThread) {
@@ -55,11 +56,11 @@ void MySaxParser::OutputPageCount() {
 }
 
 void MySaxParser::on_start_document() {
-    CSVFile.open("links.csv");
-    CSVFileHeader.open("nodes.csv");
+    CSVFileLinks.open("links.csv");
+    CSVFileNodes.open("nodes.csv");
 
-    CSVFile << "pageName:ID" << std::endl;
-    CSVFileHeader << ":START_ID,:END_ID,:TYPE" << std::endl;
+    CSVFileNodes << "pageName:ID" << std::endl;
+    CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
 
     startTime = std::chrono::system_clock::now();
 }
@@ -73,8 +74,8 @@ std::vector<Page> MySaxParser::GetPages() { return pages; }
 void MySaxParser::on_end_document() {
     std::cout << "Finished processing document. \nPage Count: "
               << processedPageCount << std::endl;
-    CSVFile.close();
-    CSVFileHeader.close();
+    CSVFileLinks.close();
+    CSVFileNodes.close();
 }
 
 void MySaxParser::on_start_element(const xmlpp::ustring &name,
@@ -98,14 +99,16 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 
     if (depth == 2) {
 
-        ExtractAllLinks();
+        // ExtractAllLinks();
 
         // pages.push_back(page);
         if (!page.redirect) {
-            for (auto x : page.links) {
-                CSVFile << page.title << '|' << x << "|LINK" << std::endl;
-                CSVFileHeader << page.title << std::endl;
-            }
+            // for (auto x : page.links) {
+            //     CSVFileLinks << "\"" << page.title << "\",\"" << x <<
+            //     "\",LINK"
+            //                  << std::endl;
+            // }
+            CSVFileNodes << "\"" << page.title << "\"" << std::endl;
         }
 
         page = {};
@@ -118,11 +121,21 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 void MySaxParser::on_characters(const xmlpp::ustring &text) {
     if (nextElement == TITLE) {
         std::string lowerString = text;
-        // transform(lowerString.begin(), lowerString.end(),
-        // lowerString.begin(),
-        //           ::tolower);
+        transform(lowerString.begin(), lowerString.end(), lowerString.begin(),
+                  ::tolower);
 
+        // Remove quotes from string
+        lowerString.erase(remove(lowerString.begin(), lowerString.end(), '\"'),
+                          lowerString.end());
         page.title = lowerString;
+        std::cout << text << "\n";
+        if (lowerString == "é the giant") {
+            // std::cout << "\n\n\n\n\n\nALERT\n\n\n"
+            //           << lowerString << "\n"
+            //           << text << "\n\n\n\n\n\n"
+            //           << std::endl;
+            exit(0);
+        }
     } else if (nextElement == CONTENT) {
         content = content + text;
     }
@@ -163,6 +176,7 @@ void MySaxParser::ExtractAllLinks() {
         auto x = find(str.begin(), str.end(), '|');
         auto subStr = std::string(str.begin(), x);
 
+        subStr.erase(remove(subStr.begin(), subStr.end(), '\"'), subStr.end());
         page.links.push_back(subStr);
     }
 }
