@@ -1,25 +1,24 @@
 #include "saxparser.h"
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <ostream>
+#include <pstl/glue_algorithm_defs.h>
 
 MySaxParser::MySaxParser() : xmlpp::SaxParser() {
     std::thread(&MySaxParser::OutputPageCount, this).detach();
 }
 
-MySaxParser::~MySaxParser() {
-    stopOutputThread = true;
-    // std::this_thread::sleep_for(std::chrono::seconds(1));
-}
+MySaxParser::~MySaxParser() { stopOutputThread = true; }
 
 void MySaxParser::OutputPageCount() {
-    const int totalPages = 3800000;
+    const int totalPages = 23603280;
 
     std::cout << "---------Info---------\n\n-------Loading--------\n\n"
               << std::endl;
 
     while (!stopOutputThread) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
         int count = processedPageCount.load();
 
         auto start = startTime.load();
@@ -28,8 +27,7 @@ void MySaxParser::OutputPageCount() {
         std::chrono::duration<double> elapsed_seconds = end - start;
 
         auto remainingSeconds =
-            ((elapsed_seconds / count) * totalPages).count();
-
+            ((elapsed_seconds / count) * totalPages - elapsed_seconds).count();
         int hoursLeft = static_cast<int>(remainingSeconds) / 3600;
         int minutesLeft = (static_cast<int>(remainingSeconds) % 3600) / 60;
         int secondsLeft = static_cast<int>(remainingSeconds) % 60;
@@ -56,6 +54,8 @@ void MySaxParser::OutputPageCount() {
 }
 
 void MySaxParser::on_start_document() {
+    std::remove("links.csv");
+    std::remove("nodes.csv");
     CSVFileLinks.open("links.csv");
     CSVFileNodes.open("nodes.csv");
 
@@ -98,17 +98,17 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     nextElement = OTHER;
 
     if (depth == 2) {
+        ExtractAllLinks();
 
-        // ExtractAllLinks();
-
-        // pages.push_back(page);
-        if (!page.redirect) {
-            // for (auto x : page.links) {
-            //     CSVFileLinks << "\"" << page.title << "\",\"" << x <<
-            //     "\",LINK"
-            //                  << std::endl;
-            // }
-            CSVFileNodes << "\"" << page.title << "\"" << std::endl;
+        if (!page.redirect && !RE2::PartialMatch(page.title, "^.+:")) {
+            std::string outputstr = "";
+            for (auto x : page.links) {
+                outputstr =
+                    outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
+            }
+            CSVFileLinks << outputstr << std::flush;
+            CSVFileNodes << "\"" << page.title << "\"" << std::flush;
+            // pages.push_back(page);
         }
 
         page = {};
@@ -120,25 +120,25 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 
 void MySaxParser::on_characters(const xmlpp::ustring &text) {
     if (nextElement == TITLE) {
-        std::string lowerString = text;
-        transform(lowerString.begin(), lowerString.end(), lowerString.begin(),
-                  ::tolower);
+        std::string title = text;
+        FormatLink(title);
 
-        // Remove quotes from string
-        lowerString.erase(remove(lowerString.begin(), lowerString.end(), '\"'),
-                          lowerString.end());
-        page.title = lowerString;
-        std::cout << text << "\n";
-        if (lowerString == "é the giant") {
-            // std::cout << "\n\n\n\n\n\nALERT\n\n\n"
-            //           << lowerString << "\n"
-            //           << text << "\n\n\n\n\n\n"
-            //           << std::endl;
-            exit(0);
-        }
+        page.title = page.title + title;
+
     } else if (nextElement == CONTENT) {
         content = content + text;
     }
+}
+
+void MySaxParser::FormatLink(std::string &str) {
+    // Convert to lower case
+    // transform(str.begin(), str.end(), str.begin(), ::tolower);
+
+    // Replace double quotes with single quotes
+    std::replace(str.begin(), str.end(), '\"', '\'');
+
+    // Remove quotes from string
+    // str.erase(remove(str.begin(), str.end(), '\"'), str.end());
 }
 
 void MySaxParser::on_error(const xmlpp::ustring &text) {
@@ -154,7 +154,6 @@ void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
 }
 
 void MySaxParser::ExtractAllLinks() {
-
     re2::RE2 re("\\[\\[([^\\]]+)\\]\\]");
     re2::StringPiece input(content);
 
@@ -168,7 +167,6 @@ void MySaxParser::ExtractAllLinks() {
         }
 
         std::string str(match);
-        transform(str.begin(), str.end(), str.begin(), ::tolower);
 
         // Sometimes the page that is being linked to is not the same as the
         // text being shown in the link. This ensures that only the true page
@@ -176,7 +174,8 @@ void MySaxParser::ExtractAllLinks() {
         auto x = find(str.begin(), str.end(), '|');
         auto subStr = std::string(str.begin(), x);
 
-        subStr.erase(remove(subStr.begin(), subStr.end(), '\"'), subStr.end());
+        FormatLink(subStr);
+
         page.links.push_back(subStr);
     }
 }
