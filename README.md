@@ -86,6 +86,42 @@ There are also some issues in the parser. Some page titles are being cut off, fo
 
 ### GProf Analysis
 
+- In order to profile the code with Gprof, the flags below must be added to the CMAKE file.
+
+```
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+```
+
+- After this, the program must be executed and left to finish running.
+
+- Then, the GProf can be called, passing in the executable file.
+
+- Here are some of the results:
+
+```
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ns/call  ns/call  name    
+  4.69      0.15     0.15                             re2::PODArray<int>::size() const
+  4.37      0.28     0.14                             std::unique_ptr<int [], re2::PODArray<int>::Deleter>::get() const
+  3.07      0.38     0.10                             std::unique_ptr<int [], re2::PODArray<int>::Deleter>::operator[](unsigned long) const
+  2.59      0.46     0.08                             re2::SparseSetT<void>::contains(int) const
+  2.59      0.54     0.08                             std::_Head_base<0ul, int*, false>::_M_head(std::_Head_base<0ul, int*, false> const&)
+  2.59      0.62     0.08                             std::_Tuple_impl<0ul, int*, re2::PODArray<int>::Deleter>::_M_head(std::_Tuple_impl<0ul, int*, re2::PODArray<int>::Deleter> const&)
+  2.43      0.69     0.08                             re2::SparseSetT<void>::max_size() const
+  2.43      0.77     0.08                             std::tuple_element<0ul, std::tuple<int*, re2::PODArray<int>::Deleter> >::type const& std::get<0ul, int*, re2::PODArray<int>::Deleter>(std::tuple<int*, re2::PODArray<int>::Deleter> const&)
+  2.27      0.84     0.07                             std::__uniq_ptr_impl<int, re2::PODArray<int>::Deleter>::_M_ptr() const
+  2.27      0.91     0.07                             std::_Head_base<1ul, re2::PODArray<int>::Deleter, false>::_M_head(std::_Head_base<1ul, re2::PODArray<int>::Deleter, false> const&)
+  1.94      0.97     0.06                             re2::DFA::AddToQueue(re2::DFA::Workq*, int, unsigned int)
+  1.94      1.03     0.06                             std::_Tuple_impl<1ul, re2::PODArray<int>::Deleter>::_M_head(std::_Tuple_impl<1ul, re2::PODArray<int>::Deleter> const&)
+  1.78      1.08     0.06                             re2::PODArray<int>::operator[](int) const
+  1.62      1.13     0.05                             re2::Prog::Inst::opcode()
+```
+
+- Most of the time is spent on the RE2 function calls. This makes sense as the RE2 has to process a lot of text for each page. This is hard to increase efficiency so the next steps will be to include multithreading so that multiple pages can be processed at once.
+
+### Parallelising the Parser
