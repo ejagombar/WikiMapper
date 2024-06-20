@@ -125,3 +125,9 @@ Each sample counts as 0.01 seconds.
 - Most of the time is spent on the RE2 function calls. This makes sense as the RE2 has to process a lot of text for each page. This is hard to increase efficiency so the next steps will be to include multithreading so that multiple pages can be processed at once.
 
 ### Parallelising the Parser
+I did consider attempting to have each thread read from the file, process the data, and append it to the output file. However, one thread reading from the file would block other threads from doing so, reducing the performance.
+A better way to acheive multithreading is outlined below
+
+- One thread will be used to split the data into chunks and add them to a queue.
+- Other threads will then take data from this queue and process it and return it to a processed buffer.
+- A last thread will take the processed data and write it to the output files.
