@@ -11,13 +11,15 @@
 #include "saxparser.h"
 
 int main(int argc, char *argv[]) {
-    std::string filepath;
-    if (argc > 1)
-        filepath = argv[1]; // Allow the user to specify a different XML file to
-    else
-        filepath = "example.xml";
 
-    auto return_code = EXIT_SUCCESS;
+    int return_code = EXIT_SUCCESS;
+
+    if (argc <= 1) {
+        std::cerr << "No input file provided" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    std::string filepath = argv[1];
 
     // Parse document in one go
     try {
