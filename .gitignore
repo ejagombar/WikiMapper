@@ -3,4 +3,6 @@ build/
 docker-compose.override.yml
 .env
 neo4j_db/
-out.csv
+*.csv
+*.out
+
