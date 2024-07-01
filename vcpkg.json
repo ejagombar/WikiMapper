@@ -2,6 +2,7 @@
   "dependencies": [
     "fmt",
     "libxmlpp",
-    "re2"
+    "re2",
+    "curl"
   ]
 }

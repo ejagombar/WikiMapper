@@ -1,21 +1,19 @@
 #include "saxparser.h"
 #include <chrono>
 #include <cstdlib>
+#include <curl/curl.h>
 #include <fstream>
 #include <ostream>
 #include <pstl/glue_algorithm_defs.h>
 
-MySaxParser::MySaxParser() : xmlpp::SaxParser() {
-    std::thread(&MySaxParser::OutputPageCount, this).detach();
-}
+MySaxParser::MySaxParser() : xmlpp::SaxParser() { std::thread(&MySaxParser::OutputPageCount, this).detach(); }
 
 MySaxParser::~MySaxParser() { stopOutputThread = true; }
 
 void MySaxParser::OutputPageCount() {
     const int totalPages = 23603280;
 
-    std::cout << "---------Info---------\n\n-------Loading--------\n\n"
-              << std::endl;
+    std::cout << "---------Info---------\n\n-------Loading--------\n\n" << std::endl;
 
     while (!stopOutputThread) {
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -26,27 +24,20 @@ void MySaxParser::OutputPageCount() {
 
         std::chrono::duration<double> elapsed_seconds = end - start;
 
-        auto remainingSeconds =
-            ((elapsed_seconds / count) * totalPages - elapsed_seconds).count();
+        auto remainingSeconds = ((elapsed_seconds / count) * totalPages - elapsed_seconds).count();
         int hoursLeft = static_cast<int>(remainingSeconds) / 3600;
         int minutesLeft = (static_cast<int>(remainingSeconds) % 3600) / 60;
         int secondsLeft = static_cast<int>(remainingSeconds) % 60;
 
         int hoursTaken = static_cast<int>(elapsed_seconds.count()) / 3600;
-        int minutesTaken =
-            (static_cast<int>(elapsed_seconds.count()) % 3600) / 60;
+        int minutesTaken = (static_cast<int>(elapsed_seconds.count()) % 3600) / 60;
         int secondsTaken = static_cast<int>(elapsed_seconds.count()) % 60;
 
         float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
 
-        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup
-                  << cursup << cursup << cursup << "Page Number: " << count
-                  << "            \nProgress: " << percentageDone
-                  << "%           \nTime Left: " << hoursLeft << " hrs "
-                  << minutesLeft << " mins " << secondsLeft
-                  << " secs         \nTime Taken: " << hoursTaken << " hrs "
-                  << minutesTaken << " mins " << secondsTaken
-                  << " secs         \n"
+        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup << cursup << cursup << cursup << "Page Number: " << count << "            \nProgress: " << percentageDone
+                  << "%           \nTime Left: " << hoursLeft << " hrs " << minutesLeft << " mins " << secondsLeft << " secs         \nTime Taken: " << hoursTaken << " hrs " << minutesTaken
+                  << " mins " << secondsTaken << " secs         \n"
 
                   << std::flush;
     }
@@ -72,14 +63,12 @@ void MySaxParser::on_warning(const xmlpp::ustring &text) {}
 std::vector<Page> MySaxParser::GetPages() { return pages; }
 
 void MySaxParser::on_end_document() {
-    std::cout << "Finished processing document. \nPage Count: "
-              << processedPageCount << std::endl;
+    std::cout << "Finished processing document. \nPage Count: " << processedPageCount << std::endl;
     CSVFileLinks.close();
     CSVFileNodes.close();
 }
 
-void MySaxParser::on_start_element(const xmlpp::ustring &name,
-                                   const AttributeList &attributes) {
+void MySaxParser::on_start_element(const xmlpp::ustring &name, const AttributeList &attributes) {
     if (name == "title") {
         nextElement = TITLE;
         processedPageCount++;
@@ -98,16 +87,15 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     nextElement = OTHER;
 
     if (depth == 2) {
-        ExtractAllLinks();
+        // ExtractAllLinks();
 
         if (!page.redirect && !RE2::PartialMatch(page.title, "^.+:")) {
             std::string outputstr = "";
             for (auto x : page.links) {
-                outputstr =
-                    outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
+                outputstr = outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
             }
             CSVFileLinks << outputstr << std::flush;
-            CSVFileNodes << "\"" << page.title << "\"" << std::flush;
+            CSVFileNodes << "\"" << page.title << "\"\n" << std::flush;
             // pages.push_back(page);
         }
 
@@ -141,16 +129,10 @@ void MySaxParser::FormatLink(std::string &str) {
     // str.erase(remove(str.begin(), str.end(), '\"'), str.end());
 }
 
-void MySaxParser::on_error(const xmlpp::ustring &text) {
-    std::cout << "ERROR on page " << processedPageCount
-              << ". Most recent page title: " << page.title
-              << ". Error: " << text << std::endl;
-}
+void MySaxParser::on_error(const xmlpp::ustring &text) { std::cout << "ERROR on page " << processedPageCount << ". Most recent page title: " << page.title << ". Error: " << text << std::endl; }
 
 void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
-    std::cout << "FATAL ERROR on page " << processedPageCount
-              << ". Most recent page title: " << page.title
-              << ". Error: " << text << std::endl;
+    std::cout << "FATAL ERROR on page " << processedPageCount << ". Most recent page title: " << page.title << ". Error: " << text << std::endl;
 }
 
 void MySaxParser::ExtractAllLinks() {
