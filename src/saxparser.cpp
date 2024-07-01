@@ -1,7 +1,7 @@
 #include "saxparser.h"
+#include "neo4j.h"
 #include <chrono>
 #include <cstdlib>
-#include <curl/curl.h>
 #include <fstream>
 #include <ostream>
 #include <pstl/glue_algorithm_defs.h>
@@ -35,9 +35,11 @@ void MySaxParser::OutputPageCount() {
 
         float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
 
-        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup << cursup << cursup << cursup << "Page Number: " << count << "            \nProgress: " << percentageDone
-                  << "%           \nTime Left: " << hoursLeft << " hrs " << minutesLeft << " mins " << secondsLeft << " secs         \nTime Taken: " << hoursTaken << " hrs " << minutesTaken
-                  << " mins " << secondsTaken << " secs         \n"
+        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup << cursup << cursup << cursup
+                  << "Page Number: " << count << "            \nProgress: " << percentageDone
+                  << "%           \nTime Left: " << hoursLeft << " hrs " << minutesLeft << " mins " << secondsLeft
+                  << " secs         \nTime Taken: " << hoursTaken << " hrs " << minutesTaken << " mins " << secondsTaken
+                  << " secs         \n"
 
                   << std::flush;
     }
@@ -129,10 +131,14 @@ void MySaxParser::FormatLink(std::string &str) {
     // str.erase(remove(str.begin(), str.end(), '\"'), str.end());
 }
 
-void MySaxParser::on_error(const xmlpp::ustring &text) { std::cout << "ERROR on page " << processedPageCount << ". Most recent page title: " << page.title << ". Error: " << text << std::endl; }
+void MySaxParser::on_error(const xmlpp::ustring &text) {
+    std::cout << "ERROR on page " << processedPageCount << ". Most recent page title: " << page.title
+              << ". Error: " << text << std::endl;
+}
 
 void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
-    std::cout << "FATAL ERROR on page " << processedPageCount << ". Most recent page title: " << page.title << ". Error: " << text << std::endl;
+    std::cout << "FATAL ERROR on page " << processedPageCount << ". Most recent page title: " << page.title
+              << ". Error: " << text << std::endl;
 }
 
 void MySaxParser::ExtractAllLinks() {
