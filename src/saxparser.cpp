@@ -1,12 +1,14 @@
 #include "saxparser.h"
-#include "neo4j.h"
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <ostream>
 #include <pstl/glue_algorithm_defs.h>
 
-MySaxParser::MySaxParser() : xmlpp::SaxParser() { std::thread(&MySaxParser::OutputPageCount, this).detach(); }
+MySaxParser::MySaxParser(std::function<void(Page page)> pageProcessor) : xmlpp::SaxParser() {
+    std::thread(&MySaxParser::OutputPageCount, this).detach();
+    processor = pageProcessor;
+}
 
 MySaxParser::~MySaxParser() { stopOutputThread = true; }
 
@@ -35,27 +37,20 @@ void MySaxParser::OutputPageCount() {
 
         float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
 
-        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup << cursup << cursup << cursup
-                  << "Page Number: " << count << "            \nProgress: " << percentageDone
-                  << "%           \nTime Left: " << hoursLeft << " hrs " << minutesLeft << " mins " << secondsLeft
-                  << " secs         \nTime Taken: " << hoursTaken << " hrs " << minutesTaken << " mins " << secondsTaken
-                  << " secs         \n"
+        Log << std::setprecision(3) << std::fixed << "\r" << cursup << cursup << cursup << cursup
+            << "Page Number: " << count << "            \nProgress: " << percentageDone
+            << "%           \nTime Left: " << hoursLeft << " hrs " << minutesLeft << " mins " << secondsLeft
+            << " secs         \nTime Taken: " << hoursTaken << " hrs " << minutesTaken << " mins " << secondsTaken
+            << " secs         \n"
 
-                  << std::flush;
+            << std::flush;
     }
-    std::cout << "Done!\a" << std::endl;
+    Log << "Done!\a" << std::endl;
 }
 
 void MySaxParser::on_start_document() {
-    std::remove("links.csv");
-    std::remove("nodes.csv");
-    CSVFileLinks.open("links.csv");
-    CSVFileNodes.open("nodes.csv");
-
-    CSVFileNodes << "pageName:ID" << std::endl;
-    CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
-
     startTime = std::chrono::system_clock::now();
+    Log.open("log.txt");
 }
 
 void MySaxParser::on_comment(const xmlpp::ustring &text) {}
@@ -66,8 +61,7 @@ std::vector<Page> MySaxParser::GetPages() { return pages; }
 
 void MySaxParser::on_end_document() {
     std::cout << "Finished processing document. \nPage Count: " << processedPageCount << std::endl;
-    CSVFileLinks.close();
-    CSVFileNodes.close();
+    Log.close();
 }
 
 void MySaxParser::on_start_element(const xmlpp::ustring &name, const AttributeList &attributes) {
@@ -89,18 +83,10 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     nextElement = OTHER;
 
     if (depth == 2) {
-        // ExtractAllLinks();
-
+        ExtractAllLinks();
         if (!page.redirect && !RE2::PartialMatch(page.title, "^.+:")) {
-            std::string outputstr = "";
-            for (auto x : page.links) {
-                outputstr = outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
-            }
-            CSVFileLinks << outputstr << std::flush;
-            CSVFileNodes << "\"" << page.title << "\"\n" << std::flush;
-            // pages.push_back(page);
+            processor(page);
         }
-
         page = {};
         content = "";
     }

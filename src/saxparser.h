@@ -5,6 +5,7 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
+#include <functional>
 #include <libxml++/libxml++.h>
 #include <re2/re2.h>
 #include <vector>
@@ -21,7 +22,7 @@ enum ElementType { TITLE, CONTENT, OTHER };
 
 class MySaxParser : public xmlpp::SaxParser {
   public:
-    MySaxParser();
+    MySaxParser(std::function<void(Page page)> pageProcessor);
     ~MySaxParser() override;
     std::vector<Page> GetPages();
 
@@ -29,12 +30,14 @@ class MySaxParser : public xmlpp::SaxParser {
     Page page;
     std::string content;
     std::vector<Page> pages;
+    std::function<void(Page page)> processor;
 
     int depth = 0;
     ElementType nextElement;
 
     std::ofstream CSVFileLinks;
     std::ofstream CSVFileNodes;
+    std::ofstream Log;
 
     std::atomic<int> processedPageCount = 0;
     std::atomic<bool> stopOutputThread = false;
@@ -48,8 +51,7 @@ class MySaxParser : public xmlpp::SaxParser {
     // overrides:
     void on_start_document() override;
     void on_end_document() override;
-    void on_start_element(const xmlpp::ustring &name,
-                          const AttributeList &properties) override;
+    void on_start_element(const xmlpp::ustring &name, const AttributeList &properties) override;
     void on_end_element(const xmlpp::ustring &name) override;
     void on_characters(const xmlpp::ustring &characters) override;
     void on_comment(const xmlpp::ustring &text) override;
