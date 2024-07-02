@@ -1,8 +1,9 @@
 {
   "dependencies": [
+    "curl",
     "fmt",
     "libxmlpp",
     "re2",
-    "curl"
+    "jsoncpp"
   ]
 }
