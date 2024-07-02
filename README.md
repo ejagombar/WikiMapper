@@ -132,6 +132,10 @@ A better way to acheive multithreading is outlined below
 - Other threads will then take data from this queue and process it and return it to a processed buffer.
 - A last thread will take the processed data and write it to the output files.
 
+### (Sidequest) Writing data directly to Neo4j using HTTP
+I am struggling to get the neo4j-admin tool to work at the moment so I thought I would test using the HTTP interface so I could simply write data to the database directly. I am expecting this method to be extremely slow but it would be nice to get some things to work so I can see some of the data in Neo4j.
+I used the curl library to perform http requests. This worked, and I was able to insert data however it took over two hours to insert around 160000 records, much less than the 6 million so this method is not really viable.
+
 # Benchmarks and Testing
 
 ### Test 1
