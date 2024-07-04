@@ -2,11 +2,12 @@
 #include <config.h>
 #endif
 
-#include <libxml++/libxml++.h>
-#include <libxml++/parsers/textreader.h>
-
 #include <cstdlib>
 #include <iostream>
+#include <libxml++/libxml++.h>
+#include <libxml++/parsers/textreader.h>
+#include <mutex>
+#include <queue>
 
 int main(int argc, char *argv[]) {
     try {
