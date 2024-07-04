@@ -16,8 +16,10 @@ find_package(re2 REQUIRED)
 # Then use pkg-config for locate specific package
 pkg_check_modules(libxmlpp REQUIRED IMPORTED_TARGET libxml++-5.0)
 
+file(GLOB Lib_Sources "lib/*.cpp")
+file(GLOB Src_Sources "src/*.cpp")
 
-add_executable(${CMAKE_PROJECT_NAME} src/main.cpp src/saxparser.cpp)
+add_executable(${CMAKE_PROJECT_NAME} ${Lib_Sources} ${Src_Sources})
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::libxmlpp)
