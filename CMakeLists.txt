@@ -16,11 +16,14 @@ find_package(re2 REQUIRED)
 # Then use pkg-config for locate specific package
 pkg_check_modules(libxmlpp REQUIRED IMPORTED_TARGET libxml++-5.0)
 
-file(GLOB Lib_Sources "lib/*.cpp")
-file(GLOB Src_Sources "src/*.cpp")
+include_directories(lib)
+link_directories(lib)
 
-add_executable(${CMAKE_PROJECT_NAME} ${Lib_Sources} ${Src_Sources})
+file(GLOB Src_Sources "./src/*.cpp")
 
+add_executable(${CMAKE_PROJECT_NAME} ${Src_Sources})
+
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/TSQueue)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::libxmlpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE re2::re2)
