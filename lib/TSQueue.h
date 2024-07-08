@@ -9,6 +9,7 @@ template <typename T> class TSQueue {
 
     void push(T item);
     T pop();
+    bool empty();
 
   private:
     std::queue<T> m_queue;
@@ -33,3 +34,5 @@ template <typename T> T TSQueue<T>::pop() {
 
     return item;
 }
+
+template <typename T> bool TSQueue<T>::empty() { return m_queue.empty(); }
