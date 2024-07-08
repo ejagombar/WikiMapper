@@ -2,9 +2,7 @@
 #define __LIBXMLPP_EXAMPLES_MYPARSER_H
 
 #include <bits/stdc++.h>
-#include <chrono>
 #include <ctime>
-#include <fstream>
 #include <libxml++/libxml++.h>
 #include <re2/re2.h>
 #include <vector>
@@ -23,22 +21,15 @@ class MySaxParser : public xmlpp::SaxParser {
   public:
     MySaxParser();
     ~MySaxParser() override;
-    std::vector<Page> GetPages();
+    Page GetPage();
 
   private:
     Page page;
     std::string content;
-    std::vector<Page> pages;
+    Page pages;
 
     int depth = 0;
     ElementType nextElement;
-
-    std::ofstream CSVFileLinks;
-    std::ofstream CSVFileNodes;
-
-    std::atomic<int> processedPageCount = 0;
-    std::atomic<bool> stopOutputThread = false;
-    std::atomic<std::chrono::time_point<std::chrono::system_clock>> startTime;
 
     void ExtractAllLinks();
     void OutputPageCount();
@@ -48,8 +39,7 @@ class MySaxParser : public xmlpp::SaxParser {
     // overrides:
     void on_start_document() override;
     void on_end_document() override;
-    void on_start_element(const xmlpp::ustring &name,
-                          const AttributeList &properties) override;
+    void on_start_element(const xmlpp::ustring &name, const AttributeList &properties) override;
     void on_end_element(const xmlpp::ustring &name) override;
     void on_characters(const xmlpp::ustring &characters) override;
     void on_comment(const xmlpp::ustring &text) override;
