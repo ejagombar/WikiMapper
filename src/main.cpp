@@ -1,22 +1,19 @@
-#include <thread>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
 #include "TSQueue.h"
+#include "progress.h"
 #include "saxparser.h"
 #include <cstdlib>
 #include <iostream>
 #include <libxml++/libxml++.h>
 #include <libxml++/parsers/textreader.h>
 #include <stdexcept>
+#include <thread>
 
 std::atomic<bool> processThread = true;
 std::atomic<bool> writerThread = true;
-
-std::atomic<int> processedPageCount = 0;
-std::atomic<bool> stopOutputThread = false;
-std::atomic<std::chrono::time_point<std::chrono::system_clock>> startTime;
 
 void pageProcessor(TSQueue<std::string> &qIn, TSQueue<Page> &qOut) {
     while (processThread || !qIn.empty()) {
@@ -53,49 +50,13 @@ void writer(TSQueue<Page> &qIn) {
                     outputstr = outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
                 }
                 CSVFileLinks << outputstr << std::flush;
-                CSVFileNodes << "\"" << page.title << "\"" << std::flush;
+                CSVFileNodes << "\"" << page.title << "\"\n" << std::flush;
             }
         }
     }
 
     CSVFileLinks.close();
     CSVFileNodes.close();
-}
-
-void OutputPageCount() {
-    const int totalPages = 23603280;
-
-    std::cout << "---------Info---------\n\n-------Loading--------\n\n" << std::endl;
-
-    while (!stopOutputThread) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
-        int count = processedPageCount.load();
-
-        auto start = startTime.load();
-        auto end = std::chrono::system_clock::now();
-
-        std::chrono::duration<double> elapsed_seconds = end - start;
-
-        auto remainingSeconds = ((elapsed_seconds / count) * totalPages - elapsed_seconds).count();
-        int hoursLeft = static_cast<int>(remainingSeconds) / 3600;
-        int minutesLeft = (static_cast<int>(remainingSeconds) % 3600) / 60;
-        int secondsLeft = static_cast<int>(remainingSeconds) % 60;
-
-        int hoursTaken = static_cast<int>(elapsed_seconds.count()) / 3600;
-        int minutesTaken = (static_cast<int>(elapsed_seconds.count()) % 3600) / 60;
-        int secondsTaken = static_cast<int>(elapsed_seconds.count()) % 60;
-
-        float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
-
-        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup << cursup << cursup << cursup
-                  << "Page Number: " << count << "            \nProgress: " << percentageDone
-                  << "%           \nTime Left: " << hoursLeft << " hrs " << minutesLeft << " mins " << secondsLeft
-                  << " secs         \nTime Taken: " << hoursTaken << " hrs " << minutesTaken << " mins " << secondsTaken
-                  << " secs         \n"
-
-                  << std::flush;
-    }
-    std::cout << "Done!\a" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -118,9 +79,7 @@ int main(int argc, char *argv[]) {
 
         std::thread writeThread(writer, std::ref(qOut));
 
-        std::thread statsThread(OutputPageCount);
-
-        startTime = std::chrono::system_clock::now();
+        Progress progress(23603280);
 
         xmlpp::TextReader reader(filepath);
         while (reader.read()) {
@@ -130,7 +89,7 @@ int main(int argc, char *argv[]) {
                 std::string output(reader.read_outer_xml());
 
                 qIn.push(output);
-                processedPageCount++;
+                progress.increment();
             }
             while (qIn.size() > 200) {
             }
@@ -145,8 +104,6 @@ int main(int argc, char *argv[]) {
         writerThread = false;
 
         writeThread.join();
-
-        stopOutputThread = true;
 
     } catch (const std::exception &e) {
         std::cerr << "Exception caught: " << e.what() << std::endl;
