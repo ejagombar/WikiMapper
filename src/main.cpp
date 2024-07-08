@@ -54,7 +54,6 @@ void writer(TSQueue<Page> &qIn) {
                 }
                 CSVFileLinks << outputstr << std::flush;
                 CSVFileNodes << "\"" << page.title << "\"" << std::flush;
-                processedPageCount++;
             }
         }
     }
@@ -113,7 +112,7 @@ int main(int argc, char *argv[]) {
         TSQueue<Page> qOut;
 
         std::vector<std::thread> processorThreads;
-        for (size_t i = 0; i < 16; ++i) {
+        for (size_t i = 0; i < 14; ++i) {
             processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut));
         }
 
@@ -131,6 +130,9 @@ int main(int argc, char *argv[]) {
                 std::string output(reader.read_outer_xml());
 
                 qIn.push(output);
+                processedPageCount++;
+            }
+            while (qIn.size() > 200) {
             }
         }
 
