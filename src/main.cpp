@@ -2,7 +2,8 @@
 #include <config.h>
 #endif
 
-#include "../lib/TSQueue.h"
+// #include "../lib/TSQueue.h"
+#include "TSQueue.h"
 #include <cstdlib>
 #include <iostream>
 #include <libxml++/libxml++.h>
