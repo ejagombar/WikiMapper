@@ -11,10 +11,15 @@
 #include <libxml++/parsers/textreader.h>
 #include <stdexcept>
 
-std::atomic<bool> stopProcessThread = false;
+std::atomic<bool> processThread = true;
+std::atomic<bool> writerThread = true;
+
+std::atomic<int> processedPageCount = 0;
+std::atomic<bool> stopOutputThread = false;
+std::atomic<std::chrono::time_point<std::chrono::system_clock>> startTime;
 
 void pageProcessor(TSQueue<std::string> &qIn, TSQueue<Page> &qOut) {
-    while (!stopProcessThread || !qIn.empty()) {
+    while (processThread || !qIn.empty()) {
         std::string input = qIn.pop();
         MySaxParser parser;
 
@@ -24,6 +29,74 @@ void pageProcessor(TSQueue<std::string> &qIn, TSQueue<Page> &qOut) {
 
         qOut.push(output);
     }
+}
+
+void writer(TSQueue<Page> &qIn) {
+    std::remove("links.csv");
+    std::remove("nodes.csv");
+
+    std::ofstream CSVFileLinks;
+    std::ofstream CSVFileNodes;
+
+    CSVFileLinks.open("links.csv");
+    CSVFileNodes.open("nodes.csv");
+
+    while (writerThread || !qIn.empty()) {
+
+        if (!qIn.empty()) {
+
+            Page page = qIn.pop();
+            if (page.title.size() > 0) {
+                std::string outputstr = "";
+
+                for (auto x : page.links) {
+                    outputstr = outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
+                }
+                CSVFileLinks << outputstr << std::flush;
+                CSVFileNodes << "\"" << page.title << "\"" << std::flush;
+                processedPageCount++;
+            }
+        }
+    }
+
+    CSVFileLinks.close();
+    CSVFileNodes.close();
+}
+
+void OutputPageCount() {
+    const int totalPages = 23603280;
+
+    std::cout << "---------Info---------\n\n-------Loading--------\n\n" << std::endl;
+
+    while (!stopOutputThread) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        int count = processedPageCount.load();
+
+        auto start = startTime.load();
+        auto end = std::chrono::system_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = end - start;
+
+        auto remainingSeconds = ((elapsed_seconds / count) * totalPages - elapsed_seconds).count();
+        int hoursLeft = static_cast<int>(remainingSeconds) / 3600;
+        int minutesLeft = (static_cast<int>(remainingSeconds) % 3600) / 60;
+        int secondsLeft = static_cast<int>(remainingSeconds) % 60;
+
+        int hoursTaken = static_cast<int>(elapsed_seconds.count()) / 3600;
+        int minutesTaken = (static_cast<int>(elapsed_seconds.count()) % 3600) / 60;
+        int secondsTaken = static_cast<int>(elapsed_seconds.count()) % 60;
+
+        float percentageDone = (static_cast<float>(count) / totalPages) * 100.0;
+
+        std::cout << std::setprecision(3) << std::fixed << "\r" << cursup << cursup << cursup << cursup
+                  << "Page Number: " << count << "            \nProgress: " << percentageDone
+                  << "%           \nTime Left: " << hoursLeft << " hrs " << minutesLeft << " mins " << secondsLeft
+                  << " secs         \nTime Taken: " << hoursTaken << " hrs " << minutesTaken << " mins " << secondsTaken
+                  << " secs         \n"
+
+                  << std::flush;
+    }
+    std::cout << "Done!\a" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -39,7 +112,16 @@ int main(int argc, char *argv[]) {
         TSQueue<std::string> qIn;
         TSQueue<Page> qOut;
 
-        std::thread readerThread(pageProcessor, std::ref(qIn), std::ref(qOut));
+        std::vector<std::thread> processorThreads;
+        for (size_t i = 0; i < 16; ++i) {
+            processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut));
+        }
+
+        std::thread writeThread(writer, std::ref(qOut));
+
+        std::thread statsThread(OutputPageCount);
+
+        startTime = std::chrono::system_clock::now();
 
         xmlpp::TextReader reader(filepath);
         while (reader.read()) {
@@ -52,21 +134,17 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        stopProcessThread = true;
+        processThread = false;
 
-        readerThread.join();
-
-        std::cout << "Finished Loop" << std::endl;
-        while (!qOut.empty()) {
-            Page p = qOut.pop();
-            if (true) {
-                std::cout << p.title << " " << p.redirect << std::endl;
-                std::vector<std::string> links = p.links;
-                for (std::string l : links) {
-                    std::cout << l << std::endl;
-                }
-            }
+        for (auto &t : processorThreads) {
+            t.join();
         }
+
+        writerThread = false;
+
+        writeThread.join();
+
+        stopOutputThread = true;
 
     } catch (const std::exception &e) {
         std::cerr << "Exception caught: " << e.what() << std::endl;

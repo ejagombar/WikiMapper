@@ -35,4 +35,7 @@ template <typename T> T TSQueue<T>::pop() {
     return item;
 }
 
-template <typename T> bool TSQueue<T>::empty() { return m_queue.empty(); }
+template <typename T> bool TSQueue<T>::empty() {
+    std::unique_lock<std::mutex> lock(m_mutex);
+    return m_queue.empty();
+}
