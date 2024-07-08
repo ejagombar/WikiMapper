@@ -15,16 +15,13 @@ std::atomic<bool> stopProcessThread = false;
 
 void pageProcessor(TSQueue<std::string> &qIn, TSQueue<Page> &qOut) {
     while (!stopProcessThread || !qIn.empty()) {
-        std::cout << "THREWEAD" << std::endl;
         std::string input = qIn.pop();
         MySaxParser parser;
+
         parser.set_substitute_entities(true);
         parser.parse_chunk(input);
         Page output = parser.GetPage();
-        // std::string title = input.substr(0, 10);
-        // Page output{};
-        // output.title = title;
-        // std::cout << output.title << std::endl;
+
         qOut.push(output);
     }
 }
@@ -62,8 +59,8 @@ int main(int argc, char *argv[]) {
         std::cout << "Finished Loop" << std::endl;
         while (!qOut.empty()) {
             Page p = qOut.pop();
-            if (!p.redirect) {
-                std::cout << p.title << std::endl;
+            if (true) {
+                std::cout << p.title << " " << p.redirect << std::endl;
                 std::vector<std::string> links = p.links;
                 for (std::string l : links) {
                     std::cout << l << std::endl;

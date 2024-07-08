@@ -37,11 +37,7 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     if (depth == 1) {
         ExtractAllLinks();
 
-        if (!page.redirect && !RE2::PartialMatch(page.title, "^.+:")) {
-            std::string outputstr = "";
-            for (auto x : page.links) {
-                outputstr = outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
-            }
+        if ((page.title.size() > 0) && !RE2::PartialMatch(page.title, "^.+:")) {
             pages = page;
         }
 
