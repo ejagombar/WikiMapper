@@ -2,13 +2,21 @@
 #include <config.h>
 #endif
 
-// #include "../lib/TSQueue.h"
 #include "TSQueue.h"
+#include "saxparser.h"
 #include <cstdlib>
 #include <iostream>
 #include <libxml++/libxml++.h>
 #include <libxml++/parsers/textreader.h>
 #include <stdexcept>
+
+std::atomic<bool> stopProcessThread = false;
+
+void pageProcessor(TSQueue<std::string> qIn, TSQueue<Page> qOut) {
+    while (!stopProcessThread) {
+        std::string input = qIn.pop();
+    }
+}
 
 int main(int argc, char *argv[]) {
     try {
@@ -20,18 +28,15 @@ int main(int argc, char *argv[]) {
             throw std::invalid_argument("No file provided");
         }
 
-        TSQueue<int> q;
+        TSQueue<std::string> qIn;
+        TSQueue<Page> qOut;
 
-        q.push(5);
         xmlpp::TextReader reader(filepath);
         while (reader.read()) {
             std::string name = reader.get_name();
             if (name == "page") {
-                std::cout << q.pop() << std::endl;
                 std::string output(reader.read_outer_xml());
-                std::cout << "!Name: " << output << std::endl;
-            } else {
-                std::cout << "Name: " << name << std::endl;
+                qIn.push(output);
             }
         }
     } catch (const std::exception &e) {
