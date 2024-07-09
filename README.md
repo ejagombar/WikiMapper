@@ -124,6 +124,12 @@ Each sample counts as 0.01 seconds.
 
 - Most of the time is spent on the RE2 function calls. This makes sense as the RE2 has to process a lot of text for each page. This is hard to increase efficiency so the next steps will be to include multithreading so that multiple pages can be processed at once.
 
+
+### Benchmarking on Server
+nohup ~/WikiMapper/build/WikiMapper ~/enwiki-20240401-pages-articles-multistream.xml &
+disown
+exit
+
 ### (Sidequest) Writing data directly to Neo4j using HTTP
 I am struggling to get the neo4j-admin tool to work at the moment so I thought I would test using the HTTP interface so I could simply write data to the database directly. I am expecting this method to be extremely slow but it would be nice to get some things to work so I can see some of the data in Neo4j.
 I used the curl library to perform http requests. This worked, and I was able to insert data however it took over two hours to insert around 160000 records, much less than the 6 million so this method is not really viable.
