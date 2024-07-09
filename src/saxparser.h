@@ -21,12 +21,12 @@ class MySaxParser : public xmlpp::SaxParser {
   public:
     MySaxParser();
     ~MySaxParser() override;
-    Page GetPage();
+    std::vector<Page> GetPages();
 
   private:
     Page page;
     std::string content;
-    Page pages;
+    std::vector<Page> pages;
 
     int depth = 0;
     ElementType nextElement;

@@ -20,11 +20,13 @@ void pageProcessor(TSQueue<std::string> &qIn, TSQueue<Page> &qOut) {
         std::string input = qIn.pop();
         MySaxParser parser;
 
-        parser.set_substitute_entities(true);
+        // parser.set_substitute_entities(true);
         parser.parse_chunk(input);
-        Page output = parser.GetPage();
+        std::vector<Page> output = parser.GetPages();
 
-        qOut.push(output);
+        for (Page page : output) {
+            qOut.push(page);
+        }
     }
 }
 
@@ -39,9 +41,7 @@ void writer(TSQueue<Page> &qIn) {
     CSVFileNodes.open("nodes.csv");
 
     while (writerThread || !qIn.empty()) {
-
         if (!qIn.empty()) {
-
             Page page = qIn.pop();
             if (page.title.size() > 0) {
                 std::string outputstr = "";
@@ -82,15 +82,24 @@ int main(int argc, char *argv[]) {
         Progress progress(23603280);
 
         xmlpp::TextReader reader(filepath);
+        int pageCount = 0;
+        std::string output = "<mediawiki>";
         while (reader.read()) {
             std::string name = reader.get_name();
 
             if (name == "page") {
-                std::string output(reader.read_outer_xml());
-
-                qIn.push(output);
+                output += reader.read_outer_xml();
+                pageCount++;
                 progress.increment();
+
+                if (pageCount >= 30) {
+                    output += "</mediawiki>";
+                    qIn.push(output);
+                    output = "<mediawiki>";
+                    pageCount = 0;
+                }
             }
+
             while (qIn.size() > 200) {
             }
         }

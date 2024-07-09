@@ -13,7 +13,7 @@ void MySaxParser::on_comment(const xmlpp::ustring &text) {}
 
 void MySaxParser::on_warning(const xmlpp::ustring &text) {}
 
-Page MySaxParser::GetPage() { return pages; }
+std::vector<Page> MySaxParser::GetPages() { return pages; }
 
 void MySaxParser::on_end_document() {}
 
@@ -34,11 +34,11 @@ void MySaxParser::on_start_element(const xmlpp::ustring &name, const AttributeLi
 void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     nextElement = OTHER;
 
-    if (depth == 1) {
+    if (depth == 2) {
         ExtractAllLinks();
 
         if ((page.title.size() > 0) && !RE2::PartialMatch(page.title, "^.+:")) {
-            pages = page;
+            pages.push_back(page);
         }
 
         page = {};
