@@ -73,7 +73,7 @@ void MySaxParser::on_characters(const xmlpp::ustring &text) {
 
 void MySaxParser::FormatLink(std::string &str) {
     // Convert to lower case
-    // transform(str.begin(), str.end(), str.begin(), ::tolower);
+    transform(str.begin(), str.end(), str.begin(), ::tolower);
 
     // Replace double quotes with single quotes
     std::replace(str.begin(), str.end(), '\"', '\'');

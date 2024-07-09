@@ -40,6 +40,9 @@ void writer(TSQueue<std::vector<Page>> &qIn) {
     CSVFileLinks.open("links.csv");
     CSVFileNodes.open("nodes.csv");
 
+    CSVFileNodes << "pageName:ID" << std::endl;
+    CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
+
     Progress progress(23603280);
 
     while (writerThread || !qIn.empty()) {
