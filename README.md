@@ -6,7 +6,7 @@ Currently, I am focusing on developing a method to quickly parse the ~100GB Wiki
 ## Aims
 - [x] Parse the XML file, extracting page names and links
 - [x] Analyse performance using GProf
-- [ ] Parallelise the parser.
+- [x] Parallelise the parser.
 - [ ] Import data into Neo4j using Neo4j-Admin-Import
 - [ ] Setup a third party visual Neo4j graph database explorer
 - [ ] Develop a custom graph storage library
@@ -124,6 +124,10 @@ Each sample counts as 0.01 seconds.
 
 - Most of the time is spent on the RE2 function calls. This makes sense as the RE2 has to process a lot of text for each page. This is hard to increase efficiency so the next steps will be to include multithreading so that multiple pages can be processed at once.
 
+### (Sidequest) Writing data directly to Neo4j using HTTP
+I am struggling to get the neo4j-admin tool to work at the moment so I thought I would test using the HTTP interface so I could simply write data to the database directly. I am expecting this method to be extremely slow but it would be nice to get some things to work so I can see some of the data in Neo4j.
+I used the curl library to perform http requests. This worked, and I was able to insert data however it took over two hours to insert around 160000 records, much less than the 6 million so this method is not really viable.
+
 ### Parallelising the Parser
 I did consider attempting to have each thread read from the file, process the data, and append it to the output file. However, one thread reading from the file would block other threads from doing so, reducing the performance.
 A better way to acheive multithreading is outlined below
@@ -132,9 +136,9 @@ A better way to acheive multithreading is outlined below
 - Other threads will then take data from this queue and process it and return it to a processed buffer.
 - A last thread will take the processed data and write it to the output files.
 
-### (Sidequest) Writing data directly to Neo4j using HTTP
-I am struggling to get the neo4j-admin tool to work at the moment so I thought I would test using the HTTP interface so I could simply write data to the database directly. I am expecting this method to be extremely slow but it would be nice to get some things to work so I can see some of the data in Neo4j.
-I used the curl library to perform http requests. This worked, and I was able to insert data however it took over two hours to insert around 160000 records, much less than the 6 million so this method is not really viable.
+This has now been fully implemented. Currently, the first thread splits the file into sections of 400 pages which are then added to the queue. There is also a maximum length that the queue can be. These are currently both arbitary numbers.
+
+
 
 # Benchmarks and Testing
 
