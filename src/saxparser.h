@@ -22,6 +22,7 @@ class MySaxParser : public xmlpp::SaxParser {
     MySaxParser();
     ~MySaxParser() override;
     std::vector<Page> GetPages();
+    void ClearData();
 
   private:
     Page page;
@@ -30,6 +31,7 @@ class MySaxParser : public xmlpp::SaxParser {
 
     int depth = 0;
     ElementType nextElement;
+    int count = 0;
 
     void ExtractAllLinks();
     void OutputPageCount();

@@ -1,4 +1,5 @@
 #include "saxparser.h"
+#include <algorithm>
 #include <cstdlib>
 #include <ostream>
 #include <pstl/glue_algorithm_defs.h>
@@ -14,6 +15,15 @@ void MySaxParser::on_comment(const xmlpp::ustring &text) {}
 void MySaxParser::on_warning(const xmlpp::ustring &text) {}
 
 std::vector<Page> MySaxParser::GetPages() { return pages; }
+
+void MySaxParser::ClearData() {
+    pages.clear();
+    depth = 0;
+    content = "";
+    page = {};
+    count = 0;
+    nextElement = OTHER;
+}
 
 void MySaxParser::on_end_document() {}
 
@@ -33,6 +43,7 @@ void MySaxParser::on_start_element(const xmlpp::ustring &name, const AttributeLi
 
 void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     nextElement = OTHER;
+    count++;
 
     if (depth == 2) {
         ExtractAllLinks();
@@ -72,11 +83,13 @@ void MySaxParser::FormatLink(std::string &str) {
 }
 
 void MySaxParser::on_error(const xmlpp::ustring &text) {
-    std::cout << ". Most recent page title: " << page.title << ". Error: " << text << std::endl;
+    std::cout << "Most recent page title: " << page.title << "\nError: " << text << std::endl;
+    std::cout << "depth: " << depth << std::endl;
+    std::cout << "content: " << content << std::endl;
 }
 
 void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
-    std::cout << ". Most recent page title: " << page.title << ". Error: " << text << std::endl;
+    std::cout << "Most recent page title: " << page.title << "\nFatal Error: " << text << std::endl;
 }
 
 void MySaxParser::ExtractAllLinks() {
