@@ -12,66 +12,42 @@
 #include <stdexcept>
 #include <thread>
 
-std::atomic<bool> processThread = true;
-std::atomic<bool> writerThread = true;
-
-void pageProcessor(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut) {
-
+void pageProcessor(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut, std::atomic<bool> &keepAlive) {
     MySaxParser parser;
-    while (processThread || !qIn.empty()) {
-        std::string input = qIn.pop();
 
-        // parser.set_substitute_entities(true);
-        parser.parse_memory(input);
-        std::vector<Page> output = parser.GetPages();
-        parser.ClearData();
-
-        qOut.push(output);
+    while (keepAlive.load() || !qIn.empty()) {
+        parser.parse_memory(qIn.pop());
+        qOut.push(parser.GetPages());
+        parser.Clear();
     }
 }
 
-void writer(TSQueue<std::vector<Page>> &qIn) {
-    std::remove("links.csv");
-    std::remove("nodes.csv");
-
-    std::ofstream CSVFileLinks;
-    std::ofstream CSVFileNodes;
-
-    CSVFileLinks.open("links.csv");
-    CSVFileNodes.open("nodes.csv");
-
-    CSVFileNodes << "pageName:ID" << std::endl;
-    CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
-
+void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::ofstream &linkFile,
+               std::atomic<bool> &keepAlive) {
     Progress progress(23603280);
 
-    while (writerThread || !qIn.empty()) {
+    std::string linkStr;
+    while (keepAlive.load() || !qIn.empty()) {
         if (qIn.empty()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
             continue;
         }
 
-        std::vector<Page> output = qIn.pop();
-        for (Page page : output) {
+        for (Page page : qIn.pop()) {
             if (page.title.size() == 0) {
                 continue;
             }
 
-            std::string outputstr = "";
-            // std::cout << qIn.size() << std::endl;
-
-            for (auto x : page.links) {
-                outputstr = outputstr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
+            linkStr = "";
+            for (std::string x : page.links) {
+                linkStr = linkStr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
             }
 
-            CSVFileLinks << outputstr << std::flush;
-            CSVFileNodes << "\"" << page.title << "\"\n" << std::flush;
+            linkFile << linkStr << std::flush;
+            nodeFile << "\"" << page.title << "\"" << std::endl;
             progress.increment();
         }
     }
-
-    CSVFileLinks.close();
-    CSVFileNodes.close();
 }
 
 int main(int argc, char *argv[]) {
@@ -84,23 +60,37 @@ int main(int argc, char *argv[]) {
             throw std::invalid_argument("No file provided");
         }
 
+        std::ofstream CSVFileLinks;
+        std::ofstream CSVFileNodes;
+
         TSQueue<std::string> qIn;
         TSQueue<std::vector<Page>> qOut;
 
+        std::atomic<bool> processKeepAlive = true;
+        std::atomic<bool> writerKeepAlive = true;
+
+        std::remove("links.csv");
+        std::remove("nodes.csv");
+
+        CSVFileLinks.open("links.csv");
+        CSVFileNodes.open("nodes.csv");
+
+        CSVFileNodes << "pageName:ID" << std::endl;
+        CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
+
         std::vector<std::thread> processorThreads;
         for (size_t i = 0; i < 16; ++i) {
-            processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut));
+            processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut), std::ref(processKeepAlive));
         }
 
-        std::thread writeThread(writer, std::ref(qOut));
+        std::thread writerThread(csvWriter, std::ref(qOut), std::ref(CSVFileNodes), std::ref(CSVFileLinks),
+                                 std::ref(writerKeepAlive));
 
+        int pageCount(0);
+        std::string output("<mediawiki>");
         xmlpp::TextReader reader(filepath);
-        int pageCount = 0;
-        std::string output = "<mediawiki>";
         while (reader.read()) {
-            std::string name = reader.get_name();
-
-            if (name == "page") {
+            if (reader.get_name() == "page") {
                 output += reader.read_outer_xml();
                 pageCount++;
 
@@ -112,20 +102,21 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            while (qIn.size() > 100) {
+            while (qIn.size() > 50) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(25));
             }
         }
 
-        processThread = false;
-
+        processKeepAlive = false;
         for (auto &t : processorThreads) {
             t.join();
         }
 
-        writerThread = false;
+        writerKeepAlive = false;
+        writerThread.join();
 
-        writeThread.join();
+        CSVFileLinks.close();
+        CSVFileNodes.close();
 
     } catch (const std::exception &e) {
         std::cerr << "Exception caught: " << e.what() << std::endl;
