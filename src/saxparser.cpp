@@ -71,7 +71,7 @@ void MySaxParser::on_characters(const xmlpp::ustring &text) {
     }
 }
 
-void MySaxParser::FormatLink(std::string &str) {
+inline void MySaxParser::FormatLink(std::string &str) {
     // Convert to lower case
     transform(str.begin(), str.end(), str.begin(), ::tolower);
 
@@ -112,6 +112,9 @@ void MySaxParser::ExtractAllLinks() {
         // name is shown
         auto x = find(str.begin(), str.end(), '|');
         auto subStr = std::string(str.begin(), x);
+
+        x = find(str.begin(), str.end(), '#');
+        subStr = std::string(subStr.begin(), x);
 
         FormatLink(subStr);
 
