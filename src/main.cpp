@@ -24,7 +24,6 @@ void pageProcessor(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut, 
 
 void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::ofstream &linkFile,
                std::atomic<bool> &keepAlive) {
-    Progress progress(23603280);
 
     std::string linkStr;
     while (keepAlive.load() || !qIn.empty()) {
@@ -45,7 +44,6 @@ void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::of
 
             linkFile << linkStr << std::flush;
             nodeFile << "\"" << page.title << "\"" << std::endl;
-            progress.increment();
         }
     }
 }
@@ -86,13 +84,16 @@ int main(int argc, char *argv[]) {
         std::thread writerThread(csvWriter, std::ref(qOut), std::ref(CSVFileNodes), std::ref(CSVFileLinks),
                                  std::ref(writerKeepAlive));
 
+        Progress progress(23603280);
         int pageCount(0);
         std::string output("<mediawiki>");
         xmlpp::TextReader reader(filepath);
         while (reader.read()) {
             if (reader.get_name() == "page") {
-                output += reader.read_outer_xml();
                 pageCount++;
+                progress.increment();
+
+                output += reader.read_outer_xml();
 
                 if (pageCount >= 400) {
                     output += "\n</mediawiki>";
@@ -102,7 +103,7 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            while (qIn.size() > 50) {
+            while (qIn.size() > 5) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(25));
             }
         }
