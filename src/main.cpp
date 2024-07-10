@@ -37,7 +37,7 @@ void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::of
                 continue;
             }
 
-            linkStr = "";
+            linkStr.clear();
             for (std::string x : page.links) {
                 linkStr = linkStr + "\"" + page.title + "\",\"" + x + "\",LINK\n";
             }
@@ -46,6 +46,69 @@ void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::of
             nodeFile << "\"" << page.title << "\"" << std::endl;
         }
     }
+}
+
+void parseFileParallel(std::string filepath) {
+    std::ofstream CSVFileLinks;
+    std::ofstream CSVFileNodes;
+
+    TSQueue<std::string> qIn;
+    TSQueue<std::vector<Page>> qOut;
+
+    std::atomic<bool> processKeepAlive = true;
+    std::atomic<bool> writerKeepAlive = true;
+
+    std::remove("links.csv");
+    std::remove("nodes.csv");
+
+    CSVFileLinks.open("links.csv");
+    CSVFileNodes.open("nodes.csv");
+
+    CSVFileNodes << "pageName:ID" << std::endl;
+    CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
+
+    std::vector<std::thread> processorThreads;
+    for (size_t i = 0; i < 16; ++i) {
+        processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut), std::ref(processKeepAlive));
+    }
+
+    std::thread writerThread(csvWriter, std::ref(qOut), std::ref(CSVFileNodes), std::ref(CSVFileLinks),
+                             std::ref(writerKeepAlive));
+
+    Progress progress(23603280);
+    int pageCount(0);
+    std::string output("<mediawiki>");
+    xmlpp::TextReader reader(filepath);
+    while (reader.read()) {
+        if (reader.get_name() == "page") {
+            pageCount++;
+            progress.increment();
+
+            output += reader.read_outer_xml();
+
+            if (pageCount >= 400) {
+                output += "\n</mediawiki>";
+                qIn.push(output);
+                output = "<mediawiki>\n";
+                pageCount = 0;
+            }
+        }
+
+        while (qIn.size() > 5) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        }
+    }
+
+    processKeepAlive = false;
+    for (auto &t : processorThreads) {
+        t.join();
+    }
+
+    writerKeepAlive = false;
+    writerThread.join();
+
+    CSVFileLinks.close();
+    CSVFileNodes.close();
 }
 
 int main(int argc, char *argv[]) {
@@ -58,66 +121,7 @@ int main(int argc, char *argv[]) {
             throw std::invalid_argument("No file provided");
         }
 
-        std::ofstream CSVFileLinks;
-        std::ofstream CSVFileNodes;
-
-        TSQueue<std::string> qIn;
-        TSQueue<std::vector<Page>> qOut;
-
-        std::atomic<bool> processKeepAlive = true;
-        std::atomic<bool> writerKeepAlive = true;
-
-        std::remove("links.csv");
-        std::remove("nodes.csv");
-
-        CSVFileLinks.open("links.csv");
-        CSVFileNodes.open("nodes.csv");
-
-        CSVFileNodes << "pageName:ID" << std::endl;
-        CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
-
-        std::vector<std::thread> processorThreads;
-        for (size_t i = 0; i < 16; ++i) {
-            processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut), std::ref(processKeepAlive));
-        }
-
-        std::thread writerThread(csvWriter, std::ref(qOut), std::ref(CSVFileNodes), std::ref(CSVFileLinks),
-                                 std::ref(writerKeepAlive));
-
-        Progress progress(23603280);
-        int pageCount(0);
-        std::string output("<mediawiki>");
-        xmlpp::TextReader reader(filepath);
-        while (reader.read()) {
-            if (reader.get_name() == "page") {
-                pageCount++;
-                progress.increment();
-
-                output += reader.read_outer_xml();
-
-                if (pageCount >= 400) {
-                    output += "\n</mediawiki>";
-                    qIn.push(output);
-                    output = "<mediawiki>\n";
-                    pageCount = 0;
-                }
-            }
-
-            while (qIn.size() > 5) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(25));
-            }
-        }
-
-        processKeepAlive = false;
-        for (auto &t : processorThreads) {
-            t.join();
-        }
-
-        writerKeepAlive = false;
-        writerThread.join();
-
-        CSVFileLinks.close();
-        CSVFileNodes.close();
+        parseFileParallel(filepath);
 
     } catch (const std::exception &e) {
         std::cerr << "Exception caught: " << e.what() << std::endl;
