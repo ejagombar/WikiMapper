@@ -22,7 +22,7 @@ class MySaxParser : public xmlpp::SaxParser {
     MySaxParser();
     ~MySaxParser() override;
     std::vector<Page> GetPages();
-    void ClearData();
+    void Clear();
 
   private:
     Page page;

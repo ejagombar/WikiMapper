@@ -16,7 +16,7 @@ void MySaxParser::on_warning(const xmlpp::ustring &text) {}
 
 std::vector<Page> MySaxParser::GetPages() { return pages; }
 
-void MySaxParser::ClearData() {
+void MySaxParser::Clear() {
     pages.clear();
     depth = 0;
     content = "";
