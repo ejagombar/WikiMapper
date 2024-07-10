@@ -48,38 +48,13 @@ void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::of
     }
 }
 
-void parseFileParallel(std::string filepath) {
-    const int threadCount = 16;
+void readerThread(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut, std::string filepath) {
     const int maxInputQueueSize = 5;
     const int pagesPerQueueItem = 400;
+    const int wikipediaPages = 23603280;
+    const int readThreadSleepTimeMs = 25;
 
-    std::ofstream CSVFileLinks;
-    std::ofstream CSVFileNodes;
-
-    TSQueue<std::string> qIn;
-    TSQueue<std::vector<Page>> qOut;
-
-    std::atomic<bool> processKeepAlive = true;
-    std::atomic<bool> writerKeepAlive = true;
-
-    std::remove("links.csv");
-    std::remove("nodes.csv");
-
-    CSVFileLinks.open("links.csv");
-    CSVFileNodes.open("nodes.csv");
-
-    CSVFileNodes << "pageName:ID" << std::endl;
-    CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
-
-    std::vector<std::thread> processorThreads;
-    for (int i = 0; i < threadCount; ++i) {
-        processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut), std::ref(processKeepAlive));
-    }
-
-    std::thread writerThread(csvWriter, std::ref(qOut), std::ref(CSVFileNodes), std::ref(CSVFileLinks),
-                             std::ref(writerKeepAlive));
-
-    Progress progress(23603280);
+    Progress progress(wikipediaPages);
     int pageCount(0);
     std::string output("<mediawiki>");
     xmlpp::TextReader reader(filepath);
@@ -99,9 +74,41 @@ void parseFileParallel(std::string filepath) {
         }
 
         while (qIn.size() > maxInputQueueSize) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+            std::this_thread::sleep_for(std::chrono::milliseconds(readThreadSleepTimeMs));
         }
     }
+}
+
+void parseFileParallel(std::string filepath) {
+    const int threadCount = 16;
+
+    const char *linksFileName = "links.csv";
+    const char *nodesFileName = "nodes.csv";
+
+    std::remove(linksFileName);
+    std::remove(nodesFileName);
+
+    std::ofstream CSVFileLinks(linksFileName);
+    std::ofstream CSVFileNodes(nodesFileName);
+
+    TSQueue<std::string> qIn;
+    TSQueue<std::vector<Page>> qOut;
+
+    std::atomic<bool> processKeepAlive = true;
+    std::atomic<bool> writerKeepAlive = true;
+
+    CSVFileNodes << "pageName:ID" << std::endl;
+    CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
+
+    std::vector<std::thread> processorThreads;
+    for (int i = 0; i < threadCount; ++i) {
+        processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut), std::ref(processKeepAlive));
+    }
+
+    std::thread writerThread(csvWriter, std::ref(qOut), std::ref(CSVFileNodes), std::ref(CSVFileLinks),
+                             std::ref(writerKeepAlive));
+
+    readerThread(qIn, qOut, filepath);
 
     processKeepAlive = false;
     for (auto &t : processorThreads) {
