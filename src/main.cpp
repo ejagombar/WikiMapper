@@ -49,6 +49,10 @@ void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::of
 }
 
 void parseFileParallel(std::string filepath) {
+    const int threadCount = 16;
+    const int maxInputQueueSize = 5;
+    const int pagesPerQueueItem = 400;
+
     std::ofstream CSVFileLinks;
     std::ofstream CSVFileNodes;
 
@@ -68,7 +72,7 @@ void parseFileParallel(std::string filepath) {
     CSVFileLinks << ":START_ID,:END_ID,:TYPE" << std::endl;
 
     std::vector<std::thread> processorThreads;
-    for (size_t i = 0; i < 16; ++i) {
+    for (int i = 0; i < threadCount; ++i) {
         processorThreads.emplace_back(pageProcessor, std::ref(qIn), std::ref(qOut), std::ref(processKeepAlive));
     }
 
@@ -86,7 +90,7 @@ void parseFileParallel(std::string filepath) {
 
             output += reader.read_outer_xml();
 
-            if (pageCount >= 400) {
+            if (pageCount >= pagesPerQueueItem) {
                 output += "\n</mediawiki>";
                 qIn.push(output);
                 output = "<mediawiki>\n";
@@ -94,7 +98,7 @@ void parseFileParallel(std::string filepath) {
             }
         }
 
-        while (qIn.size() > 5) {
+        while (qIn.size() > maxInputQueueSize) {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
         }
     }
