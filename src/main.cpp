@@ -1,7 +1,3 @@
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include "TSQueue.h"
 #include "progress.h"
 #include "saxparser.h"
@@ -17,14 +13,13 @@ void pageProcessor(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut, 
 
     while (keepAlive.load() || !qIn.empty()) {
         parser.parse_memory(qIn.pop());
-        qOut.push(parser.GetPages());
-        parser.Clear();
+        qOut.push(parser.getPages());
+        parser.clear();
     }
 }
 
 void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::ofstream &linkFile,
                std::atomic<bool> &keepAlive) {
-
     std::string linkStr;
     while (keepAlive.load() || !qIn.empty()) {
         if (qIn.empty()) {
@@ -48,7 +43,7 @@ void csvWriter(TSQueue<std::vector<Page>> &qIn, std::ofstream &nodeFile, std::of
     }
 }
 
-void readerThread(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut, std::string filepath) {
+void xmlReader(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut, std::string &filepath) {
     const int maxInputQueueSize = 5;
     const int pagesPerQueueItem = 400;
     const int wikipediaPages = 23603280;
@@ -58,12 +53,13 @@ void readerThread(TSQueue<std::string> &qIn, TSQueue<std::vector<Page>> &qOut, s
     int pageCount(0);
     std::string output("<mediawiki>");
     xmlpp::TextReader reader(filepath);
+
     while (reader.read()) {
         if (reader.get_name() == "page") {
+            output += reader.read_outer_xml();
+
             pageCount++;
             progress.increment();
-
-            output += reader.read_outer_xml();
 
             if (pageCount >= pagesPerQueueItem) {
                 output += "\n</mediawiki>";
@@ -108,7 +104,7 @@ void parseFileParallel(std::string filepath) {
     std::thread writerThread(csvWriter, std::ref(qOut), std::ref(CSVFileNodes), std::ref(CSVFileLinks),
                              std::ref(writerKeepAlive));
 
-    readerThread(qIn, qOut, filepath);
+    xmlReader(qIn, qOut, filepath);
 
     processKeepAlive = false;
     for (auto &t : processorThreads) {

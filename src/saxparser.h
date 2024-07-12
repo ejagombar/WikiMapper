@@ -21,8 +21,8 @@ class MySaxParser : public xmlpp::SaxParser {
   public:
     MySaxParser();
     ~MySaxParser() override;
-    std::vector<Page> GetPages();
-    void Clear();
+    std::vector<Page> getPages();
+    void clear();
 
   private:
     Page page;
@@ -33,9 +33,10 @@ class MySaxParser : public xmlpp::SaxParser {
     ElementType nextElement;
     int count = 0;
 
-    void ExtractAllLinks();
+    void extractAllLinks();
     void OutputPageCount();
-    void FormatLink(std::string &str);
+    void formatLink(std::string &str);
+    bool stringReplace(std::string &string, const std::string &oldString, const std::string &newString);
 
   protected:
     // overrides:

@@ -14,9 +14,9 @@ void MySaxParser::on_comment(const xmlpp::ustring &text) {}
 
 void MySaxParser::on_warning(const xmlpp::ustring &text) {}
 
-std::vector<Page> MySaxParser::GetPages() { return pages; }
+std::vector<Page> MySaxParser::getPages() { return pages; }
 
-void MySaxParser::Clear() {
+void MySaxParser::clear() {
     pages.clear();
     depth = 0;
     content = "";
@@ -46,7 +46,7 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     count++;
 
     if (depth == 2) {
-        ExtractAllLinks();
+        extractAllLinks();
 
         if ((page.title.size() > 0) && !RE2::PartialMatch(page.title, "^.+:")) {
             pages.push_back(page);
@@ -62,7 +62,7 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
 void MySaxParser::on_characters(const xmlpp::ustring &text) {
     if (nextElement == TITLE) {
         std::string title = text;
-        FormatLink(title);
+        formatLink(title);
 
         page.title = page.title + title;
 
@@ -71,12 +71,36 @@ void MySaxParser::on_characters(const xmlpp::ustring &text) {
     }
 }
 
-inline void MySaxParser::FormatLink(std::string &str) {
+inline bool MySaxParser::stringReplace(std::string &string, const std::string &oldString,
+                                       const std::string &newString) {
+    if (oldString.empty()) {
+        return false;
+    }
+
+    size_t startPos = string.find(oldString);
+    if (startPos == std::string::npos) {
+        return false;
+    }
+
+    while (startPos != std::string::npos) {
+        string.replace(startPos, oldString.length(), newString);
+        startPos = string.find(oldString, newString.length() + startPos);
+    }
+    return true;
+}
+
+inline void MySaxParser::formatLink(std::string &str) {
     // Convert to lower case
     transform(str.begin(), str.end(), str.begin(), ::tolower);
 
     // Replace double quotes with single quotes
     std::replace(str.begin(), str.end(), '\"', '\'');
+    std::replace(str.begin(), str.end(), '_', ' ');
+
+    stringReplace(str, "&nbsp;", " ");
+
+    str.erase(str.find_last_not_of(' ') + 1);
+    str.erase(0, str.find_first_not_of(' '));
 
     // Remove quotes from string
     // str.erase(remove(str.begin(), str.end(), '\"'), str.end());
@@ -92,7 +116,7 @@ void MySaxParser::on_fatal_error(const xmlpp::ustring &text) {
     std::cout << "Most recent page title: " << page.title << "\nFatal Error: " << text << std::endl;
 }
 
-void MySaxParser::ExtractAllLinks() {
+void MySaxParser::extractAllLinks() {
     re2::RE2 re("\\[\\[([^\\]]+)\\]\\]");
     re2::StringPiece input(content);
 
@@ -110,14 +134,11 @@ void MySaxParser::ExtractAllLinks() {
         // Sometimes the page that is being linked to is not the same as the
         // text being shown in the link. This ensures that only the true page
         // name is shown
-        auto x = find(str.begin(), str.end(), '|');
-        auto subStr = std::string(str.begin(), x);
+        std::string subStr(str.begin(), find(str.begin(), str.end(), '|'));
+        std::string subStr2(subStr.begin(), find(subStr.begin(), subStr.end(), '#'));
 
-        x = find(str.begin(), str.end(), '#');
-        subStr = std::string(subStr.begin(), x);
+        formatLink(subStr2);
 
-        FormatLink(subStr);
-
-        page.links.push_back(subStr);
+        page.links.push_back(subStr2);
     }
 }
