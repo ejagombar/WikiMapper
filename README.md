@@ -7,7 +7,7 @@ Currently, I am focusing on developing a method to quickly parse the ~100GB Wiki
 - [x] Parse the XML file, extracting page names and links
 - [x] Analyse performance using GProf
 - [x] Parallelise the parser.
-- [ ] Import data into Neo4j using Neo4j-Admin-Import
+- [x] Import data into Neo4j using Neo4j-Admin-Import
 - [ ] Setup a third party visual Neo4j graph database explorer
 - [ ] Develop a custom graph storage library
 - [ ] Develop a custom viewer to visualise the data.
@@ -144,19 +144,50 @@ A better way to acheive multithreading is outlined below
 
 This has now been fully implemented. Currently, the first thread splits the file into sections of 400 pages which are then added to the queue. There is also a maximum length that the queue can be. These are currently both arbitary numbers.
 
+### Importing the data into Neo4j
+For some reason, there are lots of duplicate pages in the XML dump. This causes errors when importing it into neo4j using Neo4j-Admin-Import. To fix this the duplicate nodes must be removed.
 
+- Remove the csv header line `sed -i '1d' ./nodes.csv`
+- Remove duplicate lines `sort nodes.csv | uniq > nodesSorted.csv`
+- Reinsert the csv header line `sed -i '1i pageName:ID' ./nodesSorted.csv`
+
+Unfortunatley there are still some issues with the linking of pages. Wikipedia has a number of rules that are used to link pages with similar names. For example, [[Suez_Canal]] will still link to the page titled Suez Canal. This also works for other characters such as `&` `&amp;` and `and` all being treated the same. A few find and replace rules have been implemented to fix this, however, it has not been verified that all rules have been met.
+
+On top of this, there are lots of links to pages that do not exist. This issue is impossible to fix when importing the data into the database using Neo4j-Adim-Import so instead, the `--skip-bad-relationships` flag has been set and `--bad-tolerance` set to 100,000,000
+
+The command below was used to insert the data into the Neo4j database. 
+```
+sudo docker run -v $HOME/graph_data/data:/data -v $HOME/graph_data/wiki:/var/lib/neo4j/import neo4j:latest neo4j-admin database import full --nodes=/var/lib/neo4j/import/nodesSorted.csv --relationships=/var/lib/neo4j/import/links.csv --overwrite-destination --verbose --skip-bad-relationships --bad-tolerance=100000000 --multiline-fields
+```
 
 # Benchmarks and Testing
 
-### Test 1
+### Test 1: 36 hrs 49 mins
 - Conducted on my Proxmox Server, inside an LCX container
 - To see the code used, checkout at the git tag `benchmarkTest1`
+
 ```
 ---------Info---------
 Page Number: 23603262
 Progress: 100.000%
 Time Left: 0 hrs 0 mins 0 secs
 Time Taken: 36 hrs 49 mins 15 secs
+Finished processing document.
+Page Count: 23603280
+```
+
+### Test 2: 10 hrs 48 mins
+- Conducted on my Proxmox Server, inside an LCX container again
+- To see the code used, checkout at the git tag `queuelimits`
+- On top of making this code parallelised, some debugging flags that were mistakenly left in the Cmake file were removed.
+- The Proxmox machine that this was run on only has 4 cores so a greater will be seen on a more modern CPU.
+
+```
+---------Info---------
+Page Number: 23603262
+Progress: 100.000%
+Time Left: 0 hrs 0 mins 0 secs
+Time Taken: 10 hrs 48 mins 48 secs
 Finished processing document.
 Page Count: 23603280
 ```
