@@ -46,7 +46,7 @@ void MySaxParser::on_end_element(const xmlpp::ustring & /* name */) {
     count++;
 
     if (depth == 2) {
-        extractAllLinks();
+        // extractAllLinks();
 
         if ((page.title.size() > 0) && !RE2::PartialMatch(page.title, "^.+:")) {
             pages.push_back(page);
@@ -98,6 +98,7 @@ inline void MySaxParser::formatLink(std::string &str) {
     std::replace(str.begin(), str.end(), '_', ' ');
 
     stringReplace(str, "&nbsp;", " ");
+    stringReplace(str, "&amp;", "&");
 
     str.erase(str.find_last_not_of(' ') + 1);
     str.erase(0, str.find_first_not_of(' '));
