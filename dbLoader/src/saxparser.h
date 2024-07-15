@@ -1,6 +1,3 @@
-#ifndef __LIBXMLPP_EXAMPLES_MYPARSER_H
-#define __LIBXMLPP_EXAMPLES_MYPARSER_H
-
 #include <bits/stdc++.h>
 #include <ctime>
 #include <libxml++/libxml++.h>
@@ -50,5 +47,3 @@ class MySaxParser : public xmlpp::SaxParser {
     void on_error(const xmlpp::ustring &text) override;
     void on_fatal_error(const xmlpp::ustring &text) override;
 };
-
-#endif //__LIBXMLPP_EXAMPLES_MYPARSER_H

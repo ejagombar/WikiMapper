@@ -160,6 +160,16 @@ The command below was used to insert the data into the Neo4j database.
 sudo docker run -v $HOME/graph_data/data:/data -v $HOME/graph_data/wiki:/var/lib/neo4j/import neo4j:latest neo4j-admin database import full --nodes=/var/lib/neo4j/import/nodesSorted.csv --relationships=/var/lib/neo4j/import/links.csv --overwrite-destination --verbose --skip-bad-relationships --bad-tolerance=100000000 --multiline-fields
 ```
 
+This resultsed in an output as shown below, with 16,625,742 nodes and 302,342,403 relationships
+
+```
+IMPORT DONE in 2m 50s 583ms.
+Imported:
+  16625742 nodes
+  302342403 relationships
+  16625742 properties
+```
+
 # Benchmarks and Testing
 
 ### Test 1: 36 hrs 49 mins

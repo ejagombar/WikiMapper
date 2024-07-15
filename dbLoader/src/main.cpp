@@ -1,7 +1,7 @@
 #include "TSQueue.h"
 #include "progress.h"
 #include "saxparser.h"
-#include <algorithm>
+
 #include <cstdlib>
 #include <iostream>
 #include <libxml++/libxml++.h>
