@@ -1,6 +1,7 @@
 {
-  "dependencies": [
-    "boost-asio",
-    "nlohmann-json"
-  ]
+    "dependencies": [
+        "boost-asio",
+        "cpp-httplib",
+        "jsoncpp"
+    ]
 }
