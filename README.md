@@ -149,7 +149,7 @@ For some reason, there are lots of duplicate pages in the XML dump. This causes 
 
 - Remove the csv header line `sed -i '1d' ./nodes.csv`
 - Remove duplicate lines `sort nodes.csv | uniq > nodesSorted.csv`
-- Reinsert the csv header line `sed -i '1i pageName:ID' ./nodesSorted.csv`
+- Reinsert the csv header line `sed -i '1i pageName:ID,title,:LABEL' ./nodesSorted.csv`
 
 Unfortunatley there are still some issues with the linking of pages. Wikipedia has a number of rules that are used to link pages with similar names. For example, [[Suez_Canal]] will still link to the page titled Suez Canal. This also works for other characters such as `&` `&amp;` and `and` all being treated the same. A few find and replace rules have been implemented to fix this, however, it has not been verified that all rules have been met.
 
