@@ -1,38 +1,21 @@
+#include "neo4j.h"
 #include <httplib.h>
 #include <iostream>
 #include <json/json.h> // Include the JSON for Modern C++ header
-#include <string>
 
 int main() {
-    httplib::Client cli("http://localhost:7474");
+    Neo4jData dbData;
+    dbData.auth64 = "bmVvNGo6dGVzdDEyMzQ=";
+    dbData.dbName = "neo4j";
+    dbData.host = "localhost";
+    dbData.port = 7474;
 
-    cli.set_connection_timeout(25, 0);
-    cli.set_read_timeout(25, 0);
-    cli.set_write_timeout(25, 0);
+    Neo4j db(dbData);
 
-    httplib::Headers headers = {{"Accept", "application/json"}, {"Authorization", "Basic bmVvNGo6dGVzdDEyMzQ="}};
+    std::string start = "blues";
+    std::string end = "guitar";
 
-    Json::Value root;
-    Json::Value statement;
-    Json::Value parameters;
-
-    statement["statement"] = " MATCH p = shortestPath((start {pageName:$nameStart})-[:LINK*1..8]->(end "
-                             "{pageName:$nameEnd})) RETURN p";
-
-    parameters["nameStart"] = "hitler";
-    parameters["nameEnd"] = "jazz";
-
-    statement["parameters"] = parameters;
-
-    root["statements"].append(statement);
-
-    Json::StreamWriterBuilder writer;
-    writer["indentation"] = "";
-
-    std::string json_payload = Json::writeString(writer, root);
-    std::cout << json_payload << std::endl;
-
-    auto res = cli.Post("/db/neo4j/tx/commit", headers, json_payload, "application/json");
+    auto res = db.shortestPath(start, end, 25);
 
     if (res && res->status == 200) {
         std::cout << "Response status: " << res->status << std::endl;
