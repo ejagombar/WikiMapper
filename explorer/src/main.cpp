@@ -5,6 +5,10 @@
 
 int main() {
     httplib::Client cli("http://localhost:7474");
+    cli.set_connection_timeout(25, 0);
+
+    cli.set_read_timeout(25, 0);
+    cli.set_write_timeout(25, 0);
 
     httplib::Headers headers = {{"Accept", "application/json"}, {"Authorization", "Basic bmVvNGo6dGVzdDEyMzQ="}};
 
@@ -12,7 +16,15 @@ int main() {
     Json::Value statement;
     Json::Value parameters;
 
-    statement["statement"] = "RETURN 1";
+    statement["statement"] = "MATCH (start {pageName: $nameEnd}), (end {pageName:$nameStart}), p = "
+                             "shortestPath((start)-[:LINK*1..8]->(end)) RETURN p";
+
+    parameters["upperBound"] = "8";
+    parameters["nameStart"] = "hitler";
+    parameters["nameEnd"] = "jazz";
+
+    statement["parameters"] = parameters;
+
     root["statements"].append(statement);
 
     Json::StreamWriterBuilder writer;
