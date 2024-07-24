@@ -5,8 +5,8 @@
 
 int main() {
     httplib::Client cli("http://localhost:7474");
-    cli.set_connection_timeout(25, 0);
 
+    cli.set_connection_timeout(25, 0);
     cli.set_read_timeout(25, 0);
     cli.set_write_timeout(25, 0);
 
@@ -16,10 +16,9 @@ int main() {
     Json::Value statement;
     Json::Value parameters;
 
-    statement["statement"] = "MATCH (start {pageName: $nameEnd}), (end {pageName:$nameStart}), p = "
-                             "shortestPath((start)-[:LINK*1..8]->(end)) RETURN p";
+    statement["statement"] = " MATCH p = shortestPath((start {pageName:$nameStart})-[:LINK*1..8]->(end "
+                             "{pageName:$nameEnd})) RETURN p";
 
-    parameters["upperBound"] = "8";
     parameters["nameStart"] = "hitler";
     parameters["nameEnd"] = "jazz";
 
