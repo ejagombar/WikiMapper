@@ -1,6 +1,6 @@
 #include "neo4j.h"
 #include <httplib.h>
-#include <json/json.h> // Include the JSON for Modern C++ header
+#include <json/json.h>
 #include <string>
 
 Neo4j::Neo4j(const Neo4jData in)
