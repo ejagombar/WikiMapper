@@ -1,7 +1,10 @@
 {
-    "dependencies": [
-        "boost-asio",
-        "cpp-httplib",
-        "jsoncpp"
-    ]
+  "dependencies": [
+    "boost-asio",
+    "cpp-httplib",
+    "glew",
+    "glfw3",
+    "jsoncpp",
+    "glm"
+  ]
 }
