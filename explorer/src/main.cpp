@@ -12,34 +12,24 @@ GLFWwindow *window;
 #include <glm/glm.hpp>
 using namespace glm;
 
-// int main() {
-//     Neo4jData dbData;
-//     dbData.auth64 = "bmVvNGo6dGVzdDEyMzQ=";
-//     dbData.dbName = "neo4j";
-//     dbData.host = "localhost";
-//     dbData.port = 7474;
-//
-//     Neo4j db(dbData);
-//
-//     std::string start = "blues";
-//     std::string end = "guitar";
-//
-//     auto res = db.shortestPath(start, end, 25);
-//
-//     if (res && res->status == 200) {
-//         // std::cout << "Response status: " << res->status << std::endl;
-//         // std::cout << "Response body: " << res->body << std::endl;
-//
-//         std::cout << res->body << std::endl;
-//     } else {
-//         std::cerr << "Request failed with status: " << (res ? res->status : 0) << std::endl;
-//         if (res) {
-//             std::cerr << "Error: " << res->body << std::endl;
-//         }
-//     }
-//
-//     return 0;
-// }
+struct Node {
+    glm::vec3 pos, speed;
+    unsigned char r, g, b, a; // Color
+    float size, angle, weight;
+    float cameradistance; // *Squared* distance to the camera. if dead : -1.0f
+
+    bool operator<(const Node &that) const {
+        // Sort in reverse order : far nodes drawn first.
+        return this->cameradistance > that.cameradistance;
+    }
+};
+
+const int windowWidth = 1024;
+const int windowHeight = 768;
+const int MaxNodes = 10;
+Node NodeContainer[MaxNodes];
+
+void SortNodes() { std::sort(&NodeContainer[0], &NodeContainer[MaxNodes]); }
 
 int main(void) {
     // Initialize GLFW
@@ -50,18 +40,14 @@ int main(void) {
     }
 
     glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,
-                   GL_TRUE); // To make macOS happy; should not be needed
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Open a window and create its OpenGL context
-    window = glfwCreateWindow(1024, 768, "Playground", NULL, NULL);
+    window = glfwCreateWindow(windowWidth, windowHeight, "WikiMapper Explorer", NULL, NULL);
     if (window == NULL) {
-        fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 "
-                        "compatible. Try the 2.1 version of the tutorials.\n");
+        fprintf(stderr, "Failed to open GLFW window.\n");
         getchar();
         glfwTerminate();
         return -1;
@@ -69,6 +55,7 @@ int main(void) {
     glfwMakeContextCurrent(window);
 
     // Initialize GLEW
+    glewExperimental = true; // Needed for core profile
     if (glewInit() != GLEW_OK) {
         fprintf(stderr, "Failed to initialize GLEW\n");
         getchar();
@@ -76,11 +63,13 @@ int main(void) {
         return -1;
     }
 
-    // Ensure we can capture the escape key being pressed below
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE); // Allow the capture of the escape key
+    glfwSetInputMode(window, GLFW_CURSOR,
+                     GLFW_CURSOR_DISABLED); // Hide mouse and enable unlimited movement
 
-    // Dark blue background
-    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+    glfwPollEvents();
+    glfwSetCursorPos(window, windowWidth / 2.0f, windowHeight / 2.0f);
+    glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 
     do {
         glClear(GL_COLOR_BUFFER_BIT);
@@ -91,10 +80,9 @@ int main(void) {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-    } // Check if the ESC key was pressed or the window was closed
-    while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
+    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+             glfwWindowShouldClose(window) == 0);
 
-    // Close OpenGL window and terminate GLFW
     glfwTerminate();
 
     return 0;
