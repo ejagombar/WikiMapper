@@ -7,6 +7,12 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+// #include <lib/controls.hpp>
+// #include <lib/shader.hpp>
+// #include <lib/texture.hpp>
+// #include "../lib/controls.hpp"
+#include "../lib/shader.hpp"
+
 GLFWwindow *window;
 
 #include <glm/glm.hpp>
@@ -70,6 +76,23 @@ int main(void) {
     glfwPollEvents();
     glfwSetCursorPos(window, windowWidth / 2.0f, windowHeight / 2.0f);
     glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    GLuint VertexArrayID;
+    glGenVertexArrays(1, &VertexArrayID);
+    glBindVertexArray(VertexArrayID);
+
+    GLuint programID = LoadShaders("nodeFragmentShader.glsl", "nodeVertexShader.glsl");
+
+    // Vertex shader
+    GLuint CameraRight_worldspace_ID = glGetUniformLocation(programID, "CameraRight_worldspace");
+    GLuint CameraUp_worldspace_ID = glGetUniformLocation(programID, "CameraUp_worldspace");
+    GLuint ViewProjMatrixID = glGetUniformLocation(programID, "VP");
+
+    // fragment shader
+    GLuint TextureID = glGetUniformLocation(programID, "myTextureSampler");
 
     do {
         glClear(GL_COLOR_BUFFER_BIT);
