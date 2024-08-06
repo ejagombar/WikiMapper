@@ -80,6 +80,12 @@ void computeMatricesFromInputs() {
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         position -= right * deltaTime * speed;
     }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        position += glm::vec3(0, 1, 0) * deltaTime * speed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        position -= glm::vec3(0, 1, 0) * deltaTime * speed;
+    }
 
     float FoV = initialFoV; // - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a
                             // callback for this. It's a bit too complicated for this beginner's
