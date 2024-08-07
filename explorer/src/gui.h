@@ -39,10 +39,10 @@ class gui {
 
     const int windowWidth = 1024 * 2;
     const int windowHeight = 768 * 2;
-    int m_MaxNodes;
+    static const int m_MaxNodes = 100000;
     Camera camera;
     GLFWwindow *window;
-    Node *NodeContainer;
+    Node NodeContainer[m_MaxNodes];
     GLuint billboard_vertex_buffer;
     GLuint particles_position_buffer;
     GLuint particles_color_buffer;
