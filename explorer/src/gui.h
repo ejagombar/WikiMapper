@@ -46,8 +46,8 @@ class gui {
     GLFWwindow *window;
 
     GLuint billboard_vertex_buffer;
-    GLuint particles_position_buffer;
-    GLuint particles_color_buffer;
+    GLuint node_position_buffer;
+    GLuint node_color_buffer;
     GLuint programID;
     GLuint Texture;
     GLuint TextureID;
@@ -56,8 +56,8 @@ class gui {
     GLuint ViewProjMatrixID;
 
     Node *NodeContainer;
-    GLfloat *g_particule_position_size_data;
-    GLubyte *g_particule_color_data;
+    GLfloat *g_node_position_size_data;
+    GLubyte *g_node_color_data;
 };
 
 #endif // GUI_H

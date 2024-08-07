@@ -12,8 +12,8 @@ void gui::sortNodes() { std::sort(&NodeContainer[0], &NodeContainer[m_MaxNodes])
 
 gui::gui(const int &MaxNodes) : m_MaxNodes(MaxNodes) {
     NodeContainer = new Node[m_MaxNodes];
-    g_particule_position_size_data = new GLfloat[m_MaxNodes * 4];
-    g_particule_color_data = new GLubyte[m_MaxNodes * 4];
+    g_node_position_size_data = new GLfloat[m_MaxNodes * 4];
+    g_node_color_data = new GLubyte[m_MaxNodes * 4];
 }
 
 int gui::initWindow() {
@@ -101,16 +101,16 @@ void gui::loop() {
         // NodeContainer[i].pos += glm::vec3(0.0f,10.0f, 0.0f) * (float)delta;
 
         // Fill the GPU buffer
-        g_particule_position_size_data[4 * NodeCount + 0] = p.pos.x;
-        g_particule_position_size_data[4 * NodeCount + 1] = p.pos.y;
-        g_particule_position_size_data[4 * NodeCount + 2] = p.pos.z;
+        g_node_position_size_data[4 * NodeCount + 0] = p.pos.x;
+        g_node_position_size_data[4 * NodeCount + 1] = p.pos.y;
+        g_node_position_size_data[4 * NodeCount + 2] = p.pos.z;
 
-        g_particule_position_size_data[4 * NodeCount + 3] = p.size;
+        g_node_position_size_data[4 * NodeCount + 3] = p.size;
 
-        g_particule_color_data[4 * NodeCount + 0] = p.r;
-        g_particule_color_data[4 * NodeCount + 1] = p.g;
-        g_particule_color_data[4 * NodeCount + 2] = p.b;
-        g_particule_color_data[4 * NodeCount + 3] = p.a;
+        g_node_color_data[4 * NodeCount + 0] = p.r;
+        g_node_color_data[4 * NodeCount + 1] = p.g;
+        g_node_color_data[4 * NodeCount + 2] = p.b;
+        g_node_color_data[4 * NodeCount + 3] = p.a;
 
         NodeCount++;
     }
@@ -122,19 +122,18 @@ void gui::loop() {
     // but this is outside the scope of this tutorial.
     // http://www.opengl.org/wiki/Buffer_Object_Streaming
 
-    glBindBuffer(GL_ARRAY_BUFFER, particles_position_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), NULL,
                  GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf.
                                   // See above link for details.
-    glBufferSubData(GL_ARRAY_BUFFER, 0, NodeCount * sizeof(GLfloat) * 4,
-                    g_particule_position_size_data);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, NodeCount * sizeof(GLfloat) * 4, g_node_position_size_data);
 
-    glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL,
                  GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf.
                                   // See above link for detai#extension
                                   // GL_ARB_explicit_uniform_location : requirels.
-    glBufferSubData(GL_ARRAY_BUFFER, 0, NodeCount * sizeof(GLubyte) * 4, g_particule_color_data);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, NodeCount * sizeof(GLubyte) * 4, g_node_color_data);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -168,7 +167,7 @@ void gui::loop() {
 
     // 2nd attribute buffer : positions of particles' centers
     glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, particles_position_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     glVertexAttribPointer(
         1,        // attribute. No particular reason for 1, but must match the layout in the shader.
         4,        // size : x + y + z + size => 4
@@ -180,7 +179,7 @@ void gui::loop() {
 
     // 3rd attribute buffer : particles' colors
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
     glVertexAttribPointer(
         2, // attribute. No particular reason for 1, but must match the layout in the shader.
         4, // size : r + g + b + a => 4
@@ -252,14 +251,14 @@ int gui::init() {
                  GL_STATIC_DRAW);
 
     // The VBO containing the positions and sizes of the particles
-    glGenBuffers(1, &particles_position_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, particles_position_buffer);
+    glGenBuffers(1, &node_position_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // The VBO containing the colors of the particles
-    glGenBuffers(1, &particles_color_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
+    glGenBuffers(1, &node_color_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
 
@@ -283,11 +282,11 @@ int gui::init() {
     } while (glfwGetKey(window, GLFW_KEY_CAPS_LOCK) != GLFW_PRESS &&
              glfwWindowShouldClose(window) == 0);
 
-    delete[] g_particule_position_size_data;
+    delete[] g_node_position_size_data;
 
     // Cleanup VBO and shader
-    glDeleteBuffers(1, &particles_color_buffer);
-    glDeleteBuffers(1, &particles_position_buffer);
+    glDeleteBuffers(1, &node_color_buffer);
+    glDeleteBuffers(1, &node_position_buffer);
     glDeleteBuffers(1, &billboard_vertex_buffer);
     glDeleteProgram(programID);
     glDeleteTextures(1, &Texture);
