@@ -24,7 +24,8 @@ add_definitions(
 	-D_CRT_SECURE_NO_WARNINGS
 )
 
-file(GLOB Src_Sources "./src/*.cpp" "./lib/*.cpp" "./lib/*.hpp")
+file(GLOB Src_Sources "./src/*.cpp" "./lib/*.cpp" "./lib/*.hpp" "./lib/*.h" "./src/*.h")
+
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/nodeFragmentShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/nodeVertexShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
