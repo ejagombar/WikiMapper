@@ -2,6 +2,7 @@
 #include <httplib.h>
 
 #include <json/json.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -17,9 +18,9 @@ GLFWwindow *window;
 
 // #include <lib/controls.hpp>
 // #include <lib/texture.hpp>
-#include "../lib/controls.hpp"
-#include "../lib/shader.hpp"
-#include "../lib/texture.hpp"
+#include "../lib/controls.h"
+#include "../lib/shader.h"
+#include "../lib/texture.h"
 
 using namespace glm;
 
@@ -132,6 +133,7 @@ int main(void) {
     glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
     glBufferData(GL_ARRAY_BUFFER, MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
+    Camera camera;
 
     for (int i = 0; i < MaxNodes; i++) {
         NodeContainer[i].pos =
@@ -180,9 +182,9 @@ int main(void) {
         double delta = currentTime - lastTime;
         lastTime = currentTime;
 
-        computeMatricesFromInputs();
-        glm::mat4 ProjectionMatrix = getProjectionMatrix();
-        glm::mat4 ViewMatrix = getViewMatrix();
+        camera.computeMatricesFromInputs(window);
+        glm::mat4 ProjectionMatrix = camera.getProjectionMatrix();
+        glm::mat4 ViewMatrix = camera.getViewMatrix();
 
         // We will need the camera's position in order to sort the particles
         // w.r.t the camera's distance.
