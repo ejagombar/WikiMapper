@@ -1,4 +1,4 @@
-#include "controls.h"
+#include "camera.h"
 #include <GLFW/glfw3.h>
 #include <cstdio>
 #include <glm/glm.hpp>
@@ -68,7 +68,7 @@ void Camera::computeMatricesFromInputs(GLFWwindow *window) {
                             // tutorial, so it's disabled instead.
 
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    ProjectionMatrix = glm::perspective(glm::radians(FoV), 4.0f / 3.0f, 0.1f, 100.0f);
+    ProjectionMatrix = glm::perspective(glm::radians(FoV), 4.0f / 3.0f, 0.7f, 200.0f);
     // Camera matrix
     ViewMatrix =
         glm::lookAt(position,             // Camera is here
