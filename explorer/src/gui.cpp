@@ -10,8 +10,8 @@ using namespace glm;
 
 void gui::sortNodes() { std::sort(&NodeContainer[0], &NodeContainer[m_MaxNodes]); }
 
-// gui::gui(const int &MaxNodes) : m_MaxNodes(MaxNodes) {
-gui::gui(const int &MaxNodes) {
+gui::gui(const int &MaxNodes) : m_MaxNodes(MaxNodes) {
+    NodeContainer = new Node[m_MaxNodes];
     g_particule_position_size_data = new GLfloat[m_MaxNodes * 4];
     g_particule_color_data = new GLubyte[m_MaxNodes * 4];
 }
