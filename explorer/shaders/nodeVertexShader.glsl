@@ -23,11 +23,6 @@ void main()
         particleCenter_wordspace
             + CameraRight_worldspace * squareVertices.x * particleSize
             + CameraUp_worldspace * squareVertices.y * particleSize;
-    // =======
-    //         nodeCenter_wordspace
-    //             + CameraRight_worldspace * squareVertices.x * nodeSize
-    //             + CameraUp_worldspace * squareVertices.y * nodeSize;
-    // >>>>>>> fixes
 
     // Output position of the vertex
     gl_Position = VP * vec4(vertexPosition_worldspace, 1.0f);
