@@ -24,14 +24,14 @@ add_definitions(
 	-D_CRT_SECURE_NO_WARNINGS
 )
 
-file(GLOB Src_Sources "./src/*.cpp" "./lib/*.cpp" "./lib/*.hpp")
+file(GLOB Src_Sources "./src/*.cpp" "./lib/*.cpp" "./lib/*.h")
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/nodeFragmentShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/nodeVertexShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/sphere512.DDS DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 
-add_executable(${CMAKE_PROJECT_NAME} ${Src_Sources} lib/shader.hpp lib/shader.cpp)
+add_executable(${CMAKE_PROJECT_NAME} ${Src_Sources} lib/shader.h lib/shader.cpp)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
     
