@@ -8,6 +8,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
+#include "../lib/controls.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
@@ -24,22 +25,24 @@ struct Node {
     }
 };
 
-template <unsigned int MaxNodes> class gui {
+class gui {
   public:
-    gui();
-    ~gui();
+    gui(const int &MaxNodes);
+    ~gui(){};
     int init();
 
   private:
     void generateNodeData(Node *NodeContainer);
     void loop();
-    void SortNodes();
+    void sortNodes();
     int initWindow();
 
     const int windowWidth = 1024 * 2;
     const int windowHeight = 768 * 2;
+    int m_MaxNodes;
+    Camera camera;
     GLFWwindow *window;
-    Node NodeContainer[MaxNodes];
+    Node *NodeContainer;
     GLuint billboard_vertex_buffer;
     GLuint particles_position_buffer;
     GLuint particles_color_buffer;
@@ -50,8 +53,8 @@ template <unsigned int MaxNodes> class gui {
     GLuint CameraUp_worldspace_ID;
     GLuint ViewProjMatrixID;
     double lastTime;
-    static GLfloat *g_particule_position_size_data;
-    static GLubyte *g_particule_color_data;
+    GLfloat *g_particule_position_size_data;
+    GLubyte *g_particule_color_data;
 };
 
 #endif // GUI_H

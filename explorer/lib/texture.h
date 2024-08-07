@@ -1,6 +1,7 @@
 #ifndef TEXTURE_HPP
 #define TEXTURE_HPP
 
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 // Load a .BMP file using our custom loader

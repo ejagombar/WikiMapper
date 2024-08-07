@@ -1,24 +1,22 @@
 #include "gui.h"
 // #include <lib/controls.hpp>
 // #include <lib/texture.hpp>
-#include "../lib/controls.hpp"
-#include "../lib/shader.hpp"
-#include "../lib/texture.hpp"
+#include "../lib/shader.h"
+#include "../lib/texture.h"
 #include <algorithm>
 #include <stdio.h>
 
 using namespace glm;
 
-template <unsigned int MaxNodes> void gui<MaxNodes>::SortNodes() {
-    std::sort(&NodeContainer[0], &NodeContainer[MaxNodes]);
+void gui::sortNodes() { std::sort(&NodeContainer[0], &NodeContainer[m_MaxNodes]); }
+
+gui::gui(const int &MaxNodes) : m_MaxNodes(MaxNodes) {
+    NodeContainer = new Node[m_MaxNodes];
+    g_particule_position_size_data = new GLfloat[m_MaxNodes * 4];
+    g_particule_color_data = new GLubyte[m_MaxNodes * 4];
 }
 
-template <unsigned int MaxNodes> gui<MaxNodes>::gui() {
-    g_particule_position_size_data = new GLfloat[MaxNodes * 4];
-    g_particule_color_data = new GLubyte[MaxNodes * 4];
-}
-
-template <unsigned int MaxNodes> int gui<MaxNodes>::initWindow() {
+int gui::initWindow() {
     // Initialize GLFW
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
@@ -64,8 +62,8 @@ template <unsigned int MaxNodes> int gui<MaxNodes>::initWindow() {
     return 0;
 }
 
-template <unsigned int MaxNodes> void gui<MaxNodes>::generateNodeData(Node *NodeContainer) {
-    for (int i = 0; i < MaxNodes; i++) {
+void gui::generateNodeData(Node *NodeContainer) {
+    for (int i = 0; i < m_MaxNodes; i++) {
         NodeContainer[i].pos =
             glm::vec3((rand() % 200 - 100.0f), (rand() % 200 - 100.0f), (rand() % 200 - 100.0f));
 
@@ -78,7 +76,7 @@ template <unsigned int MaxNodes> void gui<MaxNodes>::generateNodeData(Node *Node
     }
 }
 
-template <unsigned int MaxNodes> void gui<MaxNodes>::loop() {
+void gui::loop() {
     // Clear the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -86,9 +84,9 @@ template <unsigned int MaxNodes> void gui<MaxNodes>::loop() {
     double delta = currentTime - lastTime;
     lastTime = currentTime;
 
-    computeMatricesFromInputs(window);
-    glm::mat4 ProjectionMatrix = getProjectionMatrix();
-    glm::mat4 ViewMatrix = getViewMatrix();
+    camera.computeMatricesFromInputs(window);
+    glm::mat4 ProjectionMatrix = camera.getProjectionMatrix();
+    glm::mat4 ViewMatrix = camera.getViewMatrix();
 
     glm::vec3 CameraPosition(glm::inverse(ViewMatrix)[3]);
 
@@ -96,7 +94,7 @@ template <unsigned int MaxNodes> void gui<MaxNodes>::loop() {
 
     // Simulate all particles
     int NodeCount = 0;
-    for (int i = 0; i < MaxNodes; i++) {
+    for (int i = 0; i < m_MaxNodes; i++) {
         Node &p = NodeContainer[i]; // shortcut
 
         p.cameradistance = glm::length2(p.pos - CameraPosition);
@@ -117,7 +115,7 @@ template <unsigned int MaxNodes> void gui<MaxNodes>::loop() {
         NodeCount++;
     }
 
-    SortNodes();
+    sortNodes();
 
     // Update the buffers that OpenGL uses for rendering.
     // There are much more sophisticated means to stream data from the CPU to the GPU,
@@ -125,14 +123,14 @@ template <unsigned int MaxNodes> void gui<MaxNodes>::loop() {
     // http://www.opengl.org/wiki/Buffer_Object_Streaming
 
     glBindBuffer(GL_ARRAY_BUFFER, particles_position_buffer);
-    glBufferData(GL_ARRAY_BUFFER, MaxNodes * 4 * sizeof(GLfloat), NULL,
+    glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), NULL,
                  GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf.
                                   // See above link for details.
     glBufferSubData(GL_ARRAY_BUFFER, 0, NodeCount * sizeof(GLfloat) * 4,
                     g_particule_position_size_data);
 
     glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
-    glBufferData(GL_ARRAY_BUFFER, MaxNodes * 4 * sizeof(GLubyte), NULL,
+    glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL,
                  GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf.
                                   // See above link for detai#extension
                                   // GL_ARB_explicit_uniform_location : requirels.
@@ -218,7 +216,7 @@ template <unsigned int MaxNodes> void gui<MaxNodes>::loop() {
     glfwPollEvents();
 }
 
-template <unsigned int MaxNodes> int gui<MaxNodes>::init() {
+int gui::init() {
     if (initWindow() == -1)
         return -1;
 
@@ -236,7 +234,7 @@ template <unsigned int MaxNodes> int gui<MaxNodes>::init() {
     // fragment shader
     TextureID = glGetUniformLocation(programID, "myTextureSampler");
 
-    for (int i = 0; i < MaxNodes; i++) {
+    for (int i = 0; i < m_MaxNodes; i++) {
         NodeContainer[i].cameradistance = -1.0f;
     }
 
@@ -257,13 +255,13 @@ template <unsigned int MaxNodes> int gui<MaxNodes>::init() {
     glGenBuffers(1, &particles_position_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, particles_position_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
-    glBufferData(GL_ARRAY_BUFFER, MaxNodes * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // The VBO containing the colors of the particles
     glGenBuffers(1, &particles_color_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
-    glBufferData(GL_ARRAY_BUFFER, MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
 
     generateNodeData(NodeContainer);
 
