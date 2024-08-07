@@ -2,8 +2,8 @@
 
 // Input vertex data, different for all executions of this shader.
 layout(location = 0) in vec3 squareVertices;
-layout(location = 1) in vec4 xyzs; // Position of the center of the particle and size of the square
-layout(location = 2) in vec4 color; // Position of the center of the particle and size of the square
+layout(location = 1) in vec4 xyzs; // Position of the center of the node and size of the square
+layout(location = 2) in vec4 color; // Position of the center of the node and size of the square
 
 // Output data ; will be interpolated for each fragment.
 out vec2 UV;
@@ -16,13 +16,13 @@ uniform mat4 VP; // Model-View-Projection matrix, but without the Model (the pos
 
 void main()
 {
-    float particleSize = xyzs.w; // because we encoded it this way.
-    vec3 particleCenter_wordspace = xyzs.xyz;
+    float nodeSize = xyzs.w; // because we encoded it this way.
+    vec3 nodeCenter_wordspace = xyzs.xyz;
 
     vec3 vertexPosition_worldspace =
-        particleCenter_wordspace
-            + CameraRight_worldspace * squareVertices.x * particleSize
-            + CameraUp_worldspace * squareVertices.y * particleSize;
+        nodeCenter_wordspace
+            + CameraRight_worldspace * squareVertices.x * nodeSize
+            + CameraUp_worldspace * squareVertices.y * nodeSize;
 
     // Output position of the vertex
     gl_Position = VP * vec4(vertexPosition_worldspace, 1.0f);
