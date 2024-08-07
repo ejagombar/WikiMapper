@@ -8,7 +8,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include "../lib/controls.h"
+#include "../lib/camera.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
@@ -37,12 +37,14 @@ class gui {
     void sortNodes();
     int initWindow();
 
+    int m_MaxNodes;
+    double lastTime;
     const int windowWidth = 1024 * 2;
     const int windowHeight = 768 * 2;
-    int m_MaxNodes;
+
     Camera camera;
     GLFWwindow *window;
-    Node *NodeContainer;
+
     GLuint billboard_vertex_buffer;
     GLuint particles_position_buffer;
     GLuint particles_color_buffer;
@@ -52,7 +54,8 @@ class gui {
     GLuint CameraRight_worldspace_ID;
     GLuint CameraUp_worldspace_ID;
     GLuint ViewProjMatrixID;
-    double lastTime;
+
+    Node *NodeContainer;
     GLfloat *g_particule_position_size_data;
     GLubyte *g_particule_color_data;
 };
