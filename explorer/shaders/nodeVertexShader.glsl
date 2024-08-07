@@ -22,7 +22,7 @@ void main()
     vec3 nodeCenter_wordspace = xyzs.xyz;
 
     vec3 vertexPosition_worldspace =
-        particleCenter_wordspace
+        nodeCenter_wordspace
             + CameraRight_worldspace * squareVertices.x * nodeSize
             + CameraUp_worldspace * squareVertices.y * nodeSize;
 
