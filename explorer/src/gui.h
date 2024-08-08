@@ -11,6 +11,7 @@
 #include "../lib/camera.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/norm.hpp>
 
 struct Node {
@@ -49,11 +50,14 @@ class gui {
     GLuint node_position_buffer;
     GLuint node_color_buffer;
     GLuint programID;
+    GLuint shaderProgram;
     GLuint Texture;
     GLuint TextureID;
     GLuint CameraRight_worldspace_ID;
     GLuint CameraUp_worldspace_ID;
     GLuint ViewProjMatrixID;
+
+    GLuint VAO, VBO;
 
     Node *NodeContainer;
     GLfloat *g_node_position_size_data;

@@ -4,6 +4,7 @@
 #include "../lib/shader.h"
 #include "../lib/texture.h"
 #include <algorithm>
+#include <glm/gtc/type_ptr.hpp> // Required for glm::value_ptr
 #include <stdio.h>
 
 using namespace glm;
@@ -217,6 +218,18 @@ void gui::loop() {
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
 
+    // // ---------------------------- LINES ----------------------------
+    glUseProgram(shaderProgram);
+
+    GLuint VP2 = glGetUniformLocation(shaderProgram, "VP");
+    glUniformMatrix4fv(VP2, 1, GL_FALSE, glm::value_ptr(ViewProjectionMatrix));
+
+    // Draw the line
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_LINES, 0, 2);
+    glBindVertexArray(4);
+    // ---------------------------- LINES ----------------------------
+
     // Swap buffers
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -268,6 +281,38 @@ int gui::init() {
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
 
     generateNodeData(NodeContainer, 1000);
+
+    // ---------------------------- LINES ----------------------------
+    // Define two 3D points
+    glm::vec3 point1(-5.0f, -50.0f, 0.0f);
+    glm::vec3 point2(0.5f, 50.5f, 0.0f);
+
+    // Vertex data
+    GLfloat vertices[] = {point1.x, point1.y, point1.z, point2.x, point2.y, point2.z};
+
+    // Generate VAO and VBO
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    // Bind VAO
+    glBindVertexArray(VAO);
+
+    // Bind and set VBO data
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // Define vertex attributes
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+    glEnableVertexAttribArray(4);
+
+    // Unbind VBO and VAO
+    glBindBuffer(GL_ARRAY_BUFFER, 4);
+    glBindVertexArray(4);
+
+    // Create shader program
+    shaderProgram = LoadShaders("vertex_shader.glsl", "fragment_shader.glsl");
+
+    // ---------------------------- LINES ----------------------------
 
     lastTime = glfwGetTime();
 
