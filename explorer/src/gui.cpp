@@ -65,10 +65,10 @@ int gui::initWindow() {
     return 0;
 }
 
-void gui::generateNodeData(Node *NodeContainer) {
+void gui::generateNodeData(Node *NodeContainer, int size) {
     for (int i = 0; i < m_MaxNodes; i++) {
-        NodeContainer[i].pos =
-            glm::vec3((rand() % 200 - 100.0f), (rand() % 200 - 100.0f), (rand() % 200 - 100.0f));
+        NodeContainer[i].pos = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
+                                         (rand() % size - size / 2));
 
         NodeContainer[i].r = rand() % 256;
         NodeContainer[i].g = rand() % 256;
@@ -154,8 +154,8 @@ void gui::loop() {
     glUniform3f(CameraRight_worldspace_ID, ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
     glUniform3f(CameraUp_worldspace_ID, ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
     vec3 lightPos = CameraPosition;
-    vec3 lightColor = vec3(1, 0.1, 0.1);
-    int lightPower = 30;
+    vec3 lightColor = vec3(1, 1, 1);
+    int lightPower = 80;
 
     glUniform3f(glGetUniformLocation(programID, "LightPosition_worldspace"), lightPos.x, lightPos.y,
                 lightPos.z);
@@ -276,7 +276,7 @@ int gui::init() {
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
 
-    generateNodeData(NodeContainer);
+    generateNodeData(NodeContainer, 1000);
 
     lastTime = glfwGetTime();
 

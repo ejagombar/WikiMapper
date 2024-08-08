@@ -32,7 +32,7 @@ class gui {
     int init();
 
   private:
-    void generateNodeData(Node *NodeContainer);
+    void generateNodeData(Node *NodeContainer, int size);
     void loop();
     void sortNodes();
     int initWindow();
