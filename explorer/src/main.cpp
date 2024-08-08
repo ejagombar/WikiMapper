@@ -5,6 +5,6 @@
 #include <json/json.h>
 
 int main() {
-    gui myGUI(10000);
+    gui myGUI(1000000);
     return myGUI.init();
 }

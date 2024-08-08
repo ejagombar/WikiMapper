@@ -56,8 +56,11 @@ int gui::initWindow() {
     glfwSetCursorPos(window, windowWidth / 2.0f, windowHeight / 2.0f);
     glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
 
+    // glDisable(GL_DEPTH_TEST);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    // glEnable(GL_ALPHA_TEST);
+    // glAlphaFunc(GL_NOTEQUAL, 0.0f); // Reject fragments with alpha == 0.0
 
     return 0;
 }
@@ -115,7 +118,7 @@ void gui::loop() {
         NodeCount++;
     }
 
-    sortNodes();
+    // sortNodes();
 
     // Update the buffers that OpenGL uses for rendering.
     // There are much more sophisticated means to stream data from the CPU to the GPU,
