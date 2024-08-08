@@ -42,19 +42,19 @@ void Camera::computeMatricesFromInputs(GLFWwindow *window) {
 
     // Move forward
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        position += direction * deltaTime * speed;
+        acceleration += direction * deltaTime * speed;
     }
     // Move backward
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        position -= direction * deltaTime * speed;
+        acceleration -= direction * deltaTime * speed;
     }
     // Strafe right
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        position += right * deltaTime * speed;
+        acceleration += right * deltaTime * speed;
     }
     // Strafe left
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        position -= right * deltaTime * speed;
+        acceleration -= right * deltaTime * speed;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         position += glm::vec3(0, 1, 0) * deltaTime * speed;

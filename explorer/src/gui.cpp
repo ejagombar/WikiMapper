@@ -153,6 +153,17 @@ void gui::loop() {
     // Same as the billboards tutorial
     glUniform3f(CameraRight_worldspace_ID, ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
     glUniform3f(CameraUp_worldspace_ID, ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
+    vec3 lightPos = CameraPosition;
+    vec3 lightColor = vec3(1, 0.1, 0.1);
+    int lightPower = 30;
+
+    glUniform3f(glGetUniformLocation(programID, "LightPosition_worldspace"), lightPos.x, lightPos.y,
+                lightPos.z);
+    glUniform3f(glGetUniformLocation(programID, "LightColor"), lightColor.x, lightColor.y,
+                lightColor.z);
+    glUniform1f(glGetUniformLocation(programID, "LightPower"), lightPower);
+    glUniform3f(glGetUniformLocation(programID, "ViewPosition_worldspace"), CameraPosition.x,
+                CameraPosition.y, CameraPosition.z);
 
     glUniformMatrix4fv(ViewProjMatrixID, 1, GL_FALSE, &ViewProjectionMatrix[0][0]);
 

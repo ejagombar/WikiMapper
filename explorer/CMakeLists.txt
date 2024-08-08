@@ -23,7 +23,6 @@ add_definitions(
 	-DGLEW_STATIC
 	-D_CRT_SECURE_NO_WARNINGS
 )
-
 file(GLOB Src_Sources "./src/*.cpp" "./lib/*.cpp" "./lib/*.h" "./src/*.h")
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/nodeFragmentShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
