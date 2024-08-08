@@ -51,7 +51,7 @@ void main() {
 
     // Apply light attenuation
     float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.01 * distance * distance);
-    finalColor *= LightPower * attenuation;
+    finalColor *= LightPower;
 
     // Output final color
     color = vec4(finalColor, texColor.a);
