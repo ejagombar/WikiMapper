@@ -155,7 +155,7 @@ void gui::loop() {
     glUniform3f(CameraUp_worldspace_ID, ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
     vec3 lightPos = CameraPosition;
     vec3 lightColor = vec3(1, 1, 1);
-    int lightPower = 80;
+    int lightPower = 4;
 
     glUniform3f(glGetUniformLocation(programID, "LightPosition_worldspace"), lightPos.x, lightPos.y,
                 lightPos.z);
