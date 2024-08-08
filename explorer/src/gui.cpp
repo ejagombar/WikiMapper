@@ -118,13 +118,6 @@ void gui::loop() {
         NodeCount++;
     }
 
-    // sortNodes();
-
-    // Update the buffers that OpenGL uses for rendering.
-    // There are much more sophisticated means to stream data from the CPU to the GPU,
-    // but this is outside the scope of this tutorial.
-    // http://www.opengl.org/wiki/Buffer_Object_Streaming
-
     glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), NULL,
                  GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf.
@@ -253,8 +246,6 @@ int gui::init() {
 
     Texture = loadDDS("sphere512.DDS");
 
-    // The VBO containing the 4 vertices of the particles.
-    // Thanks to instancing, they will be shared by all particles.
     static const GLfloat g_vertex_buffer_data[] = {
         -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
     };
