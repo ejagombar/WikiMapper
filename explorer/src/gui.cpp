@@ -134,6 +134,7 @@ void gui::loop() {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_LINE_SMOOTH);
 
     // Use our shader
     glUseProgram(programID);
@@ -226,6 +227,7 @@ void gui::loop() {
 
     // Draw the line
     glBindVertexArray(VAO);
+    glLineWidth(2.0f); // Set line thickness to 5
     glDrawArrays(GL_LINES, 0, 2);
     glBindVertexArray(4);
     // ---------------------------- LINES ----------------------------
@@ -285,7 +287,7 @@ int gui::init() {
     // ---------------------------- LINES ----------------------------
     // Define two 3D points
     glm::vec3 point1(-5.0f, -50.0f, 0.0f);
-    glm::vec3 point2(0.5f, 50.5f, 0.0f);
+    glm::vec3 point2(200.5f, 50.5f, 0.0f);
 
     // Vertex data
     GLfloat vertices[] = {point1.x, point1.y, point1.z, point2.x, point2.y, point2.z};
