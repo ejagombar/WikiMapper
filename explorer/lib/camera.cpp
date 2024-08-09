@@ -72,7 +72,12 @@ void Camera::computeMatricesFromInputs(GLFWwindow *window) {
     }
 
     m_position += m_acceleration * deltaTime * m_movementSpeed;
-    m_acceleration *= m_accelerationReduce;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        m_acceleration *= m_accelerationReduceSlowed;
+    } else {
+        m_acceleration *= m_accelerationReduce;
+    }
 
     float FoV = m_initialFoV; // - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a
                               // callback for this. It's a bit too complicated for this beginner's
