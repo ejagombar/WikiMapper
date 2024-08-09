@@ -29,7 +29,7 @@ struct Node {
 
 class gui {
   public:
-    gui(const int &MaxNodes);
+    gui(const int &MaxNodes, std::vector<glm::vec3> &line, std::vector<Node> &nodes);
     ~gui(){};
     int init();
 
@@ -57,14 +57,15 @@ class gui {
     GLuint CameraRight_worldspace_ID;
     GLuint CameraUp_worldspace_ID;
     GLuint ViewProjMatrixID;
+    GLuint VP2;
 
     GLuint VAO, VBO;
 
-    Node *NodeContainer;
+    std::vector<Node> &m_nodes;
+    std::vector<glm::vec3> &m_lines;
 
-    std::vector<glm::vec3> lineVertices;
-    GLfloat *g_node_position_size_data;
-    GLubyte *g_node_color_data;
+    std::vector<GLfloat> g_node_position_size_data;
+    std::vector<GLubyte> g_node_color_data;
 };
 
 #endif // GUI_H
