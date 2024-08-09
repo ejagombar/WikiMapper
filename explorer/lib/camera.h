@@ -8,26 +8,29 @@ class Camera {
   public:
     Camera(){};
     void computeMatricesFromInputs(GLFWwindow *window);
-    glm::mat4 getViewMatrix() { return ViewMatrix; }
-    glm::mat4 getProjectionMatrix() { return ProjectionMatrix; }
+    glm::mat4 getViewMatrix() { return m_viewMatrix; }
+    glm::mat4 getProjectionMatrix() { return m_projectionMatrix; }
 
   private:
-    glm::mat4 ViewMatrix;
-    glm::mat4 ProjectionMatrix;
+    glm::mat4 m_viewMatrix;
+    glm::mat4 m_projectionMatrix;
 
-    // Initial position : on +Z
-    glm::vec3 position = glm::vec3(0, 0, 5);
-    glm::vec3 acceleration = glm::vec3(0, 0, 0);
-    // Initial horizontal angle : toward -Z
-    float horizontalAngle = 3.14f;
-    // Initial vertical angle : none
-    float verticalAngle = 0.0f;
-    // Initial Field of View
-    float initialFoV = 45.0f;
+    float m_horizontalAngle = 3.14f;
+    float m_verticalAngle = 0.0f;
+    float m_initialFoV = 45.0f;
 
-    float speed = 2.0f; // 3 units / second
-    float maxSpeed = 40.0f;
-    float mouseSpeed = 0.001f;
+    glm::vec3 m_position = glm::vec3(0, 0, 0);
+    glm::vec3 m_acceleration = glm::vec3(0, 0, 0);
+
+    const float m_movementSpeed = 2.0f;
+    const float m_mouseSpeed = 0.001f;
+    const float m_accelerationReduce = 0.99f;
+
+    const float m_aspecRatio = 4.0f / 3.0f;
+    const float m_minDisplayRange = 0.7f;
+    const float m_maxDisplayRange = 900.0f;
+
+    const bool m_lockViewingAngle = false;
 };
 
 #endif
