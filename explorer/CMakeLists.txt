@@ -27,15 +27,14 @@ file(GLOB Src_Sources "./src/*.cpp" "./lib/*.cpp" "./lib/*.h" "./src/*.h")
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/nodeFragmentShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/nodeVertexShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/vertex_shader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fragment_shader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/lineVertexShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders/lineFragmentShader.glsl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/sphere512.DDS DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(${CMAKE_PROJECT_NAME} ${Src_Sources})
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
-
     
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Boost::asio Boost::system)

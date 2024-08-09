@@ -315,7 +315,7 @@ int gui::init() {
     glBindVertexArray(4);
 
     // Create shader program
-    shaderProgram = LoadShaders("vertex_shader.glsl", "fragment_shader.glsl");
+    shaderProgram = LoadShaders("lineVertexShader.glsl", "lineFragmentShader.glsl");
 
     // ---------------------------- LINES ----------------------------
 
