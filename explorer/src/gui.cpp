@@ -3,13 +3,10 @@
 // #include <lib/texture.hpp>
 #include "../lib/shader.h"
 #include "../lib/texture.h"
-#include <algorithm>
-#include <glm/gtc/type_ptr.hpp> // Required for glm::value_ptr
+#include <glm/gtc/type_ptr.hpp>
 #include <stdio.h>
 
 using namespace glm;
-
-void gui::sortNodes() { std::sort(&NodeContainer[0], &NodeContainer[m_MaxNodes]); }
 
 gui::gui(const int &MaxNodes) : m_MaxNodes(MaxNodes) {
     NodeContainer = new Node[m_MaxNodes];
@@ -57,11 +54,8 @@ int gui::initWindow() {
     glfwSetCursorPos(window, windowWidth / 2.0f, windowHeight / 2.0f);
     glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
 
-    // glDisable(GL_DEPTH_TEST);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    // glEnable(GL_ALPHA_TEST);
-    // glAlphaFunc(GL_NOTEQUAL, 0.0f); // Reject fragments with alpha == 0.0
 
     return 0;
 }
@@ -102,7 +96,6 @@ void gui::loop() {
         Node &p = NodeContainer[i]; // shortcut
 
         p.cameradistance = glm::length2(p.pos - CameraPosition);
-        // NodeContainer[i].pos += glm::vec3(0.0f,10.0f, 0.0f) * (float)delta;
 
         // Fill the GPU buffer
         g_node_position_size_data[4 * NodeCount + 0] = p.pos.x;
@@ -285,7 +278,7 @@ int gui::init() {
     generateNodeData(NodeContainer, 1000);
 
     // ---------------------------- LINES ----------------------------
-    int numLines = 1000; // Number of lines
+    int numLines = 2000; // Number of lines
     int size = 1000;
     for (int i = 0; i < numLines; ++i) {
 
