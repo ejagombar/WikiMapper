@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/norm.hpp>
+#include <vector>
 
 struct Node {
     glm::vec3 pos, speed;
@@ -60,6 +61,8 @@ class gui {
     GLuint VAO, VBO;
 
     Node *NodeContainer;
+
+    std::vector<glm::vec3> lineVertices;
     GLfloat *g_node_position_size_data;
     GLubyte *g_node_color_data;
 };

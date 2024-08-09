@@ -228,7 +228,7 @@ void gui::loop() {
     // Draw the line
     glBindVertexArray(VAO);
     glLineWidth(2.0f); // Set line thickness to 5
-    glDrawArrays(GL_LINES, 0, 2);
+    glDrawArrays(GL_LINES, 0, lineVertices.size());
     glBindVertexArray(4);
     // ---------------------------- LINES ----------------------------
 
@@ -285,29 +285,32 @@ int gui::init() {
     generateNodeData(NodeContainer, 1000);
 
     // ---------------------------- LINES ----------------------------
-    // Define two 3D points
-    glm::vec3 point1(-5.0f, -50.0f, 0.0f);
-    glm::vec3 point2(200.5f, 50.5f, 0.0f);
+    int numLines = 1000; // Number of lines
+    int size = 1000;
+    for (int i = 0; i < numLines; ++i) {
 
-    // Vertex data
-    GLfloat vertices[] = {point1.x, point1.y, point1.z, point2.x, point2.y, point2.z};
+        glm::vec3 start = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
+                                    (rand() % size - size / 2));
 
-    // Generate VAO and VBO
+        glm::vec3 end = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
+                                  (rand() % size - size / 2));
+
+        lineVertices.push_back(start);
+        lineVertices.push_back(end);
+    }
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
-    // Bind VAO
     glBindVertexArray(VAO);
 
-    // Bind and set VBO data
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, lineVertices.size() * sizeof(glm::vec3), &lineVertices[0],
+                 GL_STATIC_DRAW);
 
-    // Define vertex attributes
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+    // Vertex attribute for position
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (GLvoid *)0);
     glEnableVertexAttribArray(4);
 
-    // Unbind VBO and VAO
     glBindBuffer(GL_ARRAY_BUFFER, 4);
     glBindVertexArray(4);
 
