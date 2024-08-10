@@ -1,44 +1,53 @@
 #include "neo4j.h"
+#include <cstdint>
 #include <httplib.h>
 
 #include "gui.h"
 #include "store.h"
+#include <iostream>
 #include <json/json.h>
+#include <unordered_map>
 
 int main() {
     DB data;
-    generateFakeData(data);
+    const int numOfElements = 100;
+    generateFakeData(data, numOfElements);
+    std::unordered_map<uint32_t, glm::vec3> spaceMap(numOfElements);
 
-    const int nodeCount = 100000;
+    const int size = 100;
+    std::cout << data.size() << std::endl;
+    for (auto node : data) {
+        auto coord = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
+                               (rand() % size - size / 2));
+        spaceMap.insert({node.UID, coord});
+    }
+
     std::vector<glm::vec3> lines;
-    std::vector<Node> nodes(nodeCount);
+    std::vector<Node> nodes(numOfElements);
 
-    const int size = 1000;
-    for (int i = 0; i < 100000; i++) {
-        nodes[i].pos = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
-                                 (rand() % size - size / 2));
+    for (int i = 0; i < numOfElements; i++) {
+        nodes[i].pos = spaceMap[data[i].UID];
 
         nodes[i].r = rand() % 256;
         nodes[i].g = rand() % 256;
         nodes[i].b = rand() % 256;
         nodes[i].a = 255;
+        std::cout << i << std::endl;
 
-        nodes[i].size = 1.0f;
+        nodes[i].size = 4.0f;
     }
 
-    int numLines = 4000;
-    for (int i = 0; i < numLines; ++i) {
-
-        glm::vec3 start = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
-                                    (rand() % size - size / 2));
-
-        glm::vec3 end = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
-                                  (rand() % size - size / 2));
-
-        lines.push_back(start);
-        lines.push_back(end);
+    for (auto startNode : data) {
+        for (uint32_t endUID : startNode.linksTo) {
+            if (spaceMap.find(endUID) == spaceMap.end())
+                std::cout << endUID << std::endl;
+            lines.push_back(spaceMap[startNode.UID]);
+            lines.push_back(spaceMap[endUID]);
+        }
     }
 
-    gui myGUI(nodeCount, lines, nodes);
+    std::cout << "NODES " << nodes.size() << std::endl;
+
+    gui myGUI(numOfElements, lines, nodes);
     return myGUI.init();
 }

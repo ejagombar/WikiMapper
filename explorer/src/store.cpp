@@ -1,8 +1,7 @@
 #include "store.h"
 
-void generateFakeData(DB &db) {
+void generateFakeData(DB &db, const int size) {
     const int idOffset = 1000;
-    const int size = 100;
     db.resize(size);
 
     NodeStore obj;
@@ -10,11 +9,11 @@ void generateFakeData(DB &db) {
         obj.UID = id + idOffset;
         obj.name = "Node" + std::to_string(obj.UID);
 
-        int numOfLinks = 2 + rand() % 12;
+        int numOfLinks = 1 + rand() % 4;
         obj.linksTo.resize(numOfLinks);
 
         for (int i = 0; i < numOfLinks; i++) {
-            obj.linksTo[i] = idOffset + rand() % (idOffset + size);
+            obj.linksTo[i] = idOffset + rand() % size;
         }
 
         db[id] = obj;

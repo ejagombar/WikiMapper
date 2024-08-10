@@ -13,5 +13,5 @@ struct NodeStore {
 
 typedef std::vector<NodeStore> DB;
 
-void generateFakeData(DB &db);
+void generateFakeData(DB &db, const int size);
 #endif
