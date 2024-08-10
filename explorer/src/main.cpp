@@ -2,15 +2,18 @@
 #include <httplib.h>
 
 #include "gui.h"
+#include "store.h"
 #include <json/json.h>
 
 int main() {
+    DB data;
+    generateFakeData(data);
 
-    const unsigned int nodeCount = 100000;
+    const int nodeCount = 100000;
     std::vector<glm::vec3> lines;
     std::vector<Node> nodes(nodeCount);
 
-    const unsigned int size = 1000;
+    const int size = 1000;
     for (int i = 0; i < 100000; i++) {
         nodes[i].pos = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
                                  (rand() % size - size / 2));
