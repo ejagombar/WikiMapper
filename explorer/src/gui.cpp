@@ -52,7 +52,8 @@ int gui::initWindow() {
 
     glfwPollEvents();
     glfwSetCursorPos(window, windowWidth / 2.0f, windowHeight / 2.0f);
-    glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
+    float darkness = 0.07;
+    glClearColor(darkness, darkness, darkness, 0.0f);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -75,6 +76,18 @@ void gui::loop() {
 
     glm::mat4 ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
 
+    // ---------------------------- LINES ----------------------------
+    glUseProgram(shaderProgram);
+
+    glUniformMatrix4fv(VP2, 1, GL_FALSE, glm::value_ptr(ViewProjectionMatrix));
+
+    // Draw the line
+    glBindVertexArray(VAO);
+    glLineWidth(2.0f); // Set line thickness to 5
+    glDrawArrays(GL_LINES, 0, m_lines.size());
+    glBindVertexArray(4);
+    // ---------------------------- LINES ----------------------------
+
     // Simulate all particles
     for (int i = 0; i < m_MaxNodes; i++) {
         Node &p = m_nodes[i]; // shortcut
@@ -96,12 +109,12 @@ void gui::loop() {
 
     glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, m_nodes.size() * sizeof(GLfloat),
+    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * m_nodes.size() * sizeof(GLfloat),
                     &g_node_position_size_data.front());
 
     glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, m_nodes.size() * sizeof(GLubyte),
+    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * m_nodes.size() * sizeof(GLubyte),
                     &g_node_color_data.front());
 
     glEnable(GL_BLEND);
@@ -156,18 +169,6 @@ void gui::loop() {
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
 
-    // ---------------------------- LINES ----------------------------
-    glUseProgram(shaderProgram);
-
-    glUniformMatrix4fv(VP2, 1, GL_FALSE, glm::value_ptr(ViewProjectionMatrix));
-
-    // Draw the line
-    glBindVertexArray(VAO);
-    glLineWidth(2.0f); // Set line thickness to 5
-    glDrawArrays(GL_LINES, 0, m_lines.size());
-    glBindVertexArray(4);
-    // ---------------------------- LINES ----------------------------
-
     // Swap buffers
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -210,13 +211,13 @@ int gui::init() {
     glGenBuffers(1, &node_position_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
-    glBufferData(GL_ARRAY_BUFFER, m_nodes.size() * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 4 * m_nodes.size() * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // The VBO containing the colors of the particles
     glGenBuffers(1, &node_color_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
-    glBufferData(GL_ARRAY_BUFFER, m_nodes.size() * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 4 * m_nodes.size() * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
 
     // ---------------------------- LINES ----------------------------
     glGenVertexArrays(1, &VAO);
@@ -225,7 +226,7 @@ int gui::init() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(glm::vec3), &m_lines.front(),
+    glBufferData(GL_ARRAY_BUFFER, 4 * m_lines.size() * sizeof(glm::vec3), &m_lines.front(),
                  GL_STATIC_DRAW);
 
     // Vertex attribute for position
