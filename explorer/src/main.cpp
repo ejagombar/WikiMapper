@@ -10,7 +10,7 @@
 
 int main() {
     DB data;
-    const int numOfElements = 100;
+    const int numOfElements = 10;
     generateFakeData(data, numOfElements);
     std::unordered_map<uint32_t, glm::vec3> spaceMap(numOfElements);
 
@@ -32,9 +32,8 @@ int main() {
         nodes[i].g = rand() % 256;
         nodes[i].b = rand() % 256;
         nodes[i].a = 255;
-        std::cout << i << std::endl;
 
-        nodes[i].size = 4.0f;
+        nodes[i].size = 1.0f;
     }
 
     for (auto startNode : data) {
@@ -47,6 +46,9 @@ int main() {
     }
 
     std::cout << "NODES " << nodes.size() << std::endl;
+    for (auto x : nodes) {
+        std::cout << x.pos.x << " " << x.pos.y << " " << x.pos.z << std::endl;
+    }
 
     gui myGUI(numOfElements, lines, nodes);
     return myGUI.init();
