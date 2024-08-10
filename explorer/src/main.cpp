@@ -10,11 +10,11 @@
 
 int main() {
     DB data;
-    const int numOfElements = 10;
+    const int numOfElements = 200;
     generateFakeData(data, numOfElements);
     std::unordered_map<uint32_t, glm::vec3> spaceMap(numOfElements);
 
-    const int size = 100;
+    const int size = 200;
     std::cout << data.size() << std::endl;
     for (auto node : data) {
         auto coord = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
@@ -33,7 +33,7 @@ int main() {
         nodes[i].b = rand() % 256;
         nodes[i].a = 255;
 
-        nodes[i].size = 1.0f;
+        nodes[i].size = data[i].linksTo.size() / 1.0;
     }
 
     for (auto startNode : data) {
