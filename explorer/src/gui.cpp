@@ -226,7 +226,7 @@ int gui::init() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, 4 * m_lines.size() * sizeof(glm::vec3), &m_lines.front(),
+    glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(glm::vec3), &m_lines.front(),
                  GL_STATIC_DRAW);
 
     // Vertex attribute for position
