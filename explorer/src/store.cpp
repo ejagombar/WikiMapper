@@ -15,7 +15,7 @@ void generateFakeData(DB &db, const int size) {
         obj.name = "Node" + std::to_string(obj.UID);
 
         // int numOfLinks = 1 + rand() % 4;
-        int numOfLinks = distribution(generator);
+        int numOfLinks = distribution(generator) + 1;
 
         obj.linksTo.resize(numOfLinks);
 

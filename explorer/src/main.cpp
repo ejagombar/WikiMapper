@@ -11,14 +11,25 @@
 std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, const float xyPlainMax,
                                    const float zPlainMin, const float zPlainMax,
                                    const unsigned int count, const float radius) {
-    std::vector<glm::vec3> out;
+    std::vector<glm::vec3> out(count);
+
+    glm::vec3 out1;
+    const float angleDelta = ((xyPlainMax - xyPlainMin) / count);
+
+    for (int i = 0; i < count; ++i) {
+        auto &p = out[i];
+        float angle = xyPlainMin + angleDelta * i;
+
+        p.x = center.x + radius * cos(angle);
+        p.y = center.y + radius * sin(angle);
+    }
 
     return out;
 }
 
 int main() {
     DB data;
-    const int numOfElements = 100;
+    const int numOfElements = 20;
 
     generateFakeData(data, numOfElements);
 
@@ -29,15 +40,21 @@ int main() {
     auto DBSort = [](NodeStore a, NodeStore b) { return a.linksTo.size() > b.linksTo.size(); };
     std::sort(data.begin(), data.end(), DBSort);
 
-    auto out = spreadOrbit(glm::vec3(0, 0, 0), 0, 3.14, 0, 0, 1, 10);
-    std::cout << "Coords: " << out.begin()->x << " " << out.begin()->y << " " << out.begin()->z
-              << std::endl;
+    std::vector<glm::vec3> out =
+        spreadOrbit(glm::vec3(0, 0, 0), 0, 3.14159 * 2, 0, 0, numOfElements - 1, 20);
+
+    out.insert(out.begin(), glm::vec3(0, 0, 0));
 
     const int size = 100;
+    int i = 0;
     for (auto node : data) {
-        auto coord = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
-                               (rand() % size - size / 2));
-        spaceMap.insert({node.UID, coord});
+        // auto coord = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
+        //                        (rand() % size - size / 2));
+        spaceMap.insert({node.UID, out[i]});
+
+        std::cout << i << " Coords: " << out[i].x << " " << out[i].y << " " << out[i].z
+                  << std::endl;
+        ++i;
     }
 
     for (int i = 0; i < numOfElements; i++) {
@@ -48,8 +65,13 @@ int main() {
         nodes[i].b = rand() % 256;
         nodes[i].a = 255;
 
-        nodes[i].size = data[i].linksTo.size() / 1.0;
+        nodes[i].size = data[i].linksTo.size();
     }
+
+    std::cout << "Node Count: " << nodes.size() << std::endl;
+    std::cout << "Last Node: " << nodes[nodes.size() - 1].size << std::endl;
+
+    std::cout << "Coords: " << out[i].x << " " << out[i].y << " " << out[i].z << std::endl;
 
     for (auto startNode : data) {
         for (uint32_t endUID : startNode.linksTo) {
