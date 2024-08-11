@@ -29,7 +29,7 @@ std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, con
 
 int main() {
     DB data;
-    const int numOfElements = 20;
+    const int numOfElements = 50;
 
     generateFakeData(data, numOfElements);
 
@@ -41,7 +41,7 @@ int main() {
     std::sort(data.begin(), data.end(), DBSort);
 
     std::vector<glm::vec3> out =
-        spreadOrbit(glm::vec3(0, 0, 0), 0, 3.14159 * 2, 0, 0, numOfElements - 1, 20);
+        spreadOrbit(glm::vec3(0, 0, 0), 0, 3.14159 * 2, 0, 0, numOfElements - 1, 100);
 
     out.insert(out.begin(), glm::vec3(0, 0, 0));
 
