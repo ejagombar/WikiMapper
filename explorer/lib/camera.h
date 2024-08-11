@@ -29,7 +29,7 @@ class Camera {
 
     const float m_aspecRatio = 4.0f / 3.0f;
     const float m_minDisplayRange = 0.7f;
-    const float m_maxDisplayRange = 900.0f;
+    const float m_maxDisplayRange = 1000.0f;
 
     const bool m_lockViewingAngle = false;
 };
