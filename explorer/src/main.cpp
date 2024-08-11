@@ -29,19 +29,20 @@ std::vector<glm::vec3> spreadOrbit2d(glm::vec3 center, const float xyPlainMin,
 
 std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, const float xyPlainMax,
                                    const float zPlainMin, const float zPlainMax, const int count,
-                                   const double radius) {
+                                   const float radius) {
     std::vector<glm::vec3> out(count);
-    auto phi = 3.1415 * (sqrt(5.0) - 1);
+    const float pi = 3.14159274101257324219;
+    const float phi = pi * (sqrt(5.0) - 1);
 
     for (int i = 0; i < count; ++i) {
-        double z = 1.0 - ((double)i / ((double)count - 1.0)) * 2.0;
-        double radius2 = sqrt(1.0 - z * z);
+        float z = 1.0 - (static_cast<float>(i) / (count - 1.0)) * 2;
+        float unitRadius = sqrt(1.0 - z * z);
 
-        double theta = phi * i;
+        float theta = phi * i;
 
-        out[i].x = (double)center.x + cos(theta) * radius2 * radius;
-        out[i].y = (double)center.y + sin(theta) * radius2 * radius;
-        out[i].z = (double)center.z + z * radius;
+        out[i].x = center.x + cos(theta) * unitRadius * radius;
+        out[i].y = center.y + sin(theta) * unitRadius * radius;
+        out[i].z = center.z + z * radius;
     }
 
     return out;
@@ -49,7 +50,7 @@ std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, con
 
 int main() {
     DB data;
-    const int numOfElements = 100;
+    const int numOfElements = 4000;
 
     generateFakeData(data, numOfElements);
 
@@ -69,13 +70,13 @@ int main() {
 
     const int size = 100;
     int i = 0;
+
+    std::cout << " Coords: " << data[i].UID << " " << std::endl;
     for (auto node : data) {
         // auto coord = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
         //                        (rand() % size - size / 2));
         spaceMap.insert({node.UID, out[i]});
 
-        std::cout << node.UID << " Coords: " << out[i].x << " " << out[i].y << " " << out[i].z
-                  << " " << node.linksTo[0] << std::endl;
         ++i;
     }
 
