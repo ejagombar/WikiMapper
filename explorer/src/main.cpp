@@ -1,4 +1,5 @@
 #include "neo4j.h"
+#include <cmath>
 #include <cstdint>
 #include <httplib.h>
 
@@ -8,12 +9,11 @@
 #include <json/json.h>
 #include <unordered_map>
 
-std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, const float xyPlainMax,
-                                   const float zPlainMin, const float zPlainMax,
-                                   const unsigned int count, const float radius) {
+std::vector<glm::vec3> spreadOrbit2d(glm::vec3 center, const float xyPlainMin,
+                                     const float xyPlainMax, const unsigned int count,
+                                     const float radius) {
     std::vector<glm::vec3> out(count);
 
-    glm::vec3 out1;
     const float angleDelta = ((xyPlainMax - xyPlainMin) / count);
 
     for (int i = 0; i < count; ++i) {
@@ -27,9 +27,29 @@ std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, con
     return out;
 }
 
+std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, const float xyPlainMax,
+                                   const float zPlainMin, const float zPlainMax, const int count,
+                                   const double radius) {
+    std::vector<glm::vec3> out(count);
+    auto phi = 3.1415 * (sqrt(5.0) - 1);
+
+    for (int i = 0; i < count; ++i) {
+        double z = 1.0 - ((double)i / ((double)count - 1.0)) * 2.0;
+        double radius2 = sqrt(1.0 - z * z);
+
+        double theta = phi * i;
+
+        out[i].x = (double)center.x + cos(theta) * radius2 * radius;
+        out[i].y = (double)center.y + sin(theta) * radius2 * radius;
+        out[i].z = (double)center.z + z * radius;
+    }
+
+    return out;
+}
+
 int main() {
     DB data;
-    const int numOfElements = 50;
+    const int numOfElements = 100;
 
     generateFakeData(data, numOfElements);
 
@@ -40,6 +60,8 @@ int main() {
     auto DBSort = [](NodeStore a, NodeStore b) { return a.linksTo.size() > b.linksTo.size(); };
     std::sort(data.begin(), data.end(), DBSort);
 
+    // std::vector<glm::vec3> out =
+    //     spreadOrbit2d(glm::vec3(0, 0, 0), 0, 3.14159 * 2, numOfElements - 1, 100);
     std::vector<glm::vec3> out =
         spreadOrbit(glm::vec3(0, 0, 0), 0, 3.14159 * 2, 0, 0, numOfElements - 1, 100);
 
@@ -52,8 +74,8 @@ int main() {
         //                        (rand() % size - size / 2));
         spaceMap.insert({node.UID, out[i]});
 
-        std::cout << i << " Coords: " << out[i].x << " " << out[i].y << " " << out[i].z
-                  << std::endl;
+        std::cout << node.UID << " Coords: " << out[i].x << " " << out[i].y << " " << out[i].z
+                  << " " << node.linksTo[0] << std::endl;
         ++i;
     }
 
