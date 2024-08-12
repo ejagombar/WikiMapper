@@ -56,4 +56,3 @@ void main() {
     // Output final color
     color = vec4(finalColor, texColor.a);
 }
-
