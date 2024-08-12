@@ -8,6 +8,9 @@ std::vector<glm::vec3> spreadOrbit2d(const glm::vec3 center, const unsigned int 
                                      const glm::vec3 rotation);
 
 std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoints,
+                                       const float radius, const glm::vec3 rotation);
+
+std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoints,
                                        const float radius, const glm::vec2 thetaRange,
                                        const glm::vec2 phiRange, const glm::vec3 rotation);
 

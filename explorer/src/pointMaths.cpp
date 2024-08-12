@@ -38,6 +38,13 @@ std::vector<glm::vec3> spreadOrbit2d(const glm::vec3 center, const unsigned int 
 }
 
 std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoints,
+                                       const float radius, const glm::vec3 rotation) {
+
+    auto maxRange = glm::vec2(glm::pi<float>() * -1.0f, glm::pi<float>());
+    return spreadOrbitRand(center, numPoints, radius, maxRange, maxRange, rotation);
+}
+
+std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoints,
                                        const float radius, const glm::vec2 thetaRange,
                                        const glm::vec2 phiRange, const glm::vec3 rotation) {
     std::vector<glm::vec3> points;
