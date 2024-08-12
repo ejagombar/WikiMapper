@@ -9,19 +9,29 @@
 #include <json/json.h>
 #include <unordered_map>
 
-std::vector<glm::vec3> spreadOrbit2d(glm::vec3 center, const float xyPlainMin,
+glm::vec3 rotateVec(glm::vec3 &input, glm::vec3 &rotation) {
+    const glm::mat4 rotationMat(1.0f);
+
+    glm::mat4 rotationMatX = glm::rotate(rotationMat, rotation.x, glm::vec3(1.0, 0.0, 0.0));
+    glm::mat4 rotationMatY = glm::rotate(rotationMat, rotation.y, glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 rotationMatZ = glm::rotate(rotationMat, rotation.z, glm::vec3(0.0, 0.0, 1.0));
+
+    return glm::vec3(rotationMatX * rotationMatY * rotationMatZ * glm::vec4(input, 1.0));
+}
+
+std::vector<glm::vec3> spreadOrbit2d(glm::vec3 &center, glm::vec3 &rotation, const float xyPlainMin,
                                      const float xyPlainMax, const unsigned int count,
                                      const float radius) {
     std::vector<glm::vec3> out(count);
-
     const float angleDelta = ((xyPlainMax - xyPlainMin) / count);
 
     for (int i = 0; i < count; ++i) {
-        auto &p = out[i];
         float angle = xyPlainMin + angleDelta * i;
 
-        p.x = center.x + radius * cos(angle);
-        p.y = center.y + radius * sin(angle);
+        glm::vec3 location(center.x + radius * cos(angle), center.y + radius * sin(angle),
+                           center.z);
+
+        out[i] = rotateVec(location, rotation);
     }
 
     return out;
@@ -50,7 +60,7 @@ std::vector<glm::vec3> spreadOrbit(glm::vec3 center, const float xyPlainMin, con
 
 int main() {
     DB data;
-    const int numOfElements = 4000;
+    const int numOfElements = 26;
 
     generateFakeData(data, numOfElements);
 
@@ -61,20 +71,37 @@ int main() {
     auto DBSort = [](NodeStore a, NodeStore b) { return a.linksTo.size() > b.linksTo.size(); };
     std::sort(data.begin(), data.end(), DBSort);
 
-    // std::vector<glm::vec3> out =
-    //     spreadOrbit2d(glm::vec3(0, 0, 0), 0, 3.14159 * 2, numOfElements - 1, 100);
-    std::vector<glm::vec3> out =
-        spreadOrbit(glm::vec3(0, 0, 0), 0, 3.14159 * 2, 0, 0, numOfElements - 1, 100);
+    auto out = spreadOrbit2d(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), 1, 2, 10, 100);
+    // auto out2 = spreadOrbit2d(glm::vec3(0, 0, 0), glm::vec3(3.14 * 2, 0, 0), 0, 3.14159, 49,
+    // 100);
 
-    out.insert(out.begin(), glm::vec3(0, 0, 0));
+    out.push_back(glm::vec3(0, 0, 0));
+    out.push_back(glm::vec3(50, 0, 0));
+    out.push_back(glm::vec3(0, 50, 0));
+    out.push_back(glm::vec3(50, 50, 0));
+    auto x = 3.14f / 2.0f;
+    out.push_back(rotateVec(glm::vec3(50, 0, 0), glm::vec3(x, 0, 0)));
+    out.push_back(rotateVec(glm::vec3(50, 50, 0), glm::vec3(x, 0, 0)));
+    out.push_back(rotateVec(glm::vec3(0, 50, 0), glm::vec3(x, 0, 0)));
+    out.push_back(rotateVec(glm::vec3(0, 0, 0), glm::vec3(x, 0, 0)));
+
+    out.push_back(rotateVec(glm::vec3(50, 0, 0), glm::vec3(0, 0, x)));
+    out.push_back(rotateVec(glm::vec3(50, 50, 0), glm::vec3(0, 0, x)));
+    out.push_back(rotateVec(glm::vec3(0, 50, 0), glm::vec3(0, 0, x)));
+    out.push_back(rotateVec(glm::vec3(0, 0, 0), glm::vec3(0, 0, x)));
+
+    out.push_back(rotateVec(glm::vec3(50, 0, 0), glm::vec3(0, x, 0)));
+    out.push_back(rotateVec(glm::vec3(50, 50, 0), glm::vec3(0, x, 0)));
+    out.push_back(rotateVec(glm::vec3(0, 50, 0), glm::vec3(0, x, 0)));
+    out.push_back(rotateVec(glm::vec3(0, 0, 0), glm::vec3(0, x, 0)));
+
+    // out.insert(out.end(), out2.begin(), out2.end());
 
     const int size = 100;
     int i = 0;
 
     std::cout << " Coords: " << data[i].UID << " " << std::endl;
     for (auto node : data) {
-        // auto coord = glm::vec3((rand() % size - size / 2), (rand() % size - size / 2),
-        //                        (rand() % size - size / 2));
         spaceMap.insert({node.UID, out[i]});
 
         ++i;

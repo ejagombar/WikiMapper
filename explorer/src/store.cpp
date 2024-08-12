@@ -17,13 +17,13 @@ void generateFakeData(DB &db, const int size) {
         // int numOfLinks = 1 + rand() % 4;
         int numOfLinks = distribution(generator) + 1;
 
-        obj.linksTo.resize(1);
+        obj.linksTo.resize(numOfLinks);
 
-        // for (int i = 0; i < numOfLinks; i++) {
-        //     obj.linksTo[i] = idOffset + rand() % size;
-        // }
+        for (int i = 0; i < numOfLinks; i++) {
+            obj.linksTo[i] = idOffset + rand() % size;
+        }
 
-        obj.linksTo[0] = 1062;
+        // obj.linksTo[0] = 3672;
 
         db[id] = obj;
     }
