@@ -16,3 +16,7 @@ std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoin
 
 std::vector<glm::vec3> spreadOrbit(const glm::vec3 center, const int numPoints, const float radius,
                                    const glm::vec3 rotation);
+
+std::vector<glm::vec3> generatePointsOnSphericalSectorSurface(int numPoints, float radius,
+                                                              float thetaMin, float thetaMax,
+                                                              float phiMin, float phiMax);

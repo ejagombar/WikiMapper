@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 #include <json/json.h>
 #include <random>
 #include <stdlib.h>
@@ -39,9 +40,9 @@ std::vector<glm::vec3> spreadOrbit2d(const glm::vec3 center, const unsigned int 
 
 std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoints,
                                        const float radius, const glm::vec3 rotation) {
-
-    auto maxRange = glm::vec2(glm::pi<float>() * -1.0f, glm::pi<float>());
-    return spreadOrbitRand(center, numPoints, radius, maxRange, maxRange, rotation);
+    glm::vec2 thetaRange(0.0f, glm::pi<float>());
+    glm::vec2 phiRange(0.0f, 2.0f * glm::pi<float>());
+    return spreadOrbitRand(center, numPoints, radius, thetaRange, phiRange, rotation);
 }
 
 std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoints,
@@ -66,6 +67,36 @@ std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoin
         float z = center.z + radius * cos(theta);
 
         points.push_back(rotateVec(glm::vec3(x, y, z), rotation));
+        std::cout << x << " " << y << " " << z << std::endl;
+    }
+
+    return points;
+}
+
+std::vector<glm::vec3> generatePointsOnSphericalSectorSurface(int numPoints, float radius,
+                                                              float thetaMin, float thetaMax,
+                                                              float phiMin, float phiMax) {
+    std::vector<glm::vec3> points;
+    points.reserve(numPoints);
+
+    // Random number generation
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> distPhi(phiMin, phiMax);
+    std::uniform_real_distribution<float> distCosTheta(std::cos(thetaMax), std::cos(thetaMin));
+
+    for (int i = 0; i < numPoints; ++i) {
+        // Randomly generate theta and phi within the given ranges
+        float phi = distPhi(gen);
+        float cosTheta = distCosTheta(gen);
+        float theta = std::acos(cosTheta);
+
+        // Convert spherical coordinates to Cartesian coordinates
+        float x = radius * sin(theta) * cos(phi);
+        float y = radius * sin(theta) * sin(phi);
+        float z = radius * cos(theta);
+
+        points.emplace_back(x, y, z);
     }
 
     return points;
