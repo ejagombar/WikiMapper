@@ -1,5 +1,6 @@
 #include "store.h"
 #include <random>
+#include <vector>
 
 void generateFakeData(DB &db, const int size) {
 
@@ -17,13 +18,14 @@ void generateFakeData(DB &db, const int size) {
         // int numOfLinks = 1 + rand() % 4;
         int numOfLinks = distribution(generator) + 1;
 
-        obj.linksTo.resize(numOfLinks);
+        // obj.linksTo.resize(numOfLinks);
+        obj.linksTo.resize(1);
 
-        for (int i = 0; i < numOfLinks; i++) {
-            obj.linksTo[i] = idOffset + rand() % size;
-        }
+        // for (int i = 0; i < numOfLinks; i++) {
+        //     obj.linksTo[i] = idOffset + rand() % size;
+        // }
 
-        // obj.linksTo[0] = 3672;
+        obj.linksTo[0] = 1126;
 
         db[id] = obj;
     }
