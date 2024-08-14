@@ -39,5 +39,7 @@ class Graph {
     void printGraph() const;
 };
 
+void generateFakeData(GraphDB::Graph &graph);
+
 } // namespace GraphDB
 #endif
