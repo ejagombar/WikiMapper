@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <unordered_map>
 #include <vector>
 
@@ -23,7 +22,7 @@ class Graph {
   private:
     std::unordered_map<uint32_t, Node> nodes;
 
-    std::unordered_map<uint32_t, std::list<uint32_t>> adjList;
+    std::unordered_map<uint32_t, std::vector<uint32_t>> adjList;
 
   public:
     void addNode(uint32_t uid, const char *title);
@@ -34,12 +33,14 @@ class Graph {
 
     std::vector<Node> getAllNodes() const;
 
-    std::list<uint32_t> getNeighbors(uint32_t uid) const;
+    std::vector<std::pair<uint32_t, uint32_t>> getAllLinks() const;
+
+    std::vector<uint32_t> getNeighbors(uint32_t uid) const;
 
     void printGraph() const;
 };
 
-void generateFakeData(GraphDB::Graph &graph);
-
 } // namespace GraphDB
 #endif
+
+void generateFakeData(GraphDB::Graph &graph);

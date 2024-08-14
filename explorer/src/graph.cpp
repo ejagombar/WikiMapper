@@ -1,6 +1,8 @@
 #include "graph.h"
 #include <array>
+#include <cstdint>
 #include <iostream>
+#include <utility>
 
 using GraphDB::Graph;
 using GraphDB::Node;
@@ -10,7 +12,6 @@ void Graph::addNode(uint32_t uid, const char *title) { nodes.emplace(uid, Node(u
 void Graph::addEdge(uint32_t uid1, uint32_t uid2) {
     if (nodes.find(uid1) != nodes.end() && nodes.find(uid2) != nodes.end()) {
         adjList[uid1].push_back(uid2);
-        adjList[uid2].push_back(uid1); // Assuming undirected graph
     } else {
         std::cerr << "Error: One or both nodes not found." << std::endl;
     }
@@ -32,7 +33,19 @@ std::vector<Node> Graph::getAllNodes() const {
     return allNodes;
 }
 
-std::list<uint32_t> Graph::getNeighbors(uint32_t uid) const {
+std::vector<std::pair<uint32_t, uint32_t>> Graph::getAllLinks() const {
+
+    std::vector<std::pair<uint32_t, uint32_t>> allLinks;
+    for (const auto pair : adjList) {
+        for (const auto pairLink : pair.second) {
+            // allLinks.emplace_back(pair.first, pair.second);
+            allLinks.push_back({pair.first, pairLink});
+        }
+    }
+    return allLinks;
+}
+
+std::vector<uint32_t> Graph::getNeighbors(uint32_t uid) const {
     if (adjList.find(uid) != adjList.end()) {
         return adjList.at(uid);
     }
