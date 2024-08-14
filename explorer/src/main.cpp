@@ -6,20 +6,22 @@
 #include <cmath>
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
+#include <glm/ext/scalar_constants.hpp>
 #include <httplib.h>
 #include <iostream>
 #include <json/json.h>
 #include <unordered_map>
+#include <vector>
 
-uint32_t getTopNode(GraphDB::Graph &db) {
-    auto nodes = db.getAllNodes();
+uint32_t getTopNode(GraphDB::Graph &db, std::vector<GraphDB::Node> &nodes) {
     int maxLinkCount(0);
     uint32_t topNode(0);
     for (auto n : nodes) {
-        int linkCount = db.getNeighbors(n.UID).size();
+        int linkCount = db.getNeighborsUID(n.UID).size();
         if (linkCount > maxLinkCount) {
             maxLinkCount = linkCount;
             topNode = n.UID;
+            std::cout << topNode << " " << linkCount << std::endl;
         }
     }
     return topNode;
@@ -29,26 +31,47 @@ int main() {
     GraphDB::Graph db;
     generateFakeData(db);
 
-    const int numOfElements = db.getAllNodes().size();
+    auto allNodes = db.getAllNodes();
+    const int numOfElements = allNodes.size();
 
     std::vector<glm::vec3> lines;
     std::vector<Node> nodes(numOfElements);
     std::unordered_map<uint32_t, glm::vec3> spaceMap(numOfElements);
 
-    uint32_t baseNodeUID = getTopNode(db);
+    // Display base node -----------------
+
+    std::cout << "UID: " << allNodes[0].title << std::endl;
+    uint32_t baseNodeUID = getTopNode(db, allNodes);
     auto baseNode = db.getNode(baseNodeUID);
 
-    spaceMap[baseNode->UID] = glm::vec3(0, 0, 0);
+    spaceMap.insert({baseNodeUID, glm::vec3(0, 0, 0)});
 
-    auto neighbours = db.getNeighbors(baseNodeUID);
-    auto out = spreadOrbit(spaceMap[baseNode->UID], neighbours.size(), sqrt(numOfElements),
+    auto neighboursUID = db.getNeighborsUID(baseNodeUID);
+    auto out = spreadOrbit(spaceMap[baseNode->UID], neighboursUID.size(), 2 * sqrt(numOfElements),
                            glm::vec3(0, 0, 0));
 
-    for (int i = 0; i < neighbours.size(); i++) {
-        spaceMap.insert({neighbours[i], out[i]});
+    for (int i = 0; i < neighboursUID.size(); i++) {
+        spaceMap.insert({neighboursUID[i], out[i]});
     }
 
-    auto allNodes = db.getAllNodes();
+    // Display next node -----------------
+    auto neighbours = db.getNeighbors(baseNodeUID);
+
+    uint32_t subNodeUID = getTopNode(db, neighbours);
+
+    auto subNeighboursUID = db.getNeighborsUID(subNodeUID);
+    std::cout << " test" << subNeighboursUID.size() << std::endl;
+    glm::vec3 rotation = spaceMap[subNodeUID] + glm::vec3(0, glm::pi<float>() * 0.5f, 0);
+    auto subOut = spreadOrbitRand(spaceMap[subNodeUID], neighboursUID.size(),
+                                  2 * sqrt(subNeighboursUID.size()), glm::vec2(1, 2),
+                                  glm::vec2(1, 2), rotation);
+
+    for (int i = 0; i < subNeighboursUID.size(); i++) {
+        spaceMap.insert({subNeighboursUID[i], subOut[i]});
+    }
+
+    // -----------------------------------
+
     for (int i = 0; i < numOfElements; i++) {
         auto it = spaceMap.find(allNodes[i].UID);
 

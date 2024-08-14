@@ -10,14 +10,15 @@
 #include <random>
 #include <stdlib.h>
 
-glm::vec3 rotateVec(const glm::vec3 &input, const glm::vec3 &rotation) {
+glm::vec3 rotateVec(const glm::vec3 &center, const glm::vec3 &input, const glm::vec3 &rotation) {
     const glm::mat4 rotationMat(1.0f);
 
     glm::mat4 rotationMatX = glm::rotate(rotationMat, rotation.x, glm::vec3(1.0, 0.0, 0.0));
     glm::mat4 rotationMatY = glm::rotate(rotationMat, rotation.y, glm::vec3(0.0, 1.0, 0.0));
     glm::mat4 rotationMatZ = glm::rotate(rotationMat, rotation.z, glm::vec3(0.0, 0.0, 1.0));
 
-    return glm::vec3(rotationMatX * rotationMatY * rotationMatZ * glm::vec4(input, 1.0));
+    return glm::vec3(rotationMatX * rotationMatY * rotationMatZ * glm::vec4(input - center, 1.0)) +
+           center;
 }
 
 std::vector<glm::vec3> spreadOrbit2d(const glm::vec3 center, const unsigned int numPoints,
@@ -32,7 +33,7 @@ std::vector<glm::vec3> spreadOrbit2d(const glm::vec3 center, const unsigned int 
         glm::vec3 location(center.x + radius * cos(angle), center.y + radius * sin(angle),
                            center.z);
 
-        out[i] = rotateVec(location, rotation);
+        out[i] = rotateVec(center, location, rotation);
     }
 
     return out;
@@ -66,7 +67,7 @@ std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoin
         float y = center.y + radius * sin(theta) * sin(phi);
         float z = center.z + radius * cos(theta);
 
-        points.push_back(rotateVec(glm::vec3(x, y, z), rotation));
+        points.push_back(rotateVec(center, glm::vec3(x, y, z), rotation));
         std::cout << x << " " << y << " " << z << std::endl;
     }
 
@@ -118,7 +119,7 @@ std::vector<glm::vec3> spreadOrbit(const glm::vec3 center, const int numPoints, 
         float x = center.x + cos(theta) * unitRadius * radius;
         float y = center.y + sin(theta) * unitRadius * radius;
 
-        out.push_back(rotateVec(glm::vec3(x, y, center.z + z * radius), rotation));
+        out.push_back(rotateVec(center, glm::vec3(x, y, center.z + z * radius), rotation));
     }
 
     return out;

@@ -35,7 +35,8 @@ class Graph {
 
     std::vector<std::pair<uint32_t, uint32_t>> getAllLinks() const;
 
-    std::vector<uint32_t> getNeighbors(uint32_t uid) const;
+    std::vector<uint32_t> getNeighborsUID(uint32_t uid) const;
+    std::vector<Node> getNeighbors(uint32_t uid) const;
 
     void printGraph() const;
 };
