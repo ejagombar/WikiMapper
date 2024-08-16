@@ -1,10 +1,11 @@
 # WikiMapper
 Parse Wikipedia XML data dumps to create an interactive graph to explore relationships between Wikipedia pages.
 
-This project has been split into seperate smaller projects, in the subfolders `explorer/` and `dbloader/`. The READMEs for these projects are linked below.
+This project has been split into seperate smaller projects, in the subfolders `explorer/` and `dbLoader/`. The READMEs for these projects are linked below.
 
-[WikiMapper Explorer](/explorer/README.md)
-[WikiMapper DB Loader](/dbloader/README.md)
+### [WikiMapper Explorer](/explorer/README.md)
+
+### [WikiMapper DB Loader](/dbLoader/README.md)
 
 ## Overall Project Aims
 - [x] Parse the XML file, extracting page names and links
