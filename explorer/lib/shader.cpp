@@ -1,15 +1,15 @@
+// ----------------------------------------
+// Code from http://www.opengl-tutorial.org
+// ----------------------------------------
 #include "shader.h"
 #include <fstream>
 #include <iostream>
-#include <stdio.h>
-#include <string>
-#include <vector>
-
 #include <sstream>
-using namespace std;
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
+#include <vector>
 
 GLuint LoadShaders(const char *vertex_file_path, const char *fragment_file_path) {
 

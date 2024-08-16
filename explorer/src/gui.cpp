@@ -1,7 +1,6 @@
 #include "gui.h"
-// #include <lib/controls.hpp>
-// #include <lib/texture.hpp>
 #include "../lib/shader.h"
+#include "../lib/text2D.h"
 #include "../lib/texture.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <stdio.h>
@@ -57,6 +56,8 @@ int gui::initWindow() {
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+
+    initText2D("Holstein.DDS");
 
     return 0;
 }
@@ -169,6 +170,15 @@ void gui::loop() {
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textTexture);
+    // Set our "myTextureSampler" sampler to use Texture Unit 0
+    glUniform1i(TextureID, 5);
+
+    char text[256];
+    sprintf(text, "%.2f sec", glfwGetTime());
+    printText2D(text, 100, 500, 80);
+
     // Swap buffers
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -242,6 +252,8 @@ int gui::init() {
 
     // ---------------------------- LINES ----------------------------
 
+    textTexture = loadDDS("uvmap.DDS");
+
     lastTime = glfwGetTime();
 
     double lastTime2 = glfwGetTime();
@@ -266,6 +278,7 @@ int gui::init() {
     glDeleteBuffers(1, &billboard_vertex_buffer);
     glDeleteProgram(programID);
     glDeleteTextures(1, &Texture);
+    glDeleteTextures(1, &textTexture);
     glDeleteVertexArrays(1, &VertexArrayID);
 
     glfwTerminate();

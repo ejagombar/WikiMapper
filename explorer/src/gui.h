@@ -52,6 +52,7 @@ class gui {
     GLuint node_color_buffer;
     GLuint programID;
     GLuint shaderProgram;
+    GLuint textTexture;
     GLuint Texture;
     GLuint TextureID;
     GLuint CameraRight_worldspace_ID;

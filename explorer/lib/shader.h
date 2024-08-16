@@ -1,3 +1,7 @@
+// ----------------------------------------
+// Code from http://www.opengl-tutorial.org
+// ----------------------------------------
+
 #ifndef SHADER_H
 #define SHADER_H
 

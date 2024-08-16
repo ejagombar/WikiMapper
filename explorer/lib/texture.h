@@ -1,3 +1,6 @@
+// ----------------------------------------
+// Code from http://www.opengl-tutorial.org
+// ----------------------------------------
 #ifndef TEXTURE_H
 #define TEXTURE_H
 

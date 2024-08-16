@@ -1,3 +1,6 @@
+// ----------------------------------------
+// Code from http://www.opengl-tutorial.org
+// ----------------------------------------
 #include "texture.h"
 #include <stdio.h>
 #include <stdlib.h>

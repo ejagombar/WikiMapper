@@ -1,3 +1,6 @@
+// ----------------------------------------
+// Code from http://www.opengl-tutorial.org
+// ----------------------------------------
 #ifndef CONTROLS_H
 #define CONTROLS_H
 

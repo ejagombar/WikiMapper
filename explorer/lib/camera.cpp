@@ -1,3 +1,6 @@
+// ----------------------------------------
+// Code from http://www.opengl-tutorial.org
+// ----------------------------------------
 #include "camera.h"
 #include <GLFW/glfw3.h>
 #include <cstdio>
@@ -5,7 +8,6 @@
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-using namespace glm;
 
 void Camera::computeMatricesFromInputs(GLFWwindow *window) {
     static double lastTime = glfwGetTime();
