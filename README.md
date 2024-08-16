@@ -1,10 +1,12 @@
 # WikiMapper
-Parse Wikipedia XML data dumps to create an interactive graph
-![Screenshot from 2024-08-10 22-14-49](https://github.com/user-attachments/assets/e985059d-7310-464f-bd32-acad2f883e11)
-![Screenshot from 2024-08-14 21-01-05](https://github.com/user-attachments/assets/065a37d2-a3ac-416f-b0c3-d2e1ea9cc86b)
+Parse Wikipedia XML data dumps to create an interactive graph to explore relationships between Wikipedia pages.
 
+This project has been split into seperate smaller projects, in the subfolders `explorer/` and `dbloader/`. The READMEs for these projects are linked below.
 
-## Aims
+[WikiMapper Explorer](/explorer/README.md)
+[WikiMapper DB Loader](/dbloader/README.md)
+
+## Overall Project Aims
 - [x] Parse the XML file, extracting page names and links
 - [x] Analyse performance using GProf
 - [x] Parallelise the parser.
@@ -13,4 +15,6 @@ Parse Wikipedia XML data dumps to create an interactive graph
 - [ ] Develop a custom graph storage library
 - [ ] Develop a custom viewer to visualise the data.
 
-
+## Progress Log
+In order for me to keep track of what I am doing on this project. I have tried to keep a progress log. Some sections are missing, or very sparse.
+[Progress Log](/ProgressLog.md)
