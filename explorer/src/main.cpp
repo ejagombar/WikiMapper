@@ -47,8 +47,7 @@ int main() {
     spaceMap.insert({baseNodeUID, glm::vec3(0, 0, 0)});
 
     auto neighboursUID = db.getNeighborsUID(baseNodeUID);
-    auto out = spreadOrbit(spaceMap[baseNode->UID], neighboursUID.size(), 2 * sqrt(numOfElements),
-                           glm::vec3(0, 0, 0));
+    auto out = spreadOrbit(spaceMap[baseNode->UID], neighboursUID.size(), 2 * sqrt(numOfElements), glm::vec3(0, 0, 0));
 
     for (int i = 0; i < neighboursUID.size(); i++) {
         spaceMap.insert({neighboursUID[i], out[i]});
@@ -62,9 +61,8 @@ int main() {
     auto subNeighboursUID = db.getNeighborsUID(subNodeUID);
     std::cout << " test" << subNeighboursUID.size() << std::endl;
     glm::vec3 rotation = spaceMap[subNodeUID] + glm::vec3(0, glm::pi<float>() * 0.5f, 0);
-    auto subOut = spreadOrbitRand(spaceMap[subNodeUID], neighboursUID.size(),
-                                  2 * sqrt(subNeighboursUID.size()), glm::vec2(1, 2),
-                                  glm::vec2(1, 2), rotation);
+    auto subOut = spreadOrbitRand(spaceMap[subNodeUID], neighboursUID.size(), 2 * sqrt(subNeighboursUID.size()),
+                                  glm::vec2(1, 2), glm::vec2(1, 2), rotation);
 
     for (int i = 0; i < subNeighboursUID.size(); i++) {
         spaceMap.insert({subNeighboursUID[i], subOut[i]});

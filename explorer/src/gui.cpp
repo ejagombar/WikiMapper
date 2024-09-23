@@ -2,6 +2,7 @@
 #include "../lib/shader.h"
 #include "../lib/text2D.h"
 #include "../lib/texture.h"
+#include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <stdio.h>
 
@@ -110,13 +111,11 @@ void gui::loop() {
 
     glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * m_nodes.size() * sizeof(GLfloat),
-                    &g_node_position_size_data.front());
+    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * m_nodes.size() * sizeof(GLfloat), &g_node_position_size_data.front());
 
     glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * m_nodes.size() * sizeof(GLubyte),
-                    &g_node_color_data.front());
+    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * m_nodes.size() * sizeof(GLubyte), &g_node_color_data.front());
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -135,13 +134,11 @@ void gui::loop() {
     vec3 lightColor = vec3(1, 1, 1);
     int lightPower = 4;
 
-    glUniform3f(glGetUniformLocation(programID, "LightPosition_worldspace"), lightPos.x, lightPos.y,
-                lightPos.z);
-    glUniform3f(glGetUniformLocation(programID, "LightColor"), lightColor.x, lightColor.y,
-                lightColor.z);
+    glUniform3f(glGetUniformLocation(programID, "LightPosition_worldspace"), lightPos.x, lightPos.y, lightPos.z);
+    glUniform3f(glGetUniformLocation(programID, "LightColor"), lightColor.x, lightColor.y, lightColor.z);
     glUniform1f(glGetUniformLocation(programID, "LightPower"), lightPower);
-    glUniform3f(glGetUniformLocation(programID, "ViewPosition_worldspace"), CameraPosition.x,
-                CameraPosition.y, CameraPosition.z);
+    glUniform3f(glGetUniformLocation(programID, "ViewPosition_worldspace"), CameraPosition.x, CameraPosition.y,
+                CameraPosition.z);
 
     glUniformMatrix4fv(ViewProjMatrixID, 1, GL_FALSE, &ViewProjectionMatrix[0][0]);
 
@@ -214,8 +211,7 @@ int gui::init() {
 
     glGenBuffers(1, &billboard_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, billboard_vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
     // The VBO containing the positions and sizes of the particles
     glGenBuffers(1, &node_position_buffer);
@@ -236,8 +232,7 @@ int gui::init() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(glm::vec3), &m_lines.front(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(glm::vec3), &m_lines.front(), GL_STATIC_DRAW);
 
     // Vertex attribute for position
     glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (GLvoid *)0);
@@ -269,8 +264,7 @@ int gui::init() {
             lastTime2 += 1.0;
         }
         loop();
-    } while (glfwGetKey(window, GLFW_KEY_CAPS_LOCK) != GLFW_PRESS &&
-             glfwWindowShouldClose(window) == 0);
+    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
 
     // Cleanup VBO and shader
     glDeleteBuffers(1, &node_color_buffer);

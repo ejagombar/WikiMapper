@@ -92,11 +92,11 @@ void generateFakeData(GraphDB::Graph &graph) {
     graph.addNode(7, "Paper");
     graph.addNode(8, "Time Signature");
 
-    std::array<const char *, 25> instruments = {
-        "Piano",   "Guitar",    "Violin",    "Drums",    "Flute",       "Saxophone", "Trumpet",
-        "Cello",   "Clarinet",  "Harp",      "Trombone", "Bass Guitar", "Oboe",      "Accordion",
-        "Banjo",   "Mandolin",  "Ukulele",   "Tuba",     "French Horn", "Viola",     "Synthesizer",
-        "Marimba", "Xylophone", "Harmonica", "Bagpipes"};
+    std::array<const char *, 25> instruments = {"Piano",       "Guitar",      "Violin",    "Drums",       "Flute",
+                                                "Saxophone",   "Trumpet",     "Cello",     "Clarinet",    "Harp",
+                                                "Trombone",    "Bass Guitar", "Oboe",      "Accordion",   "Banjo",
+                                                "Mandolin",    "Ukulele",     "Tuba",      "French Horn", "Viola",
+                                                "Synthesizer", "Marimba",     "Xylophone", "Harmonica",   "Bagpipes"};
 
     int index = 9;
     for (auto instrument : instruments) {
