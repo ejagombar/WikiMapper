@@ -15,6 +15,7 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(Freetype REQUIRED)
 
 add_definitions(
 	-DTW_STATIC
@@ -39,6 +40,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets/Holstein.DDS DESTINATION ${CMAKE_CU
 add_executable(${CMAKE_PROJECT_NAME} ${Src_Sources})
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${FREETYPE_INCLUDE_DIRS})
     
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Boost::asio Boost::system)
@@ -46,3 +48,4 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE httplib::httplib)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glm::glm)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE GLEW::GLEW)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${FREETYPE_LIBRARIES})
