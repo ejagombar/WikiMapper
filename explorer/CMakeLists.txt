@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.27)
 
 project(WikiMapperExplorer)
 
+
 # Allows clangd to find the library locations
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

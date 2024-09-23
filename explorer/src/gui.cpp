@@ -2,8 +2,10 @@
 #include "../lib/shader.h"
 #include "../lib/text2D.h"
 #include "../lib/texture.h"
+#include "text.h"
 #include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 #include <stdio.h>
 
 using namespace glm;
@@ -184,6 +186,12 @@ void gui::loop() {
 int gui::init() {
     if (initWindow() == -1)
         return -1;
+
+    //-------------------------------TEXT----------------------------------
+    std::cout << "\n\nStarting font stuff" << std::endl;
+    load_freetype();
+    std::cout << "\n\nEnding font stuff" << std::endl;
+    //---------------------------------------------------------------------
 
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
