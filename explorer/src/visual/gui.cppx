@@ -1,7 +1,6 @@
-#include "gui.h"
-#include "../lib/shader.h"
-#include "../lib/text2D.h"
-#include "../lib/texture.h"
+#include "../../lib/shader.hpp"
+#include "../lib/texture.hpp"
+#include "gui.hpp"
 #include "text.h"
 #include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>

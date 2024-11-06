@@ -2,9 +2,9 @@
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
-#include "../lib/camera.h"
-#include "../lib/shader.h"
-#include "../lib/skybox.hpp"
+#include "../../lib/camera.hpp"
+#include "../../lib/shader.hpp"
+#include "../../lib/skybox.hpp"
 #include "./filter.hpp"
 #include <GL/gl.h> // This header isn't required as glad already provides it, however if it is not here, then the the language server automatically adds it when autocomplete is used on a OpenGL function
 #include <GLFW/glfw3.h>
@@ -18,7 +18,7 @@
 #include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../lib/texture.hpp"
+#include "../../lib/texture.hpp"
 
 // settings
 const unsigned int SCR_WIDTH = 1920;

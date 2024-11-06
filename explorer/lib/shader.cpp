@@ -1,6 +1,6 @@
 // Shader class, sourced from https://learnopengl.com/
 
-#include "./shader.h"
+#include "./shader.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>

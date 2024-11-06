@@ -1,5 +1,5 @@
-#include "graph.h"
-#include "gui.h"
+#include "graph.hpp"
+#include "gui.hpp"
 #include "neo4j.h"
 #include "pointMaths.h"
 

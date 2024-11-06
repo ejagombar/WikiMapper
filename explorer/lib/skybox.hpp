@@ -1,5 +1,5 @@
-#include "../lib/camera.h"
-#include "../lib/shader.h"
+#include "../lib/camera.hpp"
+#include "../lib/shader.hpp"
 #include <sys/types.h>
 
 class Skybox {

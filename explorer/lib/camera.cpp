@@ -1,4 +1,4 @@
-#include "camera.h"
+#include "camera.hpp"
 #include <glm/trigonometric.hpp>
 
 void Camera::SetPosition(glm::vec3 position, glm::vec3 up, float yaw, float pitch) {

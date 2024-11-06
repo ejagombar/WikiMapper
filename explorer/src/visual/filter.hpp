@@ -1,4 +1,4 @@
-#include "../lib/shader.h"
+#include "../../lib/shader.hpp"
 #include <sys/types.h>
 
 namespace Filter {
