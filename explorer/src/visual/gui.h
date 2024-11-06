@@ -30,7 +30,7 @@ struct Node {
 class gui {
   public:
     gui(const int &MaxNodes, std::vector<glm::vec3> &line, std::vector<Node> &nodes);
-    ~gui(){};
+    ~gui() {};
     int init();
 
   private:

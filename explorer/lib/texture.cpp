@@ -1,106 +1,64 @@
-// ----------------------------------------
-// Code from http://www.opengl-tutorial.org
-// ----------------------------------------
-#include "texture.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "./texture.hpp"
+#include <stdexcept>
 
-#include <GLFW/glfw3.h>
+unsigned int LoadCubemap(std::vector<std::string> faces) {
+    unsigned int textureID;
+    int width, height, nrChannels;
 
-#define FOURCC_DXT1 0x31545844 // Equivalent to "DXT1" in ASCII
-#define FOURCC_DXT3 0x33545844 // Equivalent to "DXT3" in ASCII
-#define FOURCC_DXT5 0x35545844 // Equivalent to "DXT5" in ASCII
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-GLuint loadDDS(const char *imagepath) {
-
-    unsigned char header[124];
-
-    FILE *fp;
-
-    /* try to open the file */
-    fp = fopen(imagepath, "rb");
-    if (fp == NULL) {
-        printf("%s could not be opened. Are you in the right directory ? Don't forget to read the "
-               "FAQ !\n",
-               imagepath);
-        getchar();
-        return 0;
+    for (unsigned int i = 0; i < 6; i++) {
+        // Up to 6 faces. If less than 6 faces are used, then the last face will be used multiple times.
+        uint idx = std::min(i, static_cast<unsigned int>(faces.size() - 1));
+        unsigned char *data = stbi_load(faces[idx].c_str(), &width, &height, &nrChannels, 0);
+        if (data) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                         data);
+            stbi_image_free(data);
+        } else {
+            throw std::runtime_error("Cubemap tex failed to load at path: " + faces[i]);
+            stbi_image_free(data);
+        }
     }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    /* verify the type of file */
-    char filecode[4];
-    fread(filecode, 1, 4, fp);
-    if (strncmp(filecode, "DDS ", 4) != 0) {
-        fclose(fp);
-        return 0;
-    }
+    return textureID;
+}
 
-    /* get the surface desc */
-    fread(&header, 124, 1, fp);
-
-    unsigned int height = *(unsigned int *)&(header[8]);
-    unsigned int width = *(unsigned int *)&(header[12]);
-    unsigned int linearSize = *(unsigned int *)&(header[16]);
-    unsigned int mipMapCount = *(unsigned int *)&(header[24]);
-    unsigned int fourCC = *(unsigned int *)&(header[80]);
-
-    unsigned char *buffer;
-    unsigned int bufsize;
-    /* how big is it going to be including all mipmaps? */
-    bufsize = mipMapCount > 1 ? linearSize * 2 : linearSize;
-    buffer = (unsigned char *)malloc(bufsize * sizeof(unsigned char));
-    fread(buffer, 1, bufsize, fp);
-    /* close the file pointer */
-    fclose(fp);
-
-    unsigned int components = (fourCC == FOURCC_DXT1) ? 3 : 4;
-    unsigned int format;
-    switch (fourCC) {
-    case FOURCC_DXT1:
-        format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-        break;
-    case FOURCC_DXT3:
-        format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-        break;
-    case FOURCC_DXT5:
-        format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-        break;
-    default:
-        free(buffer);
-        return 0;
-    }
-
-    // Create one OpenGL texture
-    GLuint textureID;
+unsigned int LoadTexture(char const *path) {
+    unsigned int textureID;
     glGenTextures(1, &textureID);
 
-    // "Bind" the newly created texture : all future texture functions will modify this texture
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data) {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
 
-    unsigned int blockSize = (format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
-    unsigned int offset = 0;
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
 
-    /* load the mipmaps */
-    for (unsigned int level = 0; level < mipMapCount && (width || height); ++level) {
-        unsigned int size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
-        glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size,
-                               buffer + offset);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        offset += size;
-        width /= 2;
-        height /= 2;
-
-        // Deal with Non-Power-Of-Two textures. This code is not included in the webpage to reduce
-        // clutter.
-        if (width < 1)
-            width = 1;
-        if (height < 1)
-            height = 1;
+        stbi_image_free(data);
+    } else {
+        throw std::runtime_error("Texture failed to load at path: " + std::string(path));
+        stbi_image_free(data);
     }
-
-    free(buffer);
 
     return textureID;
 }
