@@ -1,6 +1,7 @@
 #include "./gui.hpp"
 
 #include "../../lib/shader.hpp"
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -33,6 +34,7 @@ int gui::init() {
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback_static);
+    glfwSetKeyCallback(m_window, key_callback_static);
     glfwSetScrollCallback(m_window, scroll_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
 
@@ -130,23 +132,27 @@ int gui::init() {
     m_vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
     m_vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
 
-    m_blur->SetEnabled(true);
+    m_blur->SetEnabled(false);
 
-    double lastTime2 = glfwGetTime();
     int nbFrames = 0;
+    double lastTime = glfwGetTime();
     // glfwSwapInterval(0);
 
     while (!glfwWindowShouldClose(m_window)) {
-        double currentTime2 = glfwGetTime();
         nbFrames++;
-        if (currentTime2 - lastTime2 >= 1.0) { // If last prinf() was more than 1 sec ago
-            // printf and reset timer
+        if (glfwGetTime() - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
             printf("%f fps\n", double(nbFrames));
             nbFrames = 0;
-            lastTime2 += 1.0;
+            lastTime += 1.0;
         }
 
-        loop();
+        engine_loop();
+        if (m_state == play) [[likely]] {
+        } else {
+        }
+
+        glfwSwapBuffers(m_window);
+        glfwPollEvents();
     }
 
     glDeleteVertexArrays(count, m_VAOs);
@@ -156,9 +162,9 @@ int gui::init() {
     return 0;
 }
 
-void gui::loop() {
-    processInput(m_window);
+void gui::engine_loop() {
 
+    processEngineInput(m_window);
     float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
@@ -262,9 +268,13 @@ void gui::loop() {
     m_skybox->Display(m_camera);
 
     m_blur->Display();
+}
 
-    glfwSwapBuffers(m_window);
-    glfwPollEvents();
+void gui::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    gui *instance = static_cast<gui *>(glfwGetWindowUserPointer(window));
+    if (instance) {
+        instance->key_callback(window, key, scancode, action, mods);
+    }
 }
 
 void gui::framebuffer_size_callback_static(GLFWwindow *window, int width, int height) {
@@ -310,10 +320,20 @@ void gui::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void gui::processInput(GLFWwindow *window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        // paused = !paused;
-        glfwSetWindowShouldClose(window, true);
+void gui::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+        std::cout << "dsffsdfsd" << std::endl;
+        if (m_state == play) {
+            m_state = pause;
+            m_blur->SetEnabled(true);
+        } else {
+            m_state = play;
+            m_blur->SetEnabled(false);
+        }
+    }
+}
+
+void gui::processEngineInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_camera.ProcessKeyboard(FORWARD);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

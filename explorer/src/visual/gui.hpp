@@ -24,17 +24,20 @@ class gui {
 
   private:
     int init();
-    void loop();
+    void engine_loop();
 
-    void processInput(GLFWwindow *window);
+    void processEngineInput(GLFWwindow *window);
+    void processInput();
 
     static void framebuffer_size_callback_static(GLFWwindow *window, int width, int height);
     static void mouse_callback_static(GLFWwindow *window, double xpos, double ypos);
     static void scroll_callback_static(GLFWwindow *window, double xoffset, double yoffset);
+    static void key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods);
 
     void framebuffer_size_callback(GLFWwindow *window, int width, int height);
     void mouse_callback(GLFWwindow *window, double xpos, double ypos);
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+    void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
     const unsigned int m_SCR_WIDTH = 1920;
     const unsigned int m_SCR_HEIGHT = 1080;

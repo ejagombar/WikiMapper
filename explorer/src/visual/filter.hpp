@@ -27,10 +27,10 @@ class Blur {
     bool m_enabled = false;
 
     int m_boarder = 100;      // Boarder size around blur area
-    int m_radius = 30;        // Blur rectangle corner radius
-    float m_blurScale = 1.0f; // Guassian blur step size
-    float m_blurMix = 1.0f;   // Ratio of mix between blur and normal scene
-    int m_numBlurPasses = 10; // Number of Guassian blur passes
-    float m_brightnessModifier = 0.98;
+    int m_radius = 50;        // Blur rectangle corner radius
+    float m_blurScale = 5.0f; // Guassian blur step size
+    float m_blurMix = 0.98f;  // Ratio of mix between blur and normal scene
+    int m_numBlurPasses = 6;  // Number of Guassian blur passes
+    float m_brightnessModifier = 0.9;
 };
 } // namespace Filter
