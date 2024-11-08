@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <math.h>
+#include <memory>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -43,6 +44,25 @@ class gui {
     void processInput(GLFWwindow *window);
 
     Camera camera;
+    GLFWwindow *window;
+
+    static const uint8_t count = 3;
+    unsigned int VAOs[count], VBOs[count];
+
+    std::vector<glm::vec3> vegetation;
+    unsigned int grassTexture;
+
+    std::unique_ptr<Shader> shader;
+    std::unique_ptr<Shader> grassShader;
+    std::unique_ptr<Shader> lightShader;
+    std::unique_ptr<Shader> skyboxShader;
+    std::unique_ptr<Shader> screenShaderBlur;
+    std::unique_ptr<Shader> screenShaderMix;
+
+    std::unique_ptr<Filter::Blur> blur;
+    std::unique_ptr<Skybox> skybox;
+
+    std::vector<glm::vec3> cubePositions;
 
     void print(std::string str) { std::cout << str << std::endl; }
 
