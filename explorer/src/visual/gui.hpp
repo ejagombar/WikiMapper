@@ -6,16 +6,16 @@
 #include "./filter.hpp"
 #include <GL/gl.h> // This header isn't required as glad already provides it, however if it is not here, then the the language server automatically adds it when autocomplete is used on a OpenGL function
 #include <GLFW/glfw3.h>
-#include <iostream>
 #include <math.h>
 #include <memory>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <string>
 
 #include "../../lib/texture.hpp"
+
+enum State { play, pause };
 
 class gui {
   public:
@@ -26,12 +26,7 @@ class gui {
     int init();
     void loop();
 
-    const unsigned int SCR_WIDTH = 1920;
-    const unsigned int SCR_HEIGHT = 1080;
-
-    float lastX;
-    float lastY;
-    bool firstMouse = true;
+    void processInput(GLFWwindow *window);
 
     static void framebuffer_size_callback_static(GLFWwindow *window, int width, int height);
     static void mouse_callback_static(GLFWwindow *window, double xpos, double ypos);
@@ -41,32 +36,35 @@ class gui {
     void mouse_callback(GLFWwindow *window, double xpos, double ypos);
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 
-    void processInput(GLFWwindow *window);
+    const unsigned int m_SCR_WIDTH = 1920;
+    const unsigned int m_SCR_HEIGHT = 1080;
 
-    Camera camera;
-    GLFWwindow *window;
+    float m_lastX;
+    float m_lastY;
+    bool m_firstMouse = true;
 
+    float m_deltaTime = 0.0f;
+    float m_lastFrame = 0.0f;
+
+    State m_state = play;
+
+    Camera m_camera;
+    GLFWwindow *m_window;
+
+    std::unique_ptr<Shader> m_shader;
+    std::unique_ptr<Shader> m_grassShader;
+    std::unique_ptr<Shader> m_lightShader;
+    std::unique_ptr<Shader> m_skyboxShader;
+    std::unique_ptr<Shader> m_screenShaderBlur;
+    std::unique_ptr<Shader> m_screenShaderMix;
+
+    std::unique_ptr<Skybox> m_skybox;
+    std::unique_ptr<Filter::Blur> m_blur;
+
+    std::vector<glm::vec3> m_vegetation;
+    std::vector<glm::vec3> m_cubePositions;
+
+    unsigned int m_grassTexture;
     static const uint8_t count = 3;
-    unsigned int VAOs[count], VBOs[count];
-
-    std::vector<glm::vec3> vegetation;
-    unsigned int grassTexture;
-
-    std::unique_ptr<Shader> shader;
-    std::unique_ptr<Shader> grassShader;
-    std::unique_ptr<Shader> lightShader;
-    std::unique_ptr<Shader> skyboxShader;
-    std::unique_ptr<Shader> screenShaderBlur;
-    std::unique_ptr<Shader> screenShaderMix;
-
-    std::unique_ptr<Filter::Blur> blur;
-    std::unique_ptr<Skybox> skybox;
-
-    std::vector<glm::vec3> cubePositions;
-
-    void print(std::string str) { std::cout << str << std::endl; }
-
-    // timing
-    float deltaTime = 0.0f; // time between current frame and last frame
-    float lastFrame = 0.0f;
+    unsigned int m_VAOs[count], m_VBOs[count];
 };
