@@ -170,6 +170,9 @@ void gui::engine_loop() {
     float deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
 
+    if (m_state == pause)
+        deltaTime = 0;
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     m_blur->Preprocess();
