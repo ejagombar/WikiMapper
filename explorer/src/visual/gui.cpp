@@ -2,6 +2,7 @@
 
 #include "../../lib/shader.hpp"
 #include <GLFW/glfw3.h>
+#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -322,13 +323,19 @@ void gui::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 
 void gui::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-        std::cout << "dsffsdfsd" << std::endl;
         if (m_state == play) {
             m_state = pause;
             m_blur->SetEnabled(true);
+
+            glfwSetCursorPosCallback(m_window, NULL);
+            glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         } else {
             m_state = play;
             m_blur->SetEnabled(false);
+
+            glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            m_firstMouse = true;
+            glfwSetCursorPosCallback(m_window, mouse_callback_static);
         }
     }
 }
