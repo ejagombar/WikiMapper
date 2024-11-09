@@ -17,7 +17,7 @@ int gui::init() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    m_window = glfwCreateWindow(m_SCR_WIDTH, m_SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    m_window = glfwCreateWindow(m_SCR_WIDTH, m_SCR_HEIGHT, "WikiMapper", NULL, NULL);
     if (m_window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -147,10 +147,7 @@ int gui::init() {
             lastTime += 1.0;
         }
 
-        engine_loop();
-        if (m_state == play) [[likely]] {
-        } else {
-        }
+        loop();
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
@@ -163,7 +160,7 @@ int gui::init() {
     return 0;
 }
 
-void gui::engine_loop() {
+void gui::loop() {
 
     processEngineInput(m_window);
     float currentFrame = static_cast<float>(glfwGetTime());
@@ -307,6 +304,7 @@ void gui::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) { 
 void gui::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
+    m_blur->Resize(width, height);
 }
 
 void gui::mouse_callback(GLFWwindow *window, double xpos, double ypos) {

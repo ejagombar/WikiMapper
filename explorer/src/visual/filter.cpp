@@ -26,6 +26,14 @@ Blur::Blur(Shader &blurShader, Shader &mixShader, uint screenWidth, uint screenH
     // Framebuffer for the original scene
     glGenFramebuffers(1, &m_sceneFBO);
     glGenTextures(1, &m_sceneTexture);
+
+    // Framebuffers and textures for blur passes
+    glGenFramebuffers(2, m_blurFBO);
+    glGenTextures(2, m_blurTexture);
+    initSizeDependantBuffers();
+}
+
+void Blur::initSizeDependantBuffers() {
     glBindTexture(GL_TEXTURE_2D, m_sceneTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenWidth, m_screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -39,14 +47,10 @@ Blur::Blur(Shader &blurShader, Shader &mixShader, uint screenWidth, uint screenH
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("FILTER::FRAMEBUFFER:: Scene framebuffer is not complete!");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // Framebuffers and textures for blur passes
-    glGenFramebuffers(2, m_blurFBO);
-    glGenTextures(2, m_blurTexture);
     for (unsigned int i = 0; i < 2; i++) {
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenWidth, m_screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -58,6 +62,7 @@ Blur::Blur(Shader &blurShader, Shader &mixShader, uint screenWidth, uint screenH
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             throw std::runtime_error("FILTER::FRAMEBUFFER:: Blur framebuffer is not complete!");
     }
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -66,6 +71,12 @@ void Blur::Preprocess() {
         return;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
+}
+
+void Blur::Resize(const int screenWidth, const int screenHeight) {
+    m_screenWidth = screenWidth;
+    m_screenHeight = screenHeight;
+    initSizeDependantBuffers();
 }
 
 void Blur::Display() {

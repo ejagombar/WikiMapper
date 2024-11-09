@@ -12,7 +12,11 @@ class Blur {
     void SetEnabled(bool enabled) { m_enabled = enabled; }
     bool GetEnabled() { return m_enabled; }
 
+    void Resize(const int screenWidth, const int screenHeight);
+
   private:
+    void initSizeDependantBuffers();
+
     Shader &m_blurShader;
     Shader &m_mixShader;
 

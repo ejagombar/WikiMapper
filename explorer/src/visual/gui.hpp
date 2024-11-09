@@ -24,7 +24,7 @@ class gui {
 
   private:
     int init();
-    void engine_loop();
+    void loop();
 
     void processEngineInput(GLFWwindow *window);
     void processInput();
