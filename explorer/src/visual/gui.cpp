@@ -47,9 +47,8 @@ int gui::init() {
     m_lightShader = std::make_unique<Shader>("lightshader.vert", "lightshader.frag");
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
-    m_screenShaderMix = std::make_unique<Shader>("framebuffer.vert", "framebuffermixer.frag");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, *m_screenShaderMix, m_SCR_WIDTH, m_SCR_HEIGHT);
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, m_SCR_WIDTH, m_SCR_HEIGHT);
 
     // -------------------- Texture -------------------------
     m_grassTexture = LoadTexture("grass.png");

@@ -35,7 +35,7 @@ bool isInsideRoundedRectangle(vec2 coord, vec2 screenSize, int boarder, int radi
 }
 
 void main() {
-    vec2 screenSize = textureSize(screenTexture, 0);
+    vec2 screenSize = vec2(textureSize(screenTexture, 0));
     vec2 tex_offset = 1.0 / screenSize; // Get screenSize of a single texel
 
     vec3 result = texture(screenTexture, TexCoords).rgb;

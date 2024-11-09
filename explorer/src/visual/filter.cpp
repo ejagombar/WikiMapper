@@ -4,9 +4,8 @@
 
 namespace Filter {
 
-Blur::Blur(Shader &blurShader, Shader &mixShader, uint screenWidth, uint screenHeight, bool enabled)
-    : m_enabled(enabled), m_blurShader(blurShader), m_mixShader(mixShader), m_screenWidth(screenWidth),
-      m_screenHeight(screenHeight) {
+Blur::Blur(Shader &blurShader, uint screenWidth, uint screenHeight, bool enabled)
+    : m_enabled(enabled), m_blurShader(blurShader), m_screenWidth(screenWidth), m_screenHeight(screenHeight) {
 
     // Quad vertices for a fullscreen quad
     float quadVertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
@@ -51,7 +50,7 @@ void Blur::initSizeDependantBuffers() {
         throw std::runtime_error("FILTER::FRAMEBUFFER:: Scene framebuffer is not complete!");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    for (unsigned int i = 0; i < 2; i++) {
+    for (unsigned int i = 0; i < sizeof(m_blurTexture) / sizeof(m_blurTexture[0]); i++) {
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenWidth, m_screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -92,39 +91,20 @@ void Blur::Display() {
     m_blurShader.setFloat("brightnessModifier", m_brightnessModifier);
 
     bool horizontal(true);
+    glBindVertexArray(m_quadVAO);
     for (int i = 0; i < m_numBlurPasses; i++) {
-        horizontal = true;
-        m_blurShader.setBool("horizontal", horizontal);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[0]);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindVertexArray(m_quadVAO);
-        glBindTexture(GL_TEXTURE_2D, (i == 0) ? m_sceneTexture : m_blurTexture[1]);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        horizontal = false;
-        m_blurShader.setBool("horizontal", horizontal);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[1]);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindTexture(GL_TEXTURE_2D, m_blurTexture[0]);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        for (unsigned int j = 0; j < 2; j++) {
+            horizontal = (j == 0);
+            m_blurShader.setBool("horizontal", horizontal);
+            glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[j]);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glBindTexture(GL_TEXTURE_2D, (i == 0 && j == 0) ? m_sceneTexture : m_blurTexture[1 - j]);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
     }
 
-    // Combine original and blurred textures
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-
-    m_mixShader.use();
-    m_mixShader.setFloat("blurAmount", m_blurMix);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_sceneTexture);
-    m_mixShader.setInt("originalTexture", 0);
-    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, m_blurTexture[1]);
-    m_mixShader.setInt("blurredTexture", 1);
-
-    glBindVertexArray(m_quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 } // namespace Filter

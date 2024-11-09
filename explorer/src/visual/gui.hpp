@@ -59,7 +59,6 @@ class gui {
     std::unique_ptr<Shader> m_lightShader;
     std::unique_ptr<Shader> m_skyboxShader;
     std::unique_ptr<Shader> m_screenShaderBlur;
-    std::unique_ptr<Shader> m_screenShaderMix;
 
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
