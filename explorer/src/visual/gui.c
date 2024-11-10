@@ -1,6 +1,6 @@
+#include "gui.hpp"
 #include "../../lib/shader.hpp"
 #include "../lib/texture.hpp"
-#include "gui.hpp"
 #include "text.h"
 #include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -9,13 +9,13 @@
 
 using namespace glm;
 
-gui::gui(const int &MaxNodes, std::vector<glm::vec3> &lines, std::vector<Node> &nodes)
+GUI::GUI(const int &MaxNodes, std::vector<glm::vec3> &lines, std::vector<Node> &nodes)
     : m_MaxNodes(MaxNodes), m_lines(lines), m_nodes(nodes) {
     g_node_position_size_data.resize(m_MaxNodes * 4);
     g_node_color_data.resize(m_MaxNodes * 4);
 }
 
-int gui::initWindow() {
+int GUI::initWindow() {
     // Initialize GLFW
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
@@ -64,7 +64,7 @@ int gui::initWindow() {
     return 0;
 }
 
-void gui::loop() {
+void GUI::loop() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     double currentTime = glfwGetTime();
@@ -182,7 +182,7 @@ void gui::loop() {
     glfwPollEvents();
 }
 
-int gui::init() {
+int GUI::init() {
     if (initWindow() == -1)
         return -1;
 

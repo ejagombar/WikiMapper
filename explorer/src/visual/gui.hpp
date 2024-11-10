@@ -15,15 +15,27 @@
 
 #include "../../lib/texture.hpp"
 
+struct Node {
+    glm::vec3 pos, speed;
+    unsigned char r, g, b, a; // Color
+    float size, angle, weight;
+    float cameradistance; // *Squared* distance to the camera. if dead : -1.0f
+
+    bool operator<(const Node &that) const {
+        // Sort in reverse order : far nodes drawn first.
+        return this->cameradistance > that.cameradistance;
+    }
+};
+
 enum State { play, pause };
 
-class gui {
+class GUI {
   public:
-    gui() { init(); };
-    ~gui() {};
+    GUI(const int &MaxNodes, std::vector<Node> &nodes);
+    ~GUI();
+    int run();
 
   private:
-    int init();
     void loop();
 
     void processEngineInput(GLFWwindow *window);
@@ -55,18 +67,14 @@ class gui {
     GLFWwindow *m_window;
 
     std::unique_ptr<Shader> m_shader;
-    std::unique_ptr<Shader> m_grassShader;
-    std::unique_ptr<Shader> m_lightShader;
     std::unique_ptr<Shader> m_skyboxShader;
     std::unique_ptr<Shader> m_screenShaderBlur;
 
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
 
-    std::vector<glm::vec3> m_vegetation;
     std::vector<glm::vec3> m_cubePositions;
 
-    unsigned int m_grassTexture;
-    static const uint8_t count = 3;
+    static const uint8_t count = 1;
     unsigned int m_VAOs[count], m_VBOs[count];
 };
