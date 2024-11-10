@@ -4,21 +4,24 @@
 
 namespace Filter {
 
-Blur::Blur(Shader &blurShader, uint screenWidth, uint screenHeight, bool enabled)
+Blur::Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool enabled)
     : m_enabled(enabled), m_blurShader(blurShader), m_screenWidth(screenWidth), m_screenHeight(screenHeight) {
 
-    // Quad vertices for a fullscreen quad
+    // Two triangles that will cover the full screen when rendered in screen space. Position and texture coordinates.
     float quadVertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
                             -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f};
 
-    unsigned int quadVBO;
     glGenVertexArrays(1, &m_quadVAO);
-    glGenBuffers(1, &quadVBO);
     glBindVertexArray(m_quadVAO);
+
+    GLuint quadVBO;
+    glGenBuffers(1, &quadVBO);
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    // Position Coordinates
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+    // Texture Coordinates
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
@@ -41,7 +44,7 @@ void Blur::initSizeDependantBuffers() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_sceneTexture, 0);
 
     // Depth buffer for scene framebuffer
-    unsigned int rboDepth;
+    GLuint rboDepth;
     glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
@@ -50,7 +53,7 @@ void Blur::initSizeDependantBuffers() {
         throw std::runtime_error("FILTER::FRAMEBUFFER:: Scene framebuffer is not complete!");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    for (unsigned int i = 0; i < sizeof(m_blurTexture) / sizeof(m_blurTexture[0]); i++) {
+    for (GLuint i = 0; i < sizeof(m_blurTexture) / sizeof(m_blurTexture[0]); i++) {
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenWidth, m_screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -72,7 +75,7 @@ void Blur::Preprocess() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
 }
 
-void Blur::Resize(const int screenWidth, const int screenHeight) {
+void Blur::Resize(const GLuint screenWidth, const GLuint screenHeight) {
     m_screenWidth = screenWidth;
     m_screenHeight = screenHeight;
     initSizeDependantBuffers();

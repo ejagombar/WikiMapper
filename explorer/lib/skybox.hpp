@@ -4,17 +4,17 @@
 
 class Skybox {
   public:
-    Skybox(Shader &skyboxShader, uint cubemapTexture);
+    Skybox(Shader &skyboxShader, const GLuint cubemapTexture);
 
     void Preprocess();
-    void Display(Camera camera);
+    void Display(const Camera camera);
 
-    void SetEnabled(bool enabled) { m_enabled = enabled; }
-    bool GetEnabled() { return m_enabled; }
+    void SetEnabled(const bool enabled) { m_enabled = enabled; }
+    bool GetEnabled() const { return m_enabled; }
 
   private:
     Shader &m_skyboxShader;
     bool m_enabled = false;
-    uint m_skyboxVAO;
-    uint m_cubemapTexture;
+    GLuint m_skyboxVAO;
+    GLuint m_cubemapTexture;
 };

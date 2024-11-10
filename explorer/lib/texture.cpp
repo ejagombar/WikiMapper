@@ -1,14 +1,14 @@
 #include "./texture.hpp"
 #include <stdexcept>
 
-unsigned int LoadCubemap(std::vector<std::string> faces) {
+uint LoadCubemap(std::vector<std::string> faces) {
     unsigned int textureID;
     int width, height, nrChannels;
 
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-    for (unsigned int i = 0; i < 6; i++) {
+    for (uint i = 0; i < 6; i++) {
         // Up to 6 faces. If less than 6 faces are used, then the last face will be used multiple times.
         uint idx = std::min(i, static_cast<unsigned int>(faces.size() - 1));
         unsigned char *data = stbi_load(faces[idx].c_str(), &width, &height, &nrChannels, 0);
@@ -30,8 +30,8 @@ unsigned int LoadCubemap(std::vector<std::string> faces) {
     return textureID;
 }
 
-unsigned int LoadTexture(char const *path) {
-    unsigned int textureID;
+uint LoadTexture(char const *path) {
+    uint textureID;
     glGenTextures(1, &textureID);
 
     int width, height, nrComponents;

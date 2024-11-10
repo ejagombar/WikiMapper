@@ -1,7 +1,7 @@
 #include "camera.hpp"
 #include <glm/trigonometric.hpp>
 
-void Camera::SetPosition(glm::vec3 position, glm::vec3 up, float yaw, float pitch) {
+void Camera::SetPosition(const glm::vec3 position, const glm::vec3 up, const float yaw, const float pitch) {
     m_position = position;
     m_worldUp = up;
     m_yaw = yaw;
@@ -9,7 +9,7 @@ void Camera::SetPosition(glm::vec3 position, glm::vec3 up, float yaw, float pitc
     updateCameraVectors();
 }
 
-void Camera::ProcessKeyboard(Camera_Movement direction) {
+void Camera::ProcessKeyboard(const Camera_Movement direction) {
     if (direction == FORWARD)
         m_direction += m_front;
     if (direction == BACKWARD)
@@ -24,7 +24,7 @@ void Camera::ProcessKeyboard(Camera_Movement direction) {
         m_direction -= m_worldUp;
 }
 
-void Camera::ProcessMouseMovement(double xoffsetIn, double yoffsetIn) {
+void Camera::ProcessMouseMovement(const double xoffsetIn, const double yoffsetIn) {
     float xoffset = static_cast<float>(xoffsetIn);
     float yoffset = static_cast<float>(yoffsetIn);
 
@@ -42,7 +42,7 @@ void Camera::ProcessMouseMovement(double xoffsetIn, double yoffsetIn) {
     updateCameraVectors();
 }
 
-void Camera::ProcessMouseScroll(float yoffset) {
+void Camera::ProcessMouseScroll(const float yoffset) {
     m_fov -= (float)yoffset * m_scrollSensitivity;
     if (m_fov < 1.0f)
         m_fov = 1.0f;
@@ -50,7 +50,7 @@ void Camera::ProcessMouseScroll(float yoffset) {
         m_fov = 160.0f;
 }
 
-void Camera::ProcessPosition(float deltaTime) {
+void Camera::ProcessPosition(const float deltaTime) {
     if (glm::length(m_direction) > 0.0f) {
         m_direction = glm::normalize(m_direction);
     }
@@ -66,8 +66,6 @@ void Camera::ProcessPosition(float deltaTime) {
 }
 
 void Camera::updateCameraVectors() {
-    // glm::vec3 direction(cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch)), sin(glm::radians(m_pitch)),
-    //                     sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch)));
     glm::vec3 direction(cos(m_yaw) * cos(m_pitch), sin(m_pitch), sin(m_yaw) * cos(m_pitch));
 
     m_front = glm::normalize(direction);

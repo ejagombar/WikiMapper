@@ -1,6 +1,6 @@
 #include "./skybox.hpp"
 
-Skybox::Skybox(Shader &skyboxshader, uint cubemapTexture)
+Skybox::Skybox(Shader &skyboxshader, const GLuint cubemapTexture)
     : m_skyboxShader(skyboxshader), m_cubemapTexture(cubemapTexture) {
     float skyboxVertices[] = {
         -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f,
@@ -11,7 +11,7 @@ Skybox::Skybox(Shader &skyboxshader, uint cubemapTexture)
         1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,
         1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f};
 
-    uint skyboxVBO;
+    GLuint skyboxVBO;
     glGenVertexArrays(1, &m_skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
     glBindVertexArray(m_skyboxVAO);

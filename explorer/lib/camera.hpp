@@ -12,21 +12,22 @@ class Camera {
   public:
     Camera() {};
 
-    void SetPosition(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
-                     float yaw = glm::pi<float>(), float pitch = 0.0f);
+    void SetPosition(const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
+                     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), const float yaw = glm::pi<float>(),
+                     const float pitch = 0.0f);
 
-    glm::mat4 GetViewMatrix() { return m_viewMatrix; }
-    glm::mat4 GetProjectionMatrix() { return m_projectionMatrix; }
+    glm::mat4 GetViewMatrix() const { return m_viewMatrix; }
+    glm::mat4 GetProjectionMatrix() const { return m_projectionMatrix; }
 
-    void ProcessKeyboard(Camera_Movement direction);
+    void ProcessKeyboard(const Camera_Movement direction);
 
-    void ProcessMouseMovement(double xoffsetIn, double yoffsetIn);
+    void ProcessMouseMovement(const double xoffsetIn, const double yoffsetIn);
 
-    void ProcessMouseScroll(float yoffset);
+    void ProcessMouseScroll(const float yoffset);
 
-    void ProcessPosition(float deltaTime);
+    void ProcessPosition(const float deltaTime);
 
-    glm::vec3 GetCameraPosition() { return m_cameraPosition; }
+    glm::vec3 GetCameraPosition() const { return m_cameraPosition; }
 
     void SetAspectRatio(const float aspectRatio) { m_aspectRatio = aspectRatio; }
 
@@ -44,19 +45,19 @@ class Camera {
     glm::mat4 m_viewMatrix;
     glm::mat4 m_projectionMatrix;
 
-    float m_yaw = 3.14f;
-    float m_pitch = 0.0f;
-    float m_mouseSensitivity = 0.0015f;
-    float m_aspectRatio;
-    float m_fov = 45.0f;
+    GLfloat m_yaw = 3.14f;
+    GLfloat m_pitch = 0.0f;
+    GLfloat m_mouseSensitivity = 0.0015f;
+    GLfloat m_aspectRatio;
+    GLfloat m_fov = 45.0f;
 
-    float m_movementSpeed = 1.0f;
-    const float m_accelerationReduce = 0.97f;
-    const float m_accelerationReduceSlowed = 0.95f;
+    GLfloat m_movementSpeed = 1.0f;
+    const GLfloat m_accelerationReduce = 0.97f;
+    const GLfloat m_accelerationReduceSlowed = 0.95f;
 
-    const float m_scrollSensitivity = 2.0f;
-    const float m_minDisplayRange = 0.1f;
-    const float m_maxDisplayRange = 500.0f;
+    const GLfloat m_scrollSensitivity = 2.0f;
+    const GLfloat m_minDisplayRange = 0.1f;
+    const GLfloat m_maxDisplayRange = 500.0f;
     const bool m_lockViewingAngle = false;
 
     void updateCameraVectors();
