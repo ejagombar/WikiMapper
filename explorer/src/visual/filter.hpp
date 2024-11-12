@@ -6,6 +6,7 @@ namespace Filter {
 class Blur {
   public:
     Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool enabled = false);
+    ~Blur();
 
     void Preprocess();
     void Display();
@@ -22,7 +23,10 @@ class Blur {
 
     GLuint m_sceneFBO, m_sceneTexture;
     GLuint m_blurFBO[2], m_blurTexture[2]; // Horizontal and Vertical blur
+    GLuint m_rboDepth;
+
     GLuint m_quadVAO;
+    GLuint m_quadVBO;
 
     GLint m_screenWidth;
     GLint m_screenHeight;

@@ -1,22 +1,21 @@
 #include "filter.hpp"
 
+#include <GL/gl.h>
 #include <stdexcept>
 
 namespace Filter {
 
 Blur::Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool enabled)
     : m_enabled(enabled), m_blurShader(blurShader), m_screenWidth(screenWidth), m_screenHeight(screenHeight) {
-
     // Two triangles that will cover the full screen when rendered in screen space. Position and texture coordinates.
     float quadVertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
                             -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f};
 
+    glGenBuffers(1, &m_quadVBO);
     glGenVertexArrays(1, &m_quadVAO);
-    glBindVertexArray(m_quadVAO);
 
-    GLuint quadVBO;
-    glGenBuffers(1, &quadVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBindVertexArray(m_quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
     // Position Coordinates
     glEnableVertexAttribArray(0);
@@ -25,9 +24,10 @@ Blur::Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool ena
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
-    // Framebuffer for the original scene
+    // Framebuffer for the original scene, along with texture and renderbuffer attachments
     glGenFramebuffers(1, &m_sceneFBO);
     glGenTextures(1, &m_sceneTexture);
+    glGenRenderbuffers(1, &m_rboDepth);
 
     // Framebuffers and textures for blur passes
     glGenFramebuffers(2, m_blurFBO);
@@ -41,17 +41,20 @@ void Blur::initSizeDependantBuffers() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
+
+    // Bind the Texture attachment to the frame buffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_sceneTexture, 0);
 
     // Depth buffer for scene framebuffer
-    GLuint rboDepth;
-    glGenRenderbuffers(1, &rboDepth);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+
+    // Bind the Renderbuffer attachment to the frame buffer
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboDepth);
+
+    // Check that both the attachments have been attached correctly and the frameBuffer is ready.
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("FILTER::FRAMEBUFFER:: Scene framebuffer is not complete!");
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     for (GLuint i = 0; i < sizeof(m_blurTexture) / sizeof(m_blurTexture[0]); i++) {
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[i]);
@@ -65,7 +68,19 @@ void Blur::initSizeDependantBuffers() {
             throw std::runtime_error("FILTER::FRAMEBUFFER:: Blur framebuffer is not complete!");
     }
 
+    // Make the default framebuffer active again to ensure that further render operations are displayed to the screen
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+Blur::~Blur() {
+    glDeleteFramebuffers(2, m_blurFBO);
+    glDeleteFramebuffers(1, &m_sceneFBO);
+
+    glDeleteTextures(2, m_blurTexture);
+    glDeleteTextures(1, &m_sceneTexture);
+
+    glDeleteBuffers(1, &m_quadVAO);
+    glDeleteBuffers(1, &m_quadVBO);
 }
 
 void Blur::Preprocess() {
