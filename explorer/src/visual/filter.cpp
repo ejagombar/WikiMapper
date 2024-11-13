@@ -24,45 +24,29 @@ Blur::Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool ena
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
-    // Framebuffer for the original scene, along with texture and renderbuffer attachments
-    glGenFramebuffers(1, &m_sceneFBO);
-    glGenTextures(1, &m_sceneTexture);
-    glGenRenderbuffers(1, &m_rboDepth);
-
     // Framebuffers and textures for blur passes
     glGenFramebuffers(2, m_blurFBO);
     glGenTextures(2, m_blurTexture);
+    glGenRenderbuffers(2, m_rboDepth);
     initSizeDependantBuffers();
 }
 
 void Blur::initSizeDependantBuffers() {
-    glBindTexture(GL_TEXTURE_2D, m_sceneTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenWidth, m_screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
-
-    // Bind the Texture attachment to the frame buffer
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_sceneTexture, 0);
-
-    // Depth buffer for scene framebuffer
-    glBindRenderbuffer(GL_RENDERBUFFER, m_rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
-
-    // Bind the Renderbuffer attachment to the frame buffer
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboDepth);
-
-    // Check that both the attachments have been attached correctly and the frameBuffer is ready.
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        throw std::runtime_error("FILTER::FRAMEBUFFER:: Scene framebuffer is not complete!");
-
     for (GLuint i = 0; i < sizeof(m_blurTexture) / sizeof(m_blurTexture[0]); i++) {
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenWidth, m_screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[i]);
+
+        // Bind the Texture attachment to the frame buffer
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_blurTexture[i], 0);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, m_rboDepth[i]);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
+
+        // Bind the Renderbuffer attachment to the frame buffer
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboDepth[i]);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             throw std::runtime_error("FILTER::FRAMEBUFFER:: Blur framebuffer is not complete!");
@@ -74,10 +58,8 @@ void Blur::initSizeDependantBuffers() {
 
 Blur::~Blur() {
     glDeleteFramebuffers(2, m_blurFBO);
-    glDeleteFramebuffers(1, &m_sceneFBO);
-
     glDeleteTextures(2, m_blurTexture);
-    glDeleteTextures(1, &m_sceneTexture);
+    glDeleteBuffers(2, m_rboDepth);
 
     glDeleteBuffers(1, &m_quadVAO);
     glDeleteBuffers(1, &m_quadVBO);
@@ -87,7 +69,7 @@ void Blur::Preprocess() {
     if (!m_enabled) {
         return;
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[0]);
 }
 
 void Blur::Resize(const GLuint screenWidth, const GLuint screenHeight) {
@@ -102,27 +84,30 @@ void Blur::Display() {
     }
 
     m_blurShader.use();
-
     m_blurShader.setInt("boarder", m_boarder);
     m_blurShader.setInt("radius", m_radius);
     m_blurShader.setFloat("blurScale", m_blurScale);
     m_blurShader.setFloat("brightnessModifier", m_brightnessModifier);
 
     bool horizontal(true);
-    glBindVertexArray(m_quadVAO);
-    for (int i = 0; i < m_numBlurPasses; i++) {
-        for (unsigned int j = 0; j < 2; j++) {
-            horizontal = (j == 0);
-            m_blurShader.setBool("horizontal", horizontal);
-            glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[j]);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glBindTexture(GL_TEXTURE_2D, (i == 0 && j == 0) ? m_sceneTexture : m_blurTexture[1 - j]);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
+    for (uint i = 0; i < m_numBlurPasses; i++) {
+        horizontal = ((i ^ 1) == (i + 1));
+        m_blurShader.setBool("horizontal", horizontal);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[horizontal ? 1 : 0]);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindVertexArray(m_quadVAO);
+        glDisable(GL_DEPTH_TEST);
+        glBindTexture(GL_TEXTURE_2D, m_blurTexture[horizontal ? 0 : 1]);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
+    horizontal = !horizontal;
+    m_blurShader.setBool("horizontal", horizontal);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, m_blurTexture[1]);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindVertexArray(m_quadVAO);
+    glDisable(GL_DEPTH_TEST);
+    glBindTexture(GL_TEXTURE_2D, m_blurTexture[horizontal ? 0 : 1]);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 } // namespace Filter

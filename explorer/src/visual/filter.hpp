@@ -21,9 +21,8 @@ class Blur {
 
     Shader &m_blurShader;
 
-    GLuint m_sceneFBO, m_sceneTexture;
     GLuint m_blurFBO[2], m_blurTexture[2]; // Horizontal and Vertical blur
-    GLuint m_rboDepth;
+    GLuint m_rboDepth[2];
 
     GLuint m_quadVAO;
     GLuint m_quadVBO;
@@ -36,7 +35,7 @@ class Blur {
     GLint m_boarder = 100;      // Boarder size around blur area
     GLint m_radius = 50;        // Blur rectangle corner radius
     GLfloat m_blurScale = 5.0f; // Guassian blur step size
-    GLint m_numBlurPasses = 4;  // Number of Guassian blur passes
+    GLint m_numBlurPasses = 10; // Number of Guassian blur passes
     GLfloat m_brightnessModifier = 0.9;
 };
 } // namespace Filter
