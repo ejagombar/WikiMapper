@@ -5,7 +5,8 @@
 namespace Filter {
 class Blur {
   public:
-    Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool enabled = false);
+    Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool enabled = false, GLfloat blurScale = 5,
+         uint blurPasses = 2, GLfloat brightnessModifier = 0.95f);
     ~Blur();
 
     void Preprocess();
@@ -32,10 +33,10 @@ class Blur {
 
     bool m_enabled = false;
 
-    GLint m_boarder = 100;      // Boarder size around blur area
-    GLint m_radius = 50;        // Blur rectangle corner radius
-    GLfloat m_blurScale = 5.0f; // Guassian blur step size
-    GLint m_numBlurPasses = 10; // Number of Guassian blur passes
-    GLfloat m_brightnessModifier = 0.9;
+    GLint m_boarder = 100; // Boarder size around blur area
+    GLint m_radius = 50;   // Blur rectangle corner radius
+    GLfloat m_blurScale;   // Guassian blur step size
+    uint m_blurPasses;     // Number of Guassian blur passes
+    GLfloat m_brightnessModifier;
 };
 } // namespace Filter

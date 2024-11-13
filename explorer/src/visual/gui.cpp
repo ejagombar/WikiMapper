@@ -44,7 +44,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, m_SCR_WIDTH, m_SCR_HEIGHT);
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, m_SCR_WIDTH, m_SCR_HEIGHT, true, 5.f, 15, 0.94f);
 
     // -------------------- Texture -------------------------
     // std::vector<std::string> faces = {"right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg"};
