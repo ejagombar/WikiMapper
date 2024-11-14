@@ -1,20 +1,19 @@
 #include "filter.hpp"
-
 #include <GL/gl.h>
 #include <stdexcept>
 
 namespace Filter {
 
-Blur::Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool enabled, GLfloat blurScale,
+Blur::Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint radius, bool enabled, GLfloat scale,
            uint blurPasses, GLfloat brightnessModifier)
-    : m_enabled(enabled), m_blurShader(blurShader), m_screenWidth(screenWidth), m_screenHeight(screenHeight),
-      m_blurScale(blurScale), m_blurPasses(blurPasses), m_brightnessModifier(brightnessModifier) {
+    : m_enabled(enabled), m_blurShader(blurShader), m_screenSize(screenSize), m_size(size), m_radius(radius),
+      m_scale(scale), m_passes(blurPasses), m_brightnessModifier(brightnessModifier) {
     // Two triangles that will cover the full screen when rendered in screen space. Position and texture coordinates.
     float quadVertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
                             -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f};
 
-    assert(m_blurPasses > 0);
-    assert(m_blurScale > 0);
+    assert(m_passes > 0);
+    assert(m_scale > 0);
     assert(m_brightnessModifier <= 1.0f);
 
     glGenBuffers(1, &m_quadVBO);
@@ -43,7 +42,7 @@ void Blur::initSizeDependantBuffers() {
 
         // Create the Texture attachment and initialise parameters and memory
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenWidth, m_screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenSize.x, m_screenSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         // Bind the Texture attachment to the frame buffer
@@ -51,7 +50,7 @@ void Blur::initSizeDependantBuffers() {
 
         // Create the Renderbuffer and initialise with enough memory
         glBindRenderbuffer(GL_RENDERBUFFER, m_rboDepth[i]);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenSize.x, m_screenSize.y);
         // Bind the Renderbuffer attachment to the frame buffer
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboDepth[i]);
 
@@ -79,9 +78,8 @@ void Blur::Preprocess() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[0]);
 }
 
-void Blur::Resize(const GLuint screenWidth, const GLuint screenHeight) {
-    m_screenWidth = screenWidth;
-    m_screenHeight = screenHeight;
+void Blur::ScreenResize(const glm::ivec2 screenSize) {
+    m_screenSize = screenSize;
     initSizeDependantBuffers();
 }
 
@@ -91,18 +89,19 @@ void Blur::Display() {
     }
 
     m_blurShader.use();
-    m_blurShader.setInt("boarder", m_boarder);
+    m_blurShader.setInt("width", m_size.x);
+    m_blurShader.setInt("height", m_size.y);
     m_blurShader.setInt("radius", m_radius);
-    m_blurShader.setFloat("blurScale", m_blurScale);
+    m_blurShader.setFloat("blurScale", m_scale);
     m_blurShader.setFloat("brightnessModifier", m_brightnessModifier);
 
     // Apply blur in alternating directions, reading from one buffer and writing to the other with the blur shader
     // On the final pass, the output is written to the screen (Framebuffer 0).
     bool horizontal(true);
-    for (uint i = 0; i < m_blurPasses; i++) {
+    for (uint i = 0; i < m_passes; i++) {
         horizontal = ((i ^ 1) == (i + 1));
         m_blurShader.setBool("horizontal", horizontal);
-        glBindFramebuffer(GL_FRAMEBUFFER, (i == (m_blurPasses - 1)) ? 0 : m_blurFBO[horizontal ? 1 : 0]);
+        glBindFramebuffer(GL_FRAMEBUFFER, (i == (m_passes - 1)) ? 0 : m_blurFBO[horizontal ? 1 : 0]);
         glClear(GL_COLOR_BUFFER_BIT);
         glBindVertexArray(m_quadVAO);
         glDisable(GL_DEPTH_TEST);

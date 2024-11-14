@@ -44,7 +44,8 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, m_SCR_WIDTH, m_SCR_HEIGHT, true, 5.f, 15, 0.94f);
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_SCR_WIDTH, m_SCR_HEIGHT),
+                                            glm::ivec2(800, 600), 100, true, 5.f, 15, 0.94f);
 
     // -------------------- Texture -------------------------
     // std::vector<std::string> faces = {"right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg"};
@@ -222,7 +223,7 @@ void GUI::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) { 
 void GUI::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
-    m_blur->Resize(width, height);
+    m_blur->ScreenResize(glm::ivec2(width, height));
 }
 
 void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {

@@ -1,12 +1,13 @@
 #include "../../lib/shader.hpp"
 #include <GL/gl.h>
+#include <glm/detail/qualifier.hpp>
 #include <sys/types.h>
 
 namespace Filter {
 class Blur {
   public:
-    Blur(Shader &blurShader, GLuint screenWidth, GLuint screenHeight, bool enabled = false, GLfloat blurScale = 5,
-         uint blurPasses = 2, GLfloat brightnessModifier = 0.95f);
+    Blur(Shader &shader, glm::ivec2 screenSize, glm::ivec2 size, GLuint radius, bool enabled = false, GLfloat scale = 5,
+         uint passes = 2, GLfloat brightnessModifier = 0.95f);
     ~Blur();
 
     void Preprocess();
@@ -15,7 +16,13 @@ class Blur {
     void SetEnabled(const bool enabled) { m_enabled = enabled; }
     bool GetEnabled() const { return m_enabled; }
 
-    void Resize(const GLuint screenWidth, const GLuint screenHeight);
+    void ScreenResize(const glm::ivec2 screenSize);
+
+    void SetSize(const glm::ivec2 size) { m_size = size; }
+    void SetRadius(const GLuint radius) { m_radius = radius; }
+    void SetScale(const GLfloat scale) { m_scale = scale; }
+    void SetPasses(const uint passes) { m_passes = passes; }
+    void SetBrightness(const GLfloat brightnes) { m_brightnessModifier = brightnes; }
 
   private:
     void initSizeDependantBuffers();
@@ -28,15 +35,14 @@ class Blur {
     GLuint m_quadVAO;
     GLuint m_quadVBO;
 
-    GLint m_screenWidth;
-    GLint m_screenHeight;
+    glm::vec2 m_screenSize;
 
     bool m_enabled = false;
 
-    GLint m_boarder = 100; // Boarder size around blur area
-    GLint m_radius = 50;   // Blur rectangle corner radius
-    GLfloat m_blurScale;   // Guassian blur step size
-    uint m_blurPasses;     // Number of Guassian blur passes
+    glm::ivec2 m_size;
+    GLuint m_radius; // Blur rectangle corner radius
+    GLfloat m_scale; // Guassian blur step size
+    uint m_passes;   // Number of Guassian blur passes
     GLfloat m_brightnessModifier;
 };
 } // namespace Filter
