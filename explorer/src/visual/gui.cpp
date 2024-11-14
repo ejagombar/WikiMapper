@@ -1,7 +1,9 @@
 #include "./gui.hpp"
 
 #include "../../lib/shader.hpp"
+#include <GL/gl.h>
 #include <GLFW/glfw3.h>
+#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -43,19 +45,23 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     m_shader = std::make_unique<Shader>("shader.vert", "shader.frag");
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
+    m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag");
 
     m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_SCR_WIDTH, m_SCR_HEIGHT),
-                                            glm::ivec2(800, 600), 100, true, 5.f, 15, 0.94f);
+                                            glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
 
     // -------------------- Texture -------------------------
-    // std::vector<std::string> faces = {"right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg"};
-    std::vector<std::string> faces = {"stars.jpg", "stars.jpg", "stars.jpg", "stars.jpg", "stars.jpg", "stars.jpg"};
-    unsigned int cubemapTexture = LoadCubemap(faces);
+    GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
+    m_sphereTexture = LoadTexture("stars.jpg");
 
     // -----------------------------------------------------
     m_skybox = std::make_unique<Skybox>(*m_skyboxShader, cubemapTexture);
 
-    float vertices[] = {
+    glGenVertexArrays(count, m_VAOs);
+    glGenBuffers(count, m_VBOs);
+
+    // -------------------------------------------------------------------
+    static const GLfloat vertices[] = {
         -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,
         0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, -0.5f,
         -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,
@@ -71,23 +77,37 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  0.0f,
         1.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f};
 
-    glGenVertexArrays(count, m_VAOs);
-    glGenBuffers(count, m_VBOs);
-
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void *)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void *)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
-    float planeVertices[] = {
-        // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
-        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,  0.0f, 1.0f, 0.0f};
+    // -------------------------------------------------------------------
+    // GLfloat quadVertices[] = {0.0f, 0.5f,  0.0f, 0.0f, 0.0f, 0.0f, -0.5f, 0.0f, 0.0f, 1.0f,
+    //                           1.0f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.5f,  0.0f, 0.0f, 0.0f,
+    //                           1.0f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,  0.0f, 1.0f, 0.0f};
+
+    static const GLfloat quadVertices[] = {
+        -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
+    };
+
+    glBindVertexArray(m_VAOs[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(3 * sizeof(GLfloat)));
+    // glEnableVertexAttribArray(1);
+
+    // -------------------------------------------------------------------
+    glBindVertexArray(0);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -180,10 +200,26 @@ void GUI::loop() {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, m_cubePositions[i]);
         float angle = 20.0f * i;
-        model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+        model = glm::rotate(model, glm::radians(angle) * sin(currentFrame), glm::vec3(1.0f, 0.3f, 0.5f));
         m_shader->setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+    //------------------------------------------------------------------------------------------
+
+    m_sphereShader->use();
+    m_sphereShader->setMat4("PV", m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix());
+
+    glBindVertexArray(m_VAOs[1]);
+    glBindTexture(GL_TEXTURE_2D, m_sphereTexture);
+
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::vec3 position(0.2f, 1.0f, 0.7f);
+    model = glm::translate(model, position);
+
+    m_sphereShader->setMat4("model", model);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 6);
+
+    //----------------------------
 
     m_skybox->Display(m_camera);
 
