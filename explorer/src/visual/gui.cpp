@@ -93,8 +93,9 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     std::vector<GLfloat> g_node_position_size_data = {1.0f, 1.2f, 0.8f, 1};
     std::vector<GLubyte> g_node_color_data = {244, 100, 100, 255};
 
-    static const GLfloat quadVertices[] = {-0.5f, -0.5f, 0.0f, 0.0, 0.0, 0.5f, -0.5f, 0.0f, 0.0, 1.0,
-                                           -0.5f, 0.5f,  0.0f, 1.0, 0.0, 0.5f, 0.5f,  0.0f, 1.0, 1.0};
+    static const GLfloat quadVertices[] = {
+        -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
+    };
 
     m_MaxNodes = 1;
 
@@ -102,11 +103,8 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void *)0);
     glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
 
     // glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
     // glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), &g_node_position_size_data.front(),
