@@ -2,6 +2,7 @@
 
 #include "../../lib/shader.hpp"
 #include <GL/gl.h>
+#include <GL/glext.h>
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstddef>
@@ -52,7 +53,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
-    m_sphereTexture = LoadTexture("stars.jpg");
+    m_sphereTexture = LoadTexture("sphere.png");
 
     // -----------------------------------------------------
     m_skybox = std::make_unique<Skybox>(*m_skyboxShader, cubemapTexture);
@@ -88,28 +89,43 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glEnableVertexAttribArray(1);
 
     // -------------------------------------------------------------------
-    // GLfloat quadVertices[] = {0.0f, 0.5f,  0.0f, 0.0f, 0.0f, 0.0f, -0.5f, 0.0f, 0.0f, 1.0f,
-    //                           1.0f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.5f,  0.0f, 0.0f, 0.0f,
-    //                           1.0f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,  0.0f, 1.0f, 0.0f};
 
-    static const GLfloat quadVertices[] = {
-        -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
-    };
+    std::vector<GLfloat> g_node_position_size_data = {1.0f, 1.2f, 0.8f, 1};
+    std::vector<GLubyte> g_node_color_data = {244, 100, 100, 255};
+
+    static const GLfloat quadVertices[] = {-0.5f, -0.5f, 0.0f, 0.0, 0.0, 0.5f, -0.5f, 0.0f, 0.0, 1.0,
+                                           -0.5f, 0.5f,  0.0f, 1.0, 0.0, 0.5f, 0.5f,  0.0f, 1.0, 1.0};
+
+    m_MaxNodes = 1;
 
     glBindVertexArray(m_VAOs[1]);
+
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)0);
     glEnableVertexAttribArray(0);
 
-    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(3 * sizeof(GLfloat)));
-    // glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+
+    // glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
+    // glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), &g_node_position_size_data.front(),
+    // GL_STATIC_DRAW); glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void *)0); glEnableVertexAttribArray(1);
+    //
+    // glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
+    // glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), &g_node_color_data.front(), GL_STATIC_DRAW);
+    // glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, (void *)0);
+    // glEnableVertexAttribArray(2);
+
+    // glVertexAttribDivisor(0, 0); // particles vertices : always reuse the same 4 vertices -> 0
+    // glVertexAttribDivisor(1, 1); // positions : one per quad (its center)                 -> 1
+    // glVertexAttribDivisor(2, 1); // color : one per quad                                  -> 1
 
     // -------------------------------------------------------------------
     glBindVertexArray(0);
 
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 
     m_shader->use();
     m_shader->setInt("texture1", 0);
@@ -206,22 +222,37 @@ void GUI::loop() {
     }
     //------------------------------------------------------------------------------------------
 
+    glBindVertexArray(m_VAOs[1]);
+
+    glBindTexture(GL_TEXTURE_2D, m_sphereTexture);
+
     m_sphereShader->use();
     m_sphereShader->setMat4("PV", m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix());
 
-    glBindVertexArray(m_VAOs[1]);
-    glBindTexture(GL_TEXTURE_2D, m_sphereTexture);
+    glm::mat4 ViewMatrix = m_camera.GetViewMatrix();
 
+    // m_sphereShader->setVec3("CameraRight_worldspace", ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
+    // m_sphereShader->setVec3("CameraUp_worldspace", ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
+
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_LINE_SMOOTH);
     glm::mat4 model = glm::mat4(1.0f);
     glm::vec3 position(0.2f, 1.0f, 0.7f);
     model = glm::translate(model, position);
 
     m_sphereShader->setMat4("model", model);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 6);
+
+    // glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_MaxNodes);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    // glDisableVertexAttribArray(0);
+    // glDisableVertexAttribArray(1);
+    // glDisableVertexAttribArray(2);
 
     //----------------------------
 
-    m_skybox->Display(m_camera);
+    // m_skybox->Display(m_camera);
 
     m_blur->Display();
 }

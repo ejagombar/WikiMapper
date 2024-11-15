@@ -78,6 +78,10 @@ class GUI {
 
     GLuint m_sphereTexture;
 
+    GLuint m_MaxNodes;
+    GLuint node_position_buffer;
+    GLuint node_color_buffer;
+
     static const uint8_t count = 2;
     unsigned int m_VAOs[count], m_VBOs[count];
 };
