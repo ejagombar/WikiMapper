@@ -90,8 +90,8 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------------------------------------------------------
 
-    std::vector<GLfloat> g_node_position_size_data = {1.0f, 1.2f, 0.8f, 1};
-    std::vector<GLubyte> g_node_color_data = {244, 100, 100, 255};
+    std::vector<GLfloat> g_node_data = {1.0f, 1.8f, 2.5f, 3.0f,
+                                        0.6f, 0.5f, 0.5f, 1.0f}; // [X, Y, Z, S, R, G, B, A] Coords, Size, Colour
 
     static const GLfloat quadVertices[] = {
         -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
@@ -103,12 +103,21 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void *)0);
     glEnableVertexAttribArray(0);
 
-    // glBindBuffer(GL_ARRAY_BUFFER, node_position_buffer);
-    // glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLfloat), &g_node_position_size_data.front(),
-    // GL_STATIC_DRAW); glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void *)0); glEnableVertexAttribArray(1);
+    glGenBuffers(1, &m_node_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m_node_buffer);
+    glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 8 * sizeof(GLfloat), &g_node_data.front(), GL_DYNAMIC_DRAW);
+
+    // Position and Size data
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *)0);
+    glEnableVertexAttribArray(1);
+
+    // Colour data
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *)(4 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(2);
     //
     // glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
     // glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), &g_node_color_data.front(), GL_STATIC_DRAW);
@@ -227,7 +236,7 @@ void GUI::loop() {
     m_sphereShader->use();
     m_sphereShader->setMat4("PV", m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix());
 
-    glm::mat4 ViewMatrix = m_camera.GetViewMatrix();
+    // glm::mat4 ViewMatrix = m_camera.GetViewMatrix();
 
     // m_sphereShader->setVec3("CameraRight_worldspace", ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
     // m_sphereShader->setVec3("CameraUp_worldspace", ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
@@ -235,11 +244,6 @@ void GUI::loop() {
     // glEnable(GL_BLEND);
     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // glEnable(GL_LINE_SMOOTH);
-    glm::mat4 model = glm::mat4(1.0f);
-    glm::vec3 position(0.2f, 1.0f, 0.7f);
-    model = glm::translate(model, position);
-
-    m_sphereShader->setMat4("model", model);
 
     // glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_MaxNodes);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

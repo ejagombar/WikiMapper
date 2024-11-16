@@ -39,15 +39,19 @@
 #version 330 core
 
 layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec4 xyzs;
+layout(location = 2) in vec4 aColor;
 
 out vec2 TexCoords;
+out vec4 sphereColor;
 
-uniform mat4 model;
 uniform mat4 PV;
 
 void main()
 {
-    // TexCoords = aTexCoords;
     TexCoords = aPos.xy + vec2(0.5, 0.5);
-    gl_Position = PV * model * vec4(aPos, 1.0);
+
+    sphereColor = aColor;
+
+    gl_Position = PV * vec4(aPos, 1.0);
 }
