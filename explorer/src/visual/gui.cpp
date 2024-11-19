@@ -228,8 +228,8 @@ void GUI::loop() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
     //------------------------------------------------------------------------------------------
-
-    m_skybox->Display(m_camera);
+    glm::mat4 camera_direction = m_camera.GetProjectionMatrix() * glm::mat4(glm::mat3(m_camera.GetViewMatrix()));
+    m_skybox->Display(camera_direction);
 
     m_blur->Display();
 }
