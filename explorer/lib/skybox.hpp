@@ -1,13 +1,12 @@
-#include "../lib/camera.hpp"
 #include "../lib/shader.hpp"
 #include <sys/types.h>
 
 class Skybox {
   public:
     Skybox(Shader &skyboxShader, const GLuint cubemapTexture);
+    ~Skybox();
 
-    void Preprocess();
-    void Display(const Camera camera);
+    void Display(const glm::mat4 camera_direction);
 
     void SetEnabled(const bool enabled) { m_enabled = enabled; }
     bool GetEnabled() const { return m_enabled; }
@@ -16,5 +15,6 @@ class Skybox {
     Shader &m_skyboxShader;
     bool m_enabled = false;
     GLuint m_skyboxVAO;
+    GLuint m_skyboxVBO;
     GLuint m_cubemapTexture;
 };
