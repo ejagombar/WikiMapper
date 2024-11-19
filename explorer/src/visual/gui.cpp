@@ -229,32 +229,7 @@ void GUI::loop() {
     }
     //------------------------------------------------------------------------------------------
 
-    glBindVertexArray(m_VAOs[1]);
-
-    glBindTexture(GL_TEXTURE_2D, m_sphereTexture);
-
-    m_sphereShader->use();
-    m_sphereShader->setMat4("PV", m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix());
-
-    // glm::mat4 ViewMatrix = m_camera.GetViewMatrix();
-
-    // m_sphereShader->setVec3("CameraRight_worldspace", ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
-    // m_sphereShader->setVec3("CameraUp_worldspace", ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
-
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // glEnable(GL_LINE_SMOOTH);
-
-    // glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_MaxNodes);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    // glDisableVertexAttribArray(0);
-    // glDisableVertexAttribArray(1);
-    // glDisableVertexAttribArray(2);
-
-    //----------------------------
-
-    // m_skybox->Display(m_camera);
+    m_skybox->Display(m_camera);
 
     m_blur->Display();
 }
