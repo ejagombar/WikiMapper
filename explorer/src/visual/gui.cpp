@@ -6,10 +6,15 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
+#include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <vector>
+
+const int COUNT = 200000;
 
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glfwInit();
@@ -91,10 +96,23 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------------------------------------------------------
 
-    float points[] = {-0.45f, 0.45f,  0.0f, 1.0f, 0.0f, 0.0f, 0.3f,  // Pos(XYZ), Col(RGB), Size(R)
-                      0.45f,  0.45f,  0.0f, 0.0f, 1.0f, 0.0f, 0.5f,  //
-                      0.45f,  -0.45f, 0.0f, 0.0f, 0.0f, 1.0f, 0.1f,  //
-                      -0.45f, -0.45f, 0.0f, 1.0f, 1.0f, 0.0f, 0.2f}; //
+    float points[COUNT * 7]; // Pos(XYZ), Col(RGB), Size(R)
+
+    std::cout << "MaxNodes: " << MaxNodes << std::endl;
+
+    std::random_device seed;
+    std::mt19937 gen{seed()};
+    std::uniform_int_distribution<> dist{-100, 100};
+    for (int i = 0; i < COUNT; i++) {
+        int j = i * 7;
+        points[j] = dist(gen);
+        points[j + 1] = dist(gen);
+        points[j + 2] = dist(gen);
+        points[j + 3] = 1.0f;
+        points[j + 4] = 1.0f;
+        points[j + 5] = 1.0f;
+        points[j + 6] = 1.0f;
+    }
 
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
@@ -139,7 +157,7 @@ GUI::~GUI() {
 int GUI::run() {
     int nbFrames = 0;
     double lastTime = glfwGetTime();
-    // glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     while (!glfwWindowShouldClose(m_window)) {
         nbFrames++;
@@ -218,9 +236,13 @@ void GUI::loop() {
     // -----------------------------
     m_sphereShader->use();
     glBindVertexArray(m_VAOs[1]);
-    glDrawArrays(GL_POINTS, 0, 4);
+    glDrawArrays(GL_POINTS, 0, COUNT);
     m_sphereShader->setMat4("Projection", m_camera.GetProjectionMatrix());
     m_sphereShader->setMat4("View", m_camera.GetViewMatrix());
+
+    m_sphereShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
+
+    m_sphereShader->setVec3("LightPosition", glm::vec3(5.0f, 5.0f, 5.0f));
 
     m_blur->Display();
 }
