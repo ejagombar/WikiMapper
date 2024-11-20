@@ -90,43 +90,15 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------------------------------------------------------
 
-    std::vector<GLfloat> g_node_data = {1.0f, 1.8f, 2.5f, 3.0f,
-                                        0.6f, 0.5f, 0.5f, 1.0f}; // [X, Y, Z, S, R, G, B, A] Coords, Size, Colour
-
-    static const GLfloat quadVertices[] = {
-        -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f,
-    };
-
-    m_MaxNodes = 1;
+    float points[] = {-0.45f, 0.45f, 0.0f, 0.45f, 0.45f, 0.0f, 0.45f, -0.45f, 0.0f, -0.45f, -0.45f, 0.0f};
 
     glBindVertexArray(m_VAOs[1]);
-
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    glGenBuffers(1, &m_node_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, m_node_buffer);
-    glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 8 * sizeof(GLfloat), &g_node_data.front(), GL_DYNAMIC_DRAW);
-
-    // Position and Size data
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *)0);
-    glEnableVertexAttribArray(1);
-
-    // Colour data
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *)(4 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
-    //
-    // glBindBuffer(GL_ARRAY_BUFFER, node_color_buffer);
-    // glBufferData(GL_ARRAY_BUFFER, m_MaxNodes * 4 * sizeof(GLubyte), &g_node_color_data.front(), GL_STATIC_DRAW);
-    // glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, (void *)0);
-    // glEnableVertexAttribArray(2);
-
-    // glVertexAttribDivisor(0, 0); // particles vertices : always reuse the same 4 vertices -> 0
-    // glVertexAttribDivisor(1, 1); // positions : one per quad (its center)                 -> 1
-    // glVertexAttribDivisor(2, 1); // color : one per quad                                  -> 1
+    const GLint posAttrib = m_sphereShader->getAttribLocation("pos");
+    glEnableVertexAttribArray(posAttrib);
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     // -------------------------------------------------------------------
     glBindVertexArray(0);
@@ -230,6 +202,11 @@ void GUI::loop() {
     //------------------------------------------------------------------------------------------
     glm::mat4 camera_direction = m_camera.GetProjectionMatrix() * glm::mat4(glm::mat3(m_camera.GetViewMatrix()));
     m_skybox->Display(camera_direction);
+
+    // -----------------------------
+    m_sphereShader->use();
+    glBindVertexArray(m_VAOs[1]);
+    glDrawArrays(GL_POINTS, 0, 4);
 
     m_blur->Display();
 }

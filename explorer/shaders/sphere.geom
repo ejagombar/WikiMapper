@@ -1,4 +1,4 @@
-#version 330
+#version 330 core
 #extension GL_EXT_gpu_shader4 : enable
 
 layout(std140) uniform;
