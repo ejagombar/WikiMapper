@@ -17,6 +17,7 @@ in vec3 vColor[];
 in float size[];
 
 out vec3 fColor;
+out vec2 mapping;
 
 const float g_boxCorrection = 1.5;
 
@@ -33,15 +34,19 @@ void main()
 
     mat4 PV = Projection * View;
 
+    mapping = vec2(1.0f, 1.0f);
     gl_Position = PV * vec4(center + offsetX + offsetY, 1.0);
     EmitVertex();
 
+    mapping = vec2(-1.0f, 1.0f);
     gl_Position = PV * vec4(center - offsetX + offsetY, 1.0);
     EmitVertex();
 
+    mapping = vec2(1.0f, -1.0f);
     gl_Position = PV * vec4(center + offsetX - offsetY, 1.0);
     EmitVertex();
 
+    mapping = vec2(-1.0f, -1.0f);
     gl_Position = PV * vec4(center - offsetX - offsetY, 1.0);
     EmitVertex();
 
