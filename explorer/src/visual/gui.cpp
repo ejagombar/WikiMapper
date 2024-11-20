@@ -46,7 +46,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     m_shader = std::make_unique<Shader>("shader.vert", "shader.frag");
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
-    m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag");
+    m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
 
     m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_SCR_WIDTH, m_SCR_HEIGHT),
                                             glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
@@ -90,15 +90,26 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------------------------------------------------------
 
-    float points[] = {-0.45f, 0.45f, 0.0f, 0.45f, 0.45f, 0.0f, 0.45f, -0.45f, 0.0f, -0.45f, -0.45f, 0.0f};
+    float points[] = {-0.45f, 0.45f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f,  // Pos(XYZ), Col(RGB), Size(R)
+                      0.45f,  0.45f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f,  //
+                      0.45f,  -0.45f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,  //
+                      -0.45f, -0.45f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f}; //
 
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 
-    const GLint posAttrib = m_sphereShader->getAttribLocation("pos");
-    glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    const GLint aPosAttrib = m_sphereShader->getAttribLocation("aPos");
+    glEnableVertexAttribArray(aPosAttrib);
+    glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
+
+    const GLint aColorAttrib = m_sphereShader->getAttribLocation("aColor");
+    glEnableVertexAttribArray(aColorAttrib);
+    glVertexAttribPointer(aColorAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(3 * sizeof(float)));
+
+    const GLint aSizeAttrib = m_sphereShader->getAttribLocation("aSize");
+    glEnableVertexAttribArray(aSizeAttrib);
+    glVertexAttribPointer(aSizeAttrib, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(6 * sizeof(float)));
 
     // -------------------------------------------------------------------
     glBindVertexArray(0);
