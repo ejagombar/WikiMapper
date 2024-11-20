@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstddef>
+#include <glm/fwd.hpp>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -90,10 +91,10 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------------------------------------------------------
 
-    float points[] = {-0.45f, 0.45f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f,  // Pos(XYZ), Col(RGB), Size(R)
-                      0.45f,  0.45f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f,  //
-                      0.45f,  -0.45f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,  //
-                      -0.45f, -0.45f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f}; //
+    float points[] = {-0.45f, 0.45f,  0.0f, 1.0f, 0.0f, 0.0f, 0.3f,  // Pos(XYZ), Col(RGB), Size(R)
+                      0.45f,  0.45f,  0.0f, 0.0f, 1.0f, 0.0f, 0.5f,  //
+                      0.45f,  -0.45f, 0.0f, 0.0f, 0.0f, 1.0f, 0.1f,  //
+                      -0.45f, -0.45f, 0.0f, 1.0f, 1.0f, 0.0f, 0.2f}; //
 
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
@@ -218,6 +219,8 @@ void GUI::loop() {
     m_sphereShader->use();
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, 4);
+    m_sphereShader->setMat4("Projection", m_camera.GetProjectionMatrix());
+    m_sphereShader->setMat4("View", m_camera.GetViewMatrix());
 
     m_blur->Display();
 }
