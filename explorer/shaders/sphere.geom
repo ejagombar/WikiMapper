@@ -13,11 +13,15 @@ in float vSize[];
 out vec3 fPos; // Pass world position to fragment shader
 out vec3 fColor;
 out vec2 mapping;
+out float fSize;
+
+const float g_boxCorrection = 1.5;
 
 void main()
 {
     fPos = vPos[0];
     fColor = vColor[0];
+    fSize = vSize[0];
 
     // Extract world-space camera basis vectors
     vec3 cameraRight = vec3(View[0][0], View[1][0], View[2][0]);
@@ -29,19 +33,19 @@ void main()
 
     mat4 PV = Projection * View;
 
-    mapping = vec2(-1.0f, -1.0f);
+    mapping = vec2(-1.0f, -1.0f) * g_boxCorrection;
     gl_Position = PV * vec4(center - offsetX - offsetY, 1.0);
     EmitVertex();
 
-    mapping = vec2(-1.0f, 1.0f);
+    mapping = vec2(-1.0f, 1.0f) * g_boxCorrection;
     gl_Position = PV * vec4(center - offsetX + offsetY, 1.0);
     EmitVertex();
 
-    mapping = vec2(1.0f, -1.0f);
+    mapping = vec2(1.0f, -1.0f) * g_boxCorrection;
     gl_Position = PV * vec4(center + offsetX - offsetY, 1.0);
     EmitVertex();
 
-    mapping = vec2(1.0f, 1.0f);
+    mapping = vec2(1.0f, 1.0f) * g_boxCorrection;
     gl_Position = PV * vec4(center + offsetX + offsetY, 1.0);
     EmitVertex();
 
