@@ -1,6 +1,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "./visual/gui.hpp"
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include "graph.hpp"
 #include "pointMaths.hpp"
 

@@ -66,15 +66,13 @@ class GUI {
     Camera m_camera;
     GLFWwindow *m_window;
 
-    std::unique_ptr<Shader> m_shader;
     std::unique_ptr<Shader> m_skyboxShader;
     std::unique_ptr<Shader> m_screenShaderBlur;
     std::unique_ptr<Shader> m_sphereShader;
+    std::unique_ptr<Shader> m_lineShader;
 
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
-
-    std::vector<glm::vec3> m_cubePositions;
 
     GLuint m_sphereTexture;
 
