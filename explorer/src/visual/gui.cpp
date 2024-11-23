@@ -6,10 +6,12 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <vector>
 
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
@@ -92,10 +94,25 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------------------------------------------------------
 
-    float points[] = {-0.45f, 0.45f,  0.0f, 1.0f, 0.0f, 0.0f, 0.3f,  // Pos(XYZ), Col(RGB), Size(R)
-                      0.45f,  0.45f,  0.0f, 0.0f, 1.0f, 0.0f, 0.5f,  //
-                      0.45f,  -0.45f, 0.0f, 0.0f, 0.0f, 1.0f, 0.1f,  //
-                      -2.45f, -0.45f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f}; //
+    float points[42 * 7] = {-0.45f, 0.45f,  0.0f, 1.0f, 0.0f, 0.0f, 0.3f,  // Pos(XYZ), Col(RGB), Size(R)
+                            0.45f,  0.45f,  0.0f, 0.0f, 1.0f, 0.0f, 0.5f,  //
+                            0.45f,  1.45f,  0.0f, 0.0f, 1.0f, 0.0f, 0.5f,  //
+                            0.45f,  2.45f,  0.0f, 0.0f, 1.0f, 0.0f, 0.5f,  //
+                            0.35f,  0.45f,  0.0f, 0.0f, 1.0f, 0.0f, 0.5f,  //
+                            0.45f,  -0.45f, 0.0f, 0.0f, 0.0f, 1.0f, 0.1f,  //
+                            2.45f,  -0.45f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f}; //
+
+    std::cout << "MaxNodes: " << MaxNodes << std::endl;
+    for (int i = 0; i < 42; i++) {
+        int j = i * 7;
+        points[j] = nodes[i].pos.x;
+        points[j + 1] = nodes[i].pos.y;
+        points[j + 2] = nodes[i].pos.z;
+        points[j + 3] = 1.0f;
+        points[j + 4] = 1.0f;
+        points[j + 5] = 1.0f;
+        points[j + 6] = 1.0f;
+    }
 
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
@@ -140,7 +157,7 @@ GUI::~GUI() {
 int GUI::run() {
     int nbFrames = 0;
     double lastTime = glfwGetTime();
-    // glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     while (!glfwWindowShouldClose(m_window)) {
         nbFrames++;
@@ -219,72 +236,13 @@ void GUI::loop() {
     // -----------------------------
     m_sphereShader->use();
     glBindVertexArray(m_VAOs[1]);
-    glDrawArrays(GL_POINTS, 0, 4);
+    glDrawArrays(GL_POINTS, 0, 42);
     m_sphereShader->setMat4("Projection", m_camera.GetProjectionMatrix());
     m_sphereShader->setMat4("View", m_camera.GetViewMatrix());
 
     m_sphereShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
 
     m_sphereShader->setVec3("LightPosition", glm::vec3(5.0f, 5.0f, 5.0f));
-
-    // m_sphereShader->setVec4("Mtl.diffuseColor", glm::vec4(1.0f, 0.5f, 0.31f, 1.0f));
-    // m_sphereShader->setVec4("Mtl.specularColor", glm::vec4(0.5f, 0.5f, 0.5f, 1.0f));
-    // m_sphereShader->setFloat("Mtl.specularShininess", 32.0f);
-    //
-    // // Setting normal uniforms for light
-    // m_sphereShader->setVec4("Lgt.ambientIntensity", glm::vec4(1.2f, 1.2f, 1.2f, 1.0f));
-    // m_sphereShader->setFloat("Lgt.lightAttenuation", 0.1f);
-
-    // glm::vec4 diffuseColor(1.0f, 0.5f, 0.81f, 1.0f); // Example diffuse color
-    // glm::vec4 specularColor(1.0f, 0.5f, 0.5f, 1.0f); // Example specular color
-    // float specularShininess = 8.0f;                  // Example shininess value
-    //
-    // // Assuming you have a function to get uniform block index and set uniform block data
-    // GLuint materialBlockIndex = glGetUniformBlockIndex(m_sphereShader->ID, "Material");
-    // glUniformBlockBinding(m_sphereShader->ID, materialBlockIndex, 0);
-    //
-    // GLuint materialUBO;
-    // glGenBuffers(1, &materialUBO);
-    // glBindBuffer(GL_UNIFORM_BUFFER, materialUBO);
-    // glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec4) * 2 + sizeof(float), NULL, GL_STATIC_DRAW);
-    //
-    // glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4), glm::value_ptr(diffuseColor));
-    // glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(specularColor));
-    // glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::vec4) * 2, sizeof(float), &specularShininess);
-    //
-    // glBindBufferBase(GL_UNIFORM_BUFFER, 0, materialUBO);
-    //
-    // // Example light data
-    // glm::vec4 ambientIntensity(0.4f, 0.4f, 0.4f, 1.0f); // Example ambient intensity
-    // float lightAttenuation = 128.f;                     // Example light attenuation
-    //
-    // struct PerLight {
-    //     glm::vec4 cameraSpaceLightPos;
-    //     glm::vec4 lightIntensity;
-    // };
-    //
-    // PerLight lights[2];
-    // // Initialize lights data
-    // for (int i = 0; i < 2; i++) {
-    //     lights[i].cameraSpaceLightPos = glm::vec4(10.0f, 0.0f, 0.0f, 1.0f); // Example light position
-    //     lights[i].lightIntensity = glm::vec4(.2f, 0.2f, .1f, 1.0f);         // Example light intensity
-    // }
-    //
-    // m_sphereShader->use(); // Activate the shader program
-    //
-    // GLuint lightBlockIndex = glGetUniformBlockIndex(m_sphereShader->ID, "Light");
-    // glUniformBlockBinding(m_sphereShader->ID, lightBlockIndex, 1);
-    //
-    // GLuint lightUBO;
-    // glGenBuffers(1, &lightUBO);
-    // glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-    // glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec4) + sizeof(float) + sizeof(PerLight) * 2, NULL, GL_STATIC_DRAW);
-    //
-    // glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4), glm::value_ptr(ambientIntensity));
-    // glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::vec4), sizeof(float), &lightAttenuation);
-    // glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::vec4) + sizeof(float), sizeof(PerLight) * 2, lights);
-    //
-    // glBindBufferBase(GL_UNIFORM_BUFFER, 1, lightUBO);
 
     m_blur->Display();
 }
