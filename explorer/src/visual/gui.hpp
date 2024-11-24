@@ -1,6 +1,9 @@
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include "../../lib/camera.hpp"
 #include "../../lib/skybox.hpp"
 #include "./filter.hpp"
@@ -8,6 +11,7 @@
 #include <GLFW/glfw3.h>
 #include <math.h>
 #include <memory>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -25,6 +29,13 @@ struct Node {
         // Sort in reverse order : far nodes drawn first.
         return this->cameradistance > that.cameradistance;
     }
+};
+
+struct Character {
+    unsigned int TextureID; // ID handle of the glyph texture
+    glm::ivec2 Size;        // Size of glyph
+    glm::ivec2 Bearing;     // Offset from baseline to left/top of glyph
+    unsigned int Advance;   // Offset to advance to next glyph
 };
 
 enum State { play, pause };
@@ -51,6 +62,8 @@ class GUI {
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
+    void RenderText(std::string text, float x, float y, float scale, glm::vec3 color);
+
     const unsigned int m_SCR_WIDTH = 1920;
     const unsigned int m_SCR_HEIGHT = 1080;
 
@@ -70,6 +83,7 @@ class GUI {
     std::unique_ptr<Shader> m_screenShaderBlur;
     std::unique_ptr<Shader> m_sphereShader;
     std::unique_ptr<Shader> m_lineShader;
+    std::unique_ptr<Shader> m_textShader;
 
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
@@ -79,6 +93,9 @@ class GUI {
     GLuint m_MaxNodes;
     GLuint m_node_buffer;
 
-    static const uint8_t count = 2;
+    FT_Face m_face;
+    std::unordered_map<char, Character> m_characters;
+
+    static const uint8_t count = 3;
     unsigned int m_VAOs[count], m_VBOs[count];
 };
