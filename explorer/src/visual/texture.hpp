@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "./std_image.h"
+#include "../../lib/std_image.h"
 
 unsigned int LoadCubemap(std::vector<std::string> faces);
 

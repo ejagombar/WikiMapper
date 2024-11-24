@@ -1,5 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "./visual/gui.hpp"
+#include "./visual/engine.hpp"
 
 #include "graph.hpp"
 #include "pointMaths.hpp"

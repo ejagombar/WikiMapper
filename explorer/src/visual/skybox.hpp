@@ -1,4 +1,4 @@
-#include "../lib/shader.hpp"
+#include "./shader.hpp"
 #include <sys/types.h>
 
 class Skybox {

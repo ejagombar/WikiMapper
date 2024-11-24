@@ -1,5 +1,4 @@
 #include "pointMaths.hpp"
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <glm/glm.hpp>

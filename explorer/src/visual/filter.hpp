@@ -1,4 +1,4 @@
-#include "../../lib/shader.hpp"
+#include "./shader.hpp"
 #include <GL/gl.h>
 #include <glm/detail/qualifier.hpp>
 #include <sys/types.h>

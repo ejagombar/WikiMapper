@@ -1,6 +1,6 @@
-#include "./gui.hpp"
+#include "./engine.hpp"
 
-#include "../../lib/shader.hpp"
+#include "./shader.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GLFW/glfw3.h>
@@ -97,7 +97,6 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
-    m_sphereTexture = LoadTexture("sphere.png");
 
     // -----------------------------------------------------
     m_skybox = std::make_unique<Skybox>(*m_skyboxShader, cubemapTexture);

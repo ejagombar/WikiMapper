@@ -5,7 +5,6 @@
         "jsoncpp",
         "freetype",
         "glad",
-        "glew",
         "glfw3",
         "glm"
     ]

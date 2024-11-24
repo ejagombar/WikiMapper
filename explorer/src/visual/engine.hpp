@@ -4,9 +4,9 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include "../../lib/camera.hpp"
-#include "../../lib/skybox.hpp"
+#include "./camera.hpp"
 #include "./filter.hpp"
+#include "./skybox.hpp"
 #include <GL/gl.h> // This header isn't required as glad already provides it, however if it is not here, then the the language server automatically adds it when autocomplete is used on a OpenGL function
 #include <GLFW/glfw3.h>
 #include <math.h>
@@ -17,7 +17,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "../../lib/texture.hpp"
+#include "./texture.hpp"
 
 struct Node {
     glm::vec3 pos, speed;
@@ -87,8 +87,6 @@ class GUI {
 
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
-
-    GLuint m_sphereTexture;
 
     GLuint m_MaxNodes;
     GLuint m_node_buffer;
