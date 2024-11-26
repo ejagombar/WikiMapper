@@ -16,43 +16,6 @@
 
 const int COUNT = 42;
 
-void GUI::RenderText(std::string text, float x, float y, float scale, glm::vec3 color) {
-    // activate corresponding render state
-    m_textShader->use();
-    m_textShader->setVec3("textColor", color.x, color.y, color.z);
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(m_VAOs[2]);
-
-    // iterate through all characters
-    std::string::const_iterator c;
-    for (c = text.begin(); c != text.end(); c++) {
-        Character ch = m_characters[*c];
-
-        float xpos = x + ch.Bearing.x * scale;
-        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-
-        float w = ch.Size.x * scale;
-        float h = ch.Size.y * scale;
-        // update VBO for each character
-        float vertices[6][4] = {
-            {xpos, ypos + h, 0.0f, 0.0f}, {xpos, ypos, 0.0f, 1.0f},     {xpos + w, ypos, 1.0f, 1.0f},
-
-            {xpos, ypos + h, 0.0f, 0.0f}, {xpos + w, ypos, 1.0f, 1.0f}, {xpos + w, ypos + h, 1.0f, 0.0f}};
-        // render glyph texture over quad
-        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-        // update content of VBO memory
-        glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[2]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        // render quad
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-        x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
-    }
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -90,10 +53,11 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
     m_lineShader = std::make_unique<Shader>("line.vert", "line.frag");
-    m_textShader = std::make_unique<Shader>("text.vert", "text.frag");
 
     m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_SCR_WIDTH, m_SCR_HEIGHT),
                                             glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
+
+    m_text = std::make_unique<Text>();
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
@@ -148,66 +112,6 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     const GLint positionAttrib = m_lineShader->getAttribLocation("position");
     glEnableVertexAttribArray(positionAttrib);
     glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
-
-    // -------------------------------------------------------------------
-
-    FT_Library ft;
-    if (FT_Init_FreeType(&ft)) {
-        std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
-    }
-
-    if (FT_New_Face(ft, "/usr/share/fonts/FiraCode/FiraCodeNerdFont-Medium.ttf", 0, &m_face)) {
-        std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
-    }
-
-    FT_Set_Pixel_Sizes(m_face, 0, 48 * 2);
-
-    if (FT_Load_Char(m_face, 'X', FT_LOAD_RENDER)) {
-        std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-    }
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
-
-    for (unsigned char c = 0; c < 128; c++) {
-        // load character glyph
-        if (FT_Load_Char(m_face, c, FT_LOAD_RENDER)) {
-            std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-            continue;
-        }
-        // generate texture
-        unsigned int texture;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows, 0, GL_RED,
-                     GL_UNSIGNED_BYTE, m_face->glyph->bitmap.buffer);
-        // set texture options
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // now store character for later use
-        Character character = {texture, glm::ivec2(m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows),
-                               glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
-                               static_cast<uint>(m_face->glyph->advance.x)};
-
-        m_characters.insert(std::pair<char, Character>(c, character));
-    }
-
-    FT_Done_Face(m_face);
-    FT_Done_FreeType(ft);
-
-    // --
-
-    glBindVertexArray(m_VAOs[2]);
-    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[2]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(m_SCR_WIDTH), 0.0f, static_cast<float>(m_SCR_HEIGHT));
-    m_textShader->use();
-    m_textShader->setMat4("projection", projection);
 
     // -------------------------------------
 
@@ -295,9 +199,12 @@ void GUI::loop() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    if (m_state == pause)
-        RenderText("WikiMapper", (static_cast<float>(m_SCR_WIDTH) / 2.0f) - 250.0f, 570.0f, 1.0f,
-                   glm::vec3(0.3, 0.7f, 0.9f));
+    if (m_state == pause) {
+        glm::mat4 projection =
+            glm::ortho(0.0f, static_cast<float>(m_SCR_WIDTH), 0.0f, static_cast<float>(m_SCR_HEIGHT));
+        m_text->Render("WikiMapper", glm::vec3((static_cast<float>(m_SCR_WIDTH) / 2.0f) - 250.0f, 570.0f, 1.0f),
+                       projection, 1.0f, glm::vec3(0.3, 0.7f, 0.9f));
+    }
 }
 
 void GUI::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -334,10 +241,6 @@ void GUI::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
-
-    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(m_SCR_WIDTH), 0.0f, static_cast<float>(m_SCR_HEIGHT));
-    m_textShader->use();
-    m_textShader->setMat4("projection", projection);
 }
 
 void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {

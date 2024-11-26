@@ -1,17 +1,14 @@
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
 #include "./camera.hpp"
 #include "./filter.hpp"
 #include "./skybox.hpp"
+#include "./text.hpp"
 #include <GL/gl.h> // This header isn't required as glad already provides it, however if it is not here, then the the language server automatically adds it when autocomplete is used on a OpenGL function
 #include <GLFW/glfw3.h>
 #include <math.h>
 #include <memory>
-#include <unordered_map>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -29,13 +26,6 @@ struct Node {
         // Sort in reverse order : far nodes drawn first.
         return this->cameradistance > that.cameradistance;
     }
-};
-
-struct Character {
-    unsigned int TextureID; // ID handle of the glyph texture
-    glm::ivec2 Size;        // Size of glyph
-    glm::ivec2 Bearing;     // Offset from baseline to left/top of glyph
-    unsigned int Advance;   // Offset to advance to next glyph
 };
 
 enum State { play, pause };
@@ -83,16 +73,14 @@ class GUI {
     std::unique_ptr<Shader> m_screenShaderBlur;
     std::unique_ptr<Shader> m_sphereShader;
     std::unique_ptr<Shader> m_lineShader;
-    std::unique_ptr<Shader> m_textShader;
 
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
 
+    std::unique_ptr<Text> m_text;
+
     GLuint m_MaxNodes;
     GLuint m_node_buffer;
-
-    FT_Face m_face;
-    std::unordered_map<char, Character> m_characters;
 
     static const uint8_t count = 3;
     unsigned int m_VAOs[count], m_VBOs[count];
