@@ -202,8 +202,8 @@ void GUI::loop() {
     if (m_state == pause) {
         glm::mat4 projection =
             glm::ortho(0.0f, static_cast<float>(m_SCR_WIDTH), 0.0f, static_cast<float>(m_SCR_HEIGHT));
-        m_text->Render("WikiMapper", glm::vec3((static_cast<float>(m_SCR_WIDTH) / 2.0f) - 250.0f, 570.0f, 1.0f),
-                       projection, 1.0f, glm::vec3(0.3, 0.7f, 0.9f));
+        m_text->Render("WikiMapper", glm::vec3((static_cast<float>(m_SCR_WIDTH) / 2.0f), 570.0f, 1.0f), projection,
+                       1.0f, glm::vec3(0.3, 0.7f, 0.9f));
     }
 }
 

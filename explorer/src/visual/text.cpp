@@ -1,5 +1,6 @@
 #include "./text.hpp"
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 
 Text::Text() {
@@ -12,11 +13,7 @@ Text::Text() {
         throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
     }
 
-    FT_Set_Pixel_Sizes(m_face, 0, 48 * 2);
-
-    if (FT_Load_Char(m_face, 'X', FT_LOAD_RENDER)) {
-        throw std::runtime_error("ERROR::FREETYTPE: Failed to load Glyph");
-    }
+    FT_Set_Pixel_Sizes(m_face, 0, 128);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
 
@@ -72,6 +69,19 @@ void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, fl
 
     // iterate through all characters
     std::string::const_iterator c;
+
+    float totalWidth(0);
+    Character ch;
+    for (c = text.begin(); c != std::prev(text.end()); c++) {
+        ch = m_characters[*c];
+        totalWidth += static_cast<float>(ch.Advance >> 6) * scale;
+    }
+    totalWidth += ch.Size.x * scale;
+
+    position.x = position.x - totalWidth / 2.0f;
+
+    float start = position.x;
+
     for (c = text.begin(); c != text.end(); c++) {
         Character ch = m_characters[*c];
 
@@ -96,6 +106,7 @@ void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, fl
         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
         position.x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
     }
+
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
