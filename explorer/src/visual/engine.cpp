@@ -194,6 +194,9 @@ void GUI::loop() {
     glDrawArrays(GL_LINES, 0, COUNT);
     glLineWidth(1);
 
+    glm::mat4 projection = m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix();
+    m_text->Render("WikiMapper", glm::vec3(2.0f, 2.0f, 1.0f), projection, 0.01f, glm::vec3(0.3, 0.7f, 0.9f));
+
     m_blur->Display();
 
     glEnable(GL_BLEND);
@@ -202,6 +205,7 @@ void GUI::loop() {
     if (m_state == pause) {
         glm::mat4 projection =
             glm::ortho(0.0f, static_cast<float>(m_SCR_WIDTH), 0.0f, static_cast<float>(m_SCR_HEIGHT));
+
         m_text->Render("WikiMapper", glm::vec3((static_cast<float>(m_SCR_WIDTH) / 2.0f), 570.0f, 1.0f), projection,
                        1.0f, glm::vec3(0.3, 0.7f, 0.9f));
     }

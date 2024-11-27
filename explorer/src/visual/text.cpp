@@ -51,9 +51,14 @@ Text::Text() {
 
     glBindVertexArray(m_VAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 5, NULL, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);
@@ -62,7 +67,7 @@ Text::Text() {
 void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, float scale, glm::vec3 color) {
     // activate corresponding render state
     m_textShader->use();
-    m_textShader->setMat4("projection", projection);
+    m_textShader->setMat4("PV", projection);
     m_textShader->setVec3("textColor", color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(m_VAO);
@@ -72,11 +77,10 @@ void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, fl
 
     float totalWidth(0);
     Character ch;
-    for (c = text.begin(); c != std::prev(text.end()); c++) {
+    for (c = text.begin(); c != text.end(); c++) {
         ch = m_characters[*c];
         totalWidth += static_cast<float>(ch.Advance >> 6) * scale;
     }
-    totalWidth += ch.Size.x * scale;
 
     position.x = position.x - totalWidth / 2.0f;
 
@@ -87,14 +91,16 @@ void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, fl
 
         float xpos = position.x + ch.Bearing.x * scale;
         float ypos = position.y - (ch.Size.y - ch.Bearing.y) * scale;
+        float zpos = position.z;
 
         float w = ch.Size.x * scale;
         float h = ch.Size.y * scale;
         // update VBO for each character
-        float vertices[6][4] = {
-            {xpos, ypos + h, 0.0f, 0.0f}, {xpos, ypos, 0.0f, 1.0f},     {xpos + w, ypos, 1.0f, 1.0f},
+        float vertices[6][5] = {{xpos, ypos + h, zpos, 0.0f, 0.0f},    {xpos, ypos, zpos, 0.0f, 1.0f},
+                                {xpos + w, ypos, zpos, 1.0f, 1.0f},
 
-            {xpos, ypos + h, 0.0f, 0.0f}, {xpos + w, ypos, 1.0f, 1.0f}, {xpos + w, ypos + h, 1.0f, 0.0f}};
+                                {xpos, ypos + h, zpos, 0.0f, 0.0f},    {xpos + w, ypos, zpos, 1.0f, 1.0f},
+                                {xpos + w, ypos + h, zpos, 1.0f, 0.0f}};
         // render glyph texture over quad
         glBindTexture(GL_TEXTURE_2D, ch.TextureID);
         // update content of VBO memory
