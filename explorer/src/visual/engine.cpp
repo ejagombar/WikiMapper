@@ -26,7 +26,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    m_window = glfwCreateWindow(m_SCR_WIDTH, m_SCR_HEIGHT, "WikiMapper", NULL, NULL);
+    m_window = glfwCreateWindow(m_ScrWidth, m_ScrHeight, "WikiMapper", NULL, NULL);
     if (m_window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -37,7 +37,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
         std::cout << "Failed to initialize GLAD" << std::endl;
     }
 
-    glViewport(0, 0, m_SCR_WIDTH, m_SCR_HEIGHT);
+    glViewport(0, 0, m_ScrWidth, m_ScrHeight);
 
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowUserPointer(m_window, this);
@@ -47,17 +47,19 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
 
     m_camera.SetPosition();
-    m_camera.SetAspectRatio(static_cast<float>(m_SCR_WIDTH) / static_cast<float>(m_SCR_HEIGHT));
+    m_camera.SetAspectRatio(static_cast<float>(m_ScrWidth) / static_cast<float>(m_ScrHeight));
 
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
     m_lineShader = std::make_unique<Shader>("line.vert", "line.frag");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_SCR_WIDTH, m_SCR_HEIGHT),
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight),
                                             glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
 
-    m_text = std::make_unique<Text>();
+    m_text = std::make_unique<Text>("/usr/share/fonts/FiraCode/FiraCodeNerdFont-Medium.ttf", "text.vert", "text.frag");
+    m_text2d =
+        std::make_unique<Text2d>("/usr/share/fonts/FiraCode/FiraCodeNerdFont-Medium.ttf", "text.vert", "text.frag");
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
@@ -121,6 +123,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glDepthFunc(GL_LESS);
 
     m_blur->SetEnabled(false);
+    m_text2d->UpdateScreenSize(static_cast<float>(m_ScrWidth), static_cast<float>(m_ScrHeight));
 }
 
 GUI::~GUI() {
@@ -194,8 +197,28 @@ void GUI::loop() {
     glDrawArrays(GL_LINES, 0, COUNT);
     glLineWidth(1);
 
-    glm::mat4 projection = m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix();
-    m_text->Render("WikiMapper", glm::vec3(2.0f, 2.0f, 1.0f), projection, 0.01f, glm::vec3(0.3, 0.7f, 0.9f));
+    glm::mat4 projection = m_camera.GetProjectionMatrix();
+
+    glm::mat4 View = m_camera.GetViewMatrix();
+
+    glm::mat4 billboardMatrix = View;
+
+    // Zero out the rotational components (upper-left 3x3 part)
+    billboardMatrix[0][0] = 1.0f;
+    billboardMatrix[0][1] = 0.0f;
+    billboardMatrix[0][2] = 0.0f;
+    billboardMatrix[1][0] = 0.0f;
+    billboardMatrix[1][1] = 1.0f;
+    billboardMatrix[1][2] = 0.0f;
+    billboardMatrix[2][0] = 0.0f;
+    billboardMatrix[2][1] = 0.0f;
+    billboardMatrix[2][2] = 1.0f;
+
+    projection = projection * billboardMatrix;
+
+    m_text->SetTransforms(projection, View);
+
+    m_text->Render("WikiMapper", glm::vec3(2.0f, 8.0f, -1.0f), 0.01f, glm::vec3(0.3, 0.7f, 0.9f));
 
     m_blur->Display();
 
@@ -203,11 +226,10 @@ void GUI::loop() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (m_state == pause) {
-        glm::mat4 projection =
-            glm::ortho(0.0f, static_cast<float>(m_SCR_WIDTH), 0.0f, static_cast<float>(m_SCR_HEIGHT));
-
-        m_text->Render("WikiMapper", glm::vec3((static_cast<float>(m_SCR_WIDTH) / 2.0f), 570.0f, 1.0f), projection,
-                       1.0f, glm::vec3(0.3, 0.7f, 0.9f));
+        m_text2d->Render(
+            "WikiMapper",
+            glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f,
+            glm::vec3(0.3, 0.7f, 0.9f));
     }
 }
 
@@ -245,6 +267,10 @@ void GUI::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
+    m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
+
+    m_ScrWidth = width;
+    m_ScrHeight = height;
 }
 
 void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {

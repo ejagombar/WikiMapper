@@ -21,10 +21,11 @@ struct Character {
 
 class Text {
   public:
-    Text();
+    Text(const std::string font, const std::string vertexShader, const std::string fragmentShader);
     ~Text() {};
 
-    void Render(std::string text, glm::vec3 position, glm::mat4 projection, float scale, glm::vec3 color);
+    void SetTransforms(const glm::mat4 projection, const glm::mat4 view);
+    void Render(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color);
 
   private:
     FT_Face m_face;
@@ -32,4 +33,16 @@ class Text {
     std::unordered_map<char, Character> m_characters;
 
     std::unique_ptr<Shader> m_textShader;
+};
+
+class Text2d : public Text {
+  public:
+    Text2d(const std::string font, const std::string vertexShader, const std::string fragmentShader)
+        : Text(font, vertexShader, fragmentShader) {};
+
+    void Render2d(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color);
+    void UpdateScreenSize(const float width, const float height);
+
+  private:
+    glm::mat4 m_projection;
 };

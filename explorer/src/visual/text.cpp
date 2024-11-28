@@ -1,15 +1,13 @@
 #include "./text.hpp"
-#include <iostream>
-#include <iterator>
 #include <stdexcept>
 
-Text::Text() {
+Text::Text(const std::string fontPath, const std::string vertexShader, const std::string fragmentShader) {
     FT_Library ft;
     if (FT_Init_FreeType(&ft)) {
         throw std::runtime_error("ERROR::FREETYPE: Could not init FreeType Library");
     }
 
-    if (FT_New_Face(ft, "/usr/share/fonts/FiraCode/FiraCodeNerdFont-Medium.ttf", 0, &m_face)) {
+    if (FT_New_Face(ft, fontPath.c_str(), 0, &m_face)) {
         throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
     }
 
@@ -44,7 +42,7 @@ Text::Text() {
     FT_Done_Face(m_face);
     FT_Done_FreeType(ft);
 
-    m_textShader = std::make_unique<Shader>("text.vert", "text.frag");
+    m_textShader = std::make_unique<Shader>(vertexShader.c_str(), fragmentShader.c_str());
 
     glGenVertexArrays(1, &m_VAO);
     glGenBuffers(1, &m_VBO);
@@ -64,10 +62,15 @@ Text::Text() {
     glBindVertexArray(0);
 }
 
-void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, float scale, glm::vec3 color) {
+void Text::SetTransforms(const glm::mat4 projection, const glm::mat4 view) {
+    m_textShader->use();
+    m_textShader->setMat4("projection", projection);
+    m_textShader->setMat4("view", view);
+}
+
+void Text::Render(const std::string text, glm::vec3 position, const float scale, const glm::vec3 color) {
     // activate corresponding render state
     m_textShader->use();
-    m_textShader->setMat4("PV", projection);
     m_textShader->setVec3("textColor", color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(m_VAO);
@@ -82,7 +85,7 @@ void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, fl
         totalWidth += static_cast<float>(ch.Advance >> 6) * scale;
     }
 
-    position.x = position.x - totalWidth / 2.0f;
+    position.x = position.x - totalWidth * 0.5f;
 
     float start = position.x;
 
@@ -115,4 +118,13 @@ void Text::Render(std::string text, glm::vec3 position, glm::mat4 projection, fl
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Text2d::UpdateScreenSize(const float width, const float height) {
+    m_projection = glm::ortho(0.0f, width, 0.0f, height);
+    SetTransforms(m_projection, glm::mat4(1.0f));
+}
+
+void Text2d::Render2d(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color) {
+    Render(text, position, scale, color);
 }

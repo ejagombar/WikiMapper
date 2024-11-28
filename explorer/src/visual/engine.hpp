@@ -54,8 +54,8 @@ class GUI {
 
     void RenderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
-    const unsigned int m_SCR_WIDTH = 1920;
-    const unsigned int m_SCR_HEIGHT = 1080;
+    unsigned int m_ScrWidth = 1920;
+    unsigned int m_ScrHeight = 1080;
 
     float m_lastX;
     float m_lastY;
@@ -78,6 +78,7 @@ class GUI {
     std::unique_ptr<Filter::Blur> m_blur;
 
     std::unique_ptr<Text> m_text;
+    std::unique_ptr<Text2d> m_text2d;
 
     GLuint m_MaxNodes;
     GLuint m_node_buffer;
