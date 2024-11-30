@@ -17,6 +17,8 @@
 const int COUNT = 42;
 
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
+    m_nodes = nodes;
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -201,9 +203,11 @@ void GUI::loop() {
 
     glm::mat4 View = m_camera.GetViewMatrix();
 
-    m_text->SetTransforms(projection, View);
+    m_text->SetTransforms(projection, View, m_camera.GetCameraPosition());
 
-    m_text->Render("Physics", glm::vec3(8.0f, 0.3f, 0.0f), 0.01f, glm::vec3(0.6, 0.6f, 0.9f));
+    for (Node node : m_nodes) {
+        m_text->Render(node.text, node.pos, 0.004f, glm::vec3(0.5, 1.7f, 1.3f));
+    }
 
     m_blur->Display();
 

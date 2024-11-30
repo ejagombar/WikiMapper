@@ -77,6 +77,8 @@ int main() {
         nodes[i].g = rand() % 256;
         nodes[i].b = rand() % 256;
 
+        nodes[i].text = allNodes[i].title;
+
         if (it != spaceMap.end()) {
             nodes[i].pos = it->second;
             nodes[i].a = 255;

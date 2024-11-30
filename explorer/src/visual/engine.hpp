@@ -21,6 +21,7 @@ struct Node {
     unsigned char r, g, b, a; // Color
     float size, angle, weight;
     float cameradistance; // *Squared* distance to the camera. if dead : -1.0f
+    std::string text;
 
     bool operator<(const Node &that) const {
         // Sort in reverse order : far nodes drawn first.
@@ -79,6 +80,8 @@ class GUI {
 
     std::unique_ptr<Text> m_text;
     std::unique_ptr<Text2d> m_text2d;
+
+    std::vector<Node> m_nodes;
 
     GLuint m_MaxNodes;
     GLuint m_node_buffer;

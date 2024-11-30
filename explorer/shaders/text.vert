@@ -10,13 +10,15 @@ uniform vec3 BillboardPos;
 uniform float BillboardSize;
 uniform vec3 CameraRight_worldspace;
 uniform vec3 CameraUp_worldspace;
+uniform vec3 CameraPos;
 
 void main()
 {
     vec3 vertexPosition_worldspace =
         BillboardPos
             + CameraRight_worldspace * aCoord.x * BillboardSize
-            + CameraUp_worldspace * aCoord.y * BillboardSize;
+            + CameraUp_worldspace * aCoord.y * BillboardSize
+            + normalize(CameraPos - BillboardPos) * aCoord.z;
 
     gl_Position = projection * view * vec4(vertexPosition_worldspace, 1.0f);
 

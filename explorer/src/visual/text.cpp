@@ -62,12 +62,13 @@ Text::Text(const std::string fontPath, const std::string vertexShader, const std
     glBindVertexArray(0);
 }
 
-void Text::SetTransforms(const glm::mat4 projection, const glm::mat4 view) {
+void Text::SetTransforms(const glm::mat4 projection, const glm::mat4 view, const glm::vec3 cameraPosition) {
     m_textShader->use();
     m_textShader->setMat4("projection", projection);
     m_textShader->setMat4("view", view);
     m_textShader->setVec3("CameraUp_worldspace", view[0][1], view[1][1], view[2][1]);
     m_textShader->setVec3("CameraRight_worldspace", view[0][0], view[1][0], view[2][0]);
+    m_textShader->setVec3("CameraPos", cameraPosition);
 }
 
 void Text::Render(const std::string text, glm::vec3 position, const float scale, const glm::vec3 color) {
@@ -97,7 +98,7 @@ void Text::Render(const std::string text, glm::vec3 position, const float scale,
 
         float xpos = position.x + ch.Bearing.x;
         float ypos = position.y - (ch.Size.y - ch.Bearing.y);
-        float zpos = 0.0f;
+        float zpos = 1.25f;
 
         float w = ch.Size.x;
         float h = ch.Size.y;
@@ -125,7 +126,7 @@ void Text::Render(const std::string text, glm::vec3 position, const float scale,
 
 void Text2d::UpdateScreenSize(const float width, const float height) {
     m_projection = glm::ortho(0.0f, width, 0.0f, height);
-    SetTransforms(m_projection, glm::mat4(1.0f));
+    SetTransforms(m_projection, glm::mat4(1.0f), glm::vec3(0, 0, 0));
 }
 
 void Text2d::Render2d(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color) {
