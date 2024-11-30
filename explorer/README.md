@@ -1,7 +1,6 @@
 Still very much under development.
-
+![image](https://github.com/user-attachments/assets/512f539b-be2d-4abe-9bb7-15880524831c)
 ![Wikimapper](https://github.com/user-attachments/assets/f29595ae-86ac-47c5-ad71-a2d21fecbca3)
-![image](https://github.com/user-attachments/assets/7376787f-895f-46bb-91ab-91fba8b39304)
 
 ## Todo
 
