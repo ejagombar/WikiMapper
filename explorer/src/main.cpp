@@ -96,6 +96,6 @@ int main() {
         lines.push_back(spaceMap[linkPair.second]);
     }
 
-    GUI myGUI(numOfElements, nodes);
+    GUI myGUI(numOfElements, nodes, lines);
     return myGUI.run();
 }

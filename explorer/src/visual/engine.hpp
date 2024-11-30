@@ -33,7 +33,7 @@ enum State { play, pause };
 
 class GUI {
   public:
-    GUI(const int &MaxNodes, std::vector<Node> &nodes);
+    GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines);
     ~GUI();
     int run();
 

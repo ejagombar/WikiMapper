@@ -16,7 +16,7 @@
 
 const int COUNT = 42;
 
-GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
+GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
     m_nodes = nodes;
 
     glfwInit();
@@ -72,7 +72,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glGenVertexArrays(count, m_VAOs);
     glGenBuffers(count, m_VBOs);
 
-    // -------------------------------------------------------------------
+    // Nodes -------------------------------------------------------------------
     float points[COUNT * 7]; // Pos(XYZ), Col(RGB), Size(R)
 
     std::cout << "MaxNodes: " << MaxNodes << std::endl;
@@ -107,15 +107,17 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes) {
     glEnableVertexAttribArray(aSizeAttrib);
     glVertexAttribPointer(aSizeAttrib, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(6 * sizeof(float)));
 
-    // -------------------------------------------------------------------
+    // Lines -------------------------------------------------------------------
 
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, lines.size() * 3 * sizeof(float), &lines.front(), GL_STATIC_DRAW);
+
+    std::cout << "Length: " << lines.size() << std::endl;
 
     const GLint positionAttrib = m_lineShader->getAttribLocation("position");
     glEnableVertexAttribArray(positionAttrib);
-    glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
+    glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
     // -------------------------------------
 
@@ -196,7 +198,7 @@ void GUI::loop() {
     glBindVertexArray(m_VAOs[0]);
     glLineWidth(6);
     m_lineShader->setMat4("PV", m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix());
-    glDrawArrays(GL_LINES, 0, COUNT);
+    glDrawArrays(GL_LINES, 0, 158);
     glLineWidth(1);
 
     glm::mat4 projection = m_camera.GetProjectionMatrix();
@@ -206,7 +208,7 @@ void GUI::loop() {
     m_text->SetTransforms(projection, View, m_camera.GetCameraPosition());
 
     for (Node node : m_nodes) {
-        m_text->Render(node.text, node.pos, 0.004f, glm::vec3(0.5, 1.7f, 1.3f));
+        m_text->Render(node.text, node.pos, 0.004f, glm::vec3(1.0, 1.0f, 1.0f));
     }
 
     m_blur->Display();

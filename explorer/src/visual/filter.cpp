@@ -108,5 +108,6 @@ void Blur::Display() {
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[horizontal ? 0 : 1]);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
+    glBindVertexArray(0);
 }
 } // namespace Filter
