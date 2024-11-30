@@ -201,24 +201,9 @@ void GUI::loop() {
 
     glm::mat4 View = m_camera.GetViewMatrix();
 
-    glm::mat4 billboardMatrix = View;
-
-    // Zero out the rotational components (upper-left 3x3 part)
-    billboardMatrix[0][0] = 1.0f;
-    billboardMatrix[0][1] = 0.0f;
-    billboardMatrix[0][2] = 0.0f;
-    billboardMatrix[1][0] = 0.0f;
-    billboardMatrix[1][1] = 1.0f;
-    billboardMatrix[1][2] = 0.0f;
-    billboardMatrix[2][0] = 0.0f;
-    billboardMatrix[2][1] = 0.0f;
-    billboardMatrix[2][2] = 1.0f;
-
-    projection = projection * billboardMatrix;
-
     m_text->SetTransforms(projection, View);
 
-    m_text->Render("WikiMapper", glm::vec3(2.0f, 8.0f, -1.0f), 0.01f, glm::vec3(0.3, 0.7f, 0.9f));
+    m_text->Render("Physics", glm::vec3(8.0f, 0.3f, 0.0f), 0.01f, glm::vec3(0.6, 0.6f, 0.9f));
 
     m_blur->Display();
 

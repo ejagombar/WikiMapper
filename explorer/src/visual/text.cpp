@@ -66,12 +66,16 @@ void Text::SetTransforms(const glm::mat4 projection, const glm::mat4 view) {
     m_textShader->use();
     m_textShader->setMat4("projection", projection);
     m_textShader->setMat4("view", view);
+    m_textShader->setVec3("CameraUp_worldspace", view[0][1], view[1][1], view[2][1]);
+    m_textShader->setVec3("CameraRight_worldspace", view[0][0], view[1][0], view[2][0]);
 }
 
 void Text::Render(const std::string text, glm::vec3 position, const float scale, const glm::vec3 color) {
-    // activate corresponding render state
     m_textShader->use();
     m_textShader->setVec3("textColor", color.x, color.y, color.z);
+    m_textShader->setVec3("BillboardPos", position);
+    m_textShader->setFloat("BillboardSize", scale);
+
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(m_VAO);
 
@@ -82,22 +86,21 @@ void Text::Render(const std::string text, glm::vec3 position, const float scale,
     Character ch;
     for (c = text.begin(); c != text.end(); c++) {
         ch = m_characters[*c];
-        totalWidth += static_cast<float>(ch.Advance >> 6) * scale;
+        totalWidth += static_cast<float>(ch.Advance >> 6);
     }
 
-    position.x = position.x - totalWidth * 0.5f;
-
-    float start = position.x;
+    position.x = totalWidth * -0.5f;
+    position.y = m_characters['o'].Bearing.y * -0.5f;
 
     for (c = text.begin(); c != text.end(); c++) {
         Character ch = m_characters[*c];
 
-        float xpos = position.x + ch.Bearing.x * scale;
-        float ypos = position.y - (ch.Size.y - ch.Bearing.y) * scale;
-        float zpos = position.z;
+        float xpos = position.x + ch.Bearing.x;
+        float ypos = position.y - (ch.Size.y - ch.Bearing.y);
+        float zpos = 0.0f;
 
-        float w = ch.Size.x * scale;
-        float h = ch.Size.y * scale;
+        float w = ch.Size.x;
+        float h = ch.Size.y;
         // update VBO for each character
         float vertices[6][5] = {{xpos, ypos + h, zpos, 0.0f, 0.0f},    {xpos, ypos, zpos, 0.0f, 1.0f},
                                 {xpos + w, ypos, zpos, 1.0f, 1.0f},
@@ -113,7 +116,7 @@ void Text::Render(const std::string text, glm::vec3 position, const float scale,
         // render quad
         glDrawArrays(GL_TRIANGLES, 0, 6);
         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-        position.x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+        position.x += (ch.Advance >> 6); // bitshift by 6 to get value in pixels (2^6 = 64)
     }
 
     glBindVertexArray(0);
