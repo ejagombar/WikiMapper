@@ -85,9 +85,9 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
         points[j] = nodes[i].pos.x;
         points[j + 1] = nodes[i].pos.y;
         points[j + 2] = nodes[i].pos.z;
-        points[j + 3] = 1.0f;
-        points[j + 4] = 1.0f;
-        points[j + 5] = 1.0f;
+        points[j + 3] = nodes[i].r / 255.0f;
+        points[j + 4] = nodes[i].g / 255.0f;
+        points[j + 5] = nodes[i].b / 255.0f;
         points[j + 6] = nodes[i].size;
     }
 
@@ -189,7 +189,9 @@ void GUI::loop() {
 
     m_sphereShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
 
-    m_sphereShader->setVec3("LightPosition", glm::vec3(5.0f, 5.0f, 5.0f));
+    m_sphereShader->setVec3("LightPosition", m_camera.GetCameraPosition());
+    m_sphereShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
+    m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.8f, 0.8f, 0.8f));
 
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, COUNT);
