@@ -54,7 +54,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
-    m_lineShader = std::make_unique<Shader>("line.vert", "line.frag");
+    m_lineShader = std::make_unique<Shader>("line.vert", "line.frag", "line.geom");
 
     m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight),
                                             glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
@@ -197,11 +197,11 @@ void GUI::loop() {
     glDrawArrays(GL_POINTS, 0, COUNT);
 
     m_lineShader->use();
+    m_lineShader->setMat4("Projection", m_camera.GetProjectionMatrix());
+    m_lineShader->setMat4("View", m_camera.GetViewMatrix());
+    m_lineShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
     glBindVertexArray(m_VAOs[0]);
-    glLineWidth(6);
-    m_lineShader->setMat4("PV", m_camera.GetProjectionMatrix() * m_camera.GetViewMatrix());
     glDrawArrays(GL_LINES, 0, 158);
-    glLineWidth(1);
 
     glm::mat4 projection = m_camera.GetProjectionMatrix();
 
