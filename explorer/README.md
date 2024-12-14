@@ -21,6 +21,8 @@ There are many potential optimisations with this project. At the moment, I am fo
 - [ ] When rendering text, create a texture that contains the word or sentance that needs to be displayed, instead of having a separate draw call for every letter of every word.
 - [ ] Deferred shading.
 - [ ] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once.
+- [ ] Simplify sphere imposter frag shader. Remove 4 * and / 2 calculation from quadratic equation. 
+- [ ] Use cylinder imposter for close by links and use flat line for futher ones.
 
 
 This [paper](https://www.cmu.edu/biolphys/deserno/pdf/sphere_equi.pdf) was used for the formula to evenly distribut points around a sphere
