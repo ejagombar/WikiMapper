@@ -7,6 +7,11 @@ uniform mat4 Projection;
 uniform mat4 View;
 uniform vec3 CameraPosition;
 
+out vec3 fPos; // World position for the fragment shader
+out vec2 mapping; // UV-like coordinates for ray intersection
+out vec3 cylinderAxis; // Axis of the cylinder
+out float cylinderRadius;
+
 void main()
 {
     float cylinderWidth = 0.1;
@@ -23,16 +28,24 @@ void main()
 
     mat4 PV = Projection * View;
 
+    fPos = center;
+    cylinderAxis = lineDirection;
+    cylinderRadius = cylinderWidth * 0.5f;
+
     gl_Position = PV * vec4(start - offset, 1.0);
+    mapping = vec2(-1.0f, -1.0f);
     EmitVertex();
 
     gl_Position = PV * vec4(start + offset, 1.0);
+    mapping = vec2(-1.0f, 1.0f);
     EmitVertex();
 
     gl_Position = PV * vec4(end - offset, 1.0);
+    mapping = vec2(1.0f, -1.0f);
     EmitVertex();
 
     gl_Position = PV * vec4(end + offset, 1.0);
+    mapping = vec2(1.0f, 1.0f);
     EmitVertex();
 
     EndPrimitive();

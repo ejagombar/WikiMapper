@@ -188,10 +188,9 @@ void GUI::loop() {
     m_sphereShader->setMat4("View", m_camera.GetViewMatrix());
 
     m_sphereShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
-
-    m_sphereShader->setVec3("LightPosition", m_camera.GetCameraPosition());
+    m_sphereShader->setVec3("LightPosition", glm::vec3(0.8f, 4.8f, 5.8f));
     m_sphereShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
-    m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.8f, 0.8f, 0.8f));
+    m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
 
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, COUNT);
@@ -200,6 +199,10 @@ void GUI::loop() {
     m_lineShader->setMat4("Projection", m_camera.GetProjectionMatrix());
     m_lineShader->setMat4("View", m_camera.GetViewMatrix());
     m_lineShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
+    m_lineShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
+    m_lineShader->setVec3("LightPosition", glm::vec3(0.8f, 4.8f, 5.8f));
+    m_lineShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
+    m_lineShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_LINES, 0, 158);
 
