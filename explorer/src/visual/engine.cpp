@@ -8,13 +8,36 @@
 #include <cstddef>
 #include <cstdio>
 #include <glm/detail/qualifier.hpp>
+#include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
+#include <glm/matrix.hpp>
 #include <iostream>
 #include <memory>
 #include <random>
 #include <vector>
 
 const int COUNT = 42;
+
+float mrand(float a, float b) {
+    // 2.0f*rand()/RAND_MAX-1.0f
+    float r = (float)rand() / RAND_MAX;
+    return (b - a) * r + a;
+}
+
+void randomDirectionS(float *dir) {
+    float u;
+    float v;
+    float uv2;
+    do {
+        u = mrand(-1.f, 1.f);
+        v = mrand(-1.f, 1.f);
+        uv2 = u * u + v * v;
+    } while (uv2 > 1.f);
+    float uv = sqrt(1.f - uv2);
+    dir[0] = 2.f * u * uv;
+    dir[1] = 2.f * v * uv;
+    dir[2] = 1.f - 2.f * uv2;
+}
 
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
     m_nodes = nodes;
@@ -109,15 +132,60 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
     // Lines -------------------------------------------------------------------
 
+    const int NUMBER_CYLINDERS = 100;
+    const float RADIUS_MEAN = 0.001f;
+    const float RADIUS_VAR = 0.03f;
+
+    GLfloat h_data[12 * NUMBER_CYLINDERS];
+    const float a = -10.f, b = 10.f;
+    ///// VERTEX
+    for (unsigned int i = 0; i < (NUMBER_CYLINDERS) * 12; i = i + 12) {
+        // center
+        h_data[i] = mrand(a, b);     // vertex.x
+        h_data[i + 1] = mrand(a, b); // vertex.y
+        h_data[i + 2] = mrand(a, b); // vertex.z
+
+        // height
+        h_data[i + 3] = mrand(1.0f, 2.0f);
+
+        // direction
+        randomDirectionS(&h_data[i + 4]);
+
+        // color
+        h_data[i + 7] = mrand(0.f, 1.0f); // Red
+        h_data[i + 8] = mrand(0.f, 1.0f); // Green
+        h_data[i + 9] = mrand(0.f, 1.0f); // Blue
+        h_data[i + 10] = 1.0f;            // Alpha
+        // radius
+        h_data[i + 11] = RADIUS_VAR * rand() / RAND_MAX + RADIUS_MEAN;
+    }
+
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, lines.size() * 3 * sizeof(float), &lines.front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(h_data), h_data, GL_STATIC_DRAW);
 
-    std::cout << "Length: " << lines.size() << std::endl;
+    std::cout << "Length: " << sizeof(h_data) << std::endl;
 
-    const GLint positionAttrib = m_lineShader->getAttribLocation("position");
+    const GLint positionAttrib = m_lineShader->getAttribLocation("CylinderPosition");
     glEnableVertexAttribArray(positionAttrib);
-    glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)0);
+
+    const GLint extAttrib = m_lineShader->getAttribLocation("CylinderExt");
+    glEnableVertexAttribArray(extAttrib);
+    glVertexAttribPointer(extAttrib, 1, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(3 * sizeof(float)));
+
+    const GLint directionAttrib = m_lineShader->getAttribLocation("CylinderDirection");
+    glEnableVertexAttribArray(directionAttrib);
+    glVertexAttribPointer(directionAttrib, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(4 * sizeof(float)));
+
+    const GLint colorAttrib = m_lineShader->getAttribLocation("CylinderColor");
+    glEnableVertexAttribArray(colorAttrib);
+    glVertexAttribPointer(colorAttrib, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(7 * sizeof(float)));
+
+    const GLint radiusAttrib = m_lineShader->getAttribLocation("CylinderRadius");
+    glEnableVertexAttribArray(radiusAttrib);
+    glVertexAttribPointer(radiusAttrib, 1, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(11 * sizeof(float)));
+    std::cout << "Attr: " << positionAttrib << " " << extAttrib << " " << directionAttrib << std::endl;
 
     // -------------------------------------
 
@@ -180,7 +248,7 @@ void GUI::loop() {
 
     //------------------------------------------------------------------------------------------
     glm::mat4 camera_direction = m_camera.GetProjectionMatrix() * glm::mat4(glm::mat3(m_camera.GetViewMatrix()));
-    m_skybox->Display(camera_direction);
+    // m_skybox->Display(camera_direction);
 
     // -----------------------------
     m_sphereShader->use();
@@ -192,22 +260,19 @@ void GUI::loop() {
     m_sphereShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
     m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
 
-    glBindVertexArray(m_VAOs[1]);
-    glDrawArrays(GL_POINTS, 0, COUNT);
+    // glBindVertexArray(m_VAOs[1]);
+    // glDrawArrays(GL_POINTS, 0, COUNT);
 
     m_lineShader->use();
-    m_lineShader->setMat4("Projection", m_camera.GetProjectionMatrix());
-    m_lineShader->setMat4("View", m_camera.GetViewMatrix());
-    m_lineShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
-    m_lineShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
-    m_lineShader->setVec3("LightPosition", glm::vec3(0.8f, 4.8f, 5.8f));
-    m_lineShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
-    m_lineShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
+    m_lineShader->setMat4("PMatrix", m_camera.GetProjectionMatrix());
+    m_lineShader->setMat4("MVMatrix", m_camera.GetViewMatrix());
+    m_lineShader->setVec4("EyePoint", glm::vec4(m_camera.GetCameraPosition(), 1.0f));
+    m_lineShader->setVec4("lightPos", glm::vec4(0.8f, 4.8f, 5.8f, 1.0f));
+    m_lineShader->setMat3("NormalMatrix", m_camera.GetNormalMatrix());
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_LINES, 0, 158);
+    glDrawArrays(GL_POINTS, 0, 100);
 
     glm::mat4 projection = m_camera.GetProjectionMatrix();
-
     glm::mat4 View = m_camera.GetViewMatrix();
 
     m_text->SetTransforms(projection, View, m_camera.GetCameraPosition());

@@ -1,4 +1,5 @@
 #include "camera.hpp"
+#include <glm/matrix.hpp>
 #include <glm/trigonometric.hpp>
 
 void Camera::SetPosition(const glm::vec3 position, const glm::vec3 up, const float yaw, const float pitch) {
@@ -63,6 +64,12 @@ void Camera::ProcessPosition(const float deltaTime) {
     m_projectionMatrix = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_minDisplayRange, m_maxDisplayRange);
     m_viewMatrix = glm::lookAt(m_position, m_position + m_front, m_up);
     m_cameraPosition = (glm::inverse(m_viewMatrix)[3]);
+}
+
+glm::mat3 Camera::GetNormalMatrix() const {
+    glm::mat3 submv = glm::mat3(m_viewMatrix);
+    submv = glm::inverse(submv);
+    return glm::transpose(submv);
 }
 
 void Camera::updateCameraVectors() {

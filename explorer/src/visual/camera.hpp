@@ -18,6 +18,7 @@ class Camera {
 
     glm::mat4 GetViewMatrix() const { return m_viewMatrix; }
     glm::mat4 GetProjectionMatrix() const { return m_projectionMatrix; }
+    glm::mat3 GetNormalMatrix() const;
 
     void ProcessKeyboard(const Camera_Movement direction);
 
