@@ -133,7 +133,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     // Lines -------------------------------------------------------------------
 
     const int NUMBER_CYLINDERS = 100;
-    const float RADIUS_MEAN = 0.001f;
+    const float RADIUS_MEAN = 0.01f;
     const float RADIUS_VAR = 0.03f;
 
     GLfloat h_data[12 * NUMBER_CYLINDERS];
@@ -248,7 +248,7 @@ void GUI::loop() {
 
     //------------------------------------------------------------------------------------------
     glm::mat4 camera_direction = m_camera.GetProjectionMatrix() * glm::mat4(glm::mat3(m_camera.GetViewMatrix()));
-    // m_skybox->Display(camera_direction);
+    m_skybox->Display(camera_direction);
 
     // -----------------------------
     m_sphereShader->use();
@@ -260,8 +260,8 @@ void GUI::loop() {
     m_sphereShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
     m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
 
-    // glBindVertexArray(m_VAOs[1]);
-    // glDrawArrays(GL_POINTS, 0, COUNT);
+    glBindVertexArray(m_VAOs[1]);
+    glDrawArrays(GL_POINTS, 0, COUNT);
 
     m_lineShader->use();
     m_lineShader->setMat4("PMatrix", m_camera.GetProjectionMatrix());

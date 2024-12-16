@@ -1,5 +1,4 @@
 #version 330 core
-#extension GL_EXT_gpu_shader4 : enable
 
 layout(location = 0) in vec3 CylinderPosition;
 layout(location = 1) in float CylinderExt;

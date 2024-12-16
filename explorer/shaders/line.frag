@@ -36,12 +36,10 @@ vec4 ComputeColorForLight(vec3 N, vec3 L, vec4 ambient, vec4 diffuse, vec4 color
 
 void main()
 {
-    const float ortho = 0;
-
     vec4 color = vec4(cylinder_color, 1.0);
     vec3 ray_target = surface_point;
     vec3 ray_origin = vec3(0.0);
-    vec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), ortho);
+    vec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), 0);
     mat3 basis = mat3(U, V, axis);
 
     vec3 diff = ray_target - 0.5 * (base + end_cyl);
@@ -73,7 +71,7 @@ void main()
     vec3 tmp_point = new_point - base;
     vec3 normal = normalize(tmp_point - axis * dot(tmp_point, axis));
 
-    ray_origin = mix(ray_origin, surface_point, ortho);
+    ray_origin = mix(ray_origin, surface_point, 0);
 
     // test front cap
     float cap_test = dot((new_point - base), axis);
@@ -120,15 +118,6 @@ void main()
 
     vec2 clipZW = new_point.z * PMatrix[2].zw + PMatrix[3].zw;
     float depth = 0.5 + 0.5 * clipZW.x / clipZW.y;
-
-    // this is a workaround necessary for Mac
-    // otherwise the modified fragment won't clip properly
-
-    if (depth <= 0.0)
-        discard;
-
-    if (depth >= 1.0)
-        discard;
 
     gl_FragDepth = depth;
 
