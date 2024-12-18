@@ -79,12 +79,10 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
     m_lineShader = std::make_unique<Shader>("line.vert", "line.frag", "line.geom");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight),
-                                            glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight), glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
 
-    m_text = std::make_unique<Text>("/usr/share/fonts/FiraCode/FiraCodeNerdFont-Medium.ttf", "text.vert", "text.frag");
-    m_text2d =
-        std::make_unique<Text2d>("/usr/share/fonts/FiraCode/FiraCodeNerdFont-Medium.ttf", "text.vert", "text.frag");
+    m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
+    m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
@@ -287,10 +285,7 @@ void GUI::loop() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (m_state == pause) {
-        m_text2d->Render(
-            "WikiMapper",
-            glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f,
-            glm::vec3(0.3, 0.7f, 0.9f));
+        m_text2d->Render("WikiMapper", glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f, glm::vec3(0.3, 0.7f, 0.9f));
     }
 }
 
