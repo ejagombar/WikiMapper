@@ -1,5 +1,5 @@
 Still very much under development.
-![image](https://github.com/user-attachments/assets/512f539b-be2d-4abe-9bb7-15880524831c)
+![image](https://github.com/user-attachments/assets/f45e0dd2-7b4e-4827-b85f-1a0c4d992045)
 ![Wikimapper](https://github.com/user-attachments/assets/f29595ae-86ac-47c5-ad71-a2d21fecbca3)
 
 ## Todo
