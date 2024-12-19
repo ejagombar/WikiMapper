@@ -130,32 +130,34 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
     // Lines -------------------------------------------------------------------
 
-    const int NUMBER_CYLINDERS = 100;
-    const float RADIUS_MEAN = 0.01f;
-    const float RADIUS_VAR = 0.03f;
+    const float RADIUS_MEAN = 0.06f;
+    const float RADIUS_VAR = 0.08f;
 
-    GLfloat h_data[12 * NUMBER_CYLINDERS];
-    const float a = -10.f, b = 10.f;
-    ///// VERTEX
-    for (unsigned int i = 0; i < (NUMBER_CYLINDERS) * 12; i = i + 12) {
-        // center
-        h_data[i] = mrand(a, b);     // vertex.x
-        h_data[i + 1] = mrand(a, b); // vertex.y
-        h_data[i + 2] = mrand(a, b); // vertex.z
+    m_lineCount = lines.size() / 2;
 
-        // height
-        h_data[i + 3] = mrand(1.0f, 2.0f);
+    GLfloat h_data[10 * m_lineCount];
 
-        // direction
-        randomDirectionS(&h_data[i + 4]);
+    for (unsigned int i = 0; i < m_lineCount; i++) {
+        uint lineIdx = i * 2;
+        uint h_dataIdx = i * 10;
+
+        // start
+        h_data[h_dataIdx] = lines[lineIdx].x;     // vertex.x
+        h_data[h_dataIdx + 1] = lines[lineIdx].y; // vertex.y
+        h_data[h_dataIdx + 2] = lines[lineIdx].z; // vertex.z
+
+        // end
+        h_data[h_dataIdx + 3] = lines[lineIdx + 1].x; // vertex.x
+        h_data[h_dataIdx + 4] = lines[lineIdx + 1].y; // vertex.y
+        h_data[h_dataIdx + 5] = lines[lineIdx + 1].z; // vertex.z
 
         // color
-        h_data[i + 7] = mrand(0.f, 1.0f); // Red
-        h_data[i + 8] = mrand(0.f, 1.0f); // Green
-        h_data[i + 9] = mrand(0.f, 1.0f); // Blue
-        h_data[i + 10] = 1.0f;            // Alpha
+        h_data[h_dataIdx + 6] = mrand(0.0f, 1.0f); // Red
+        h_data[h_dataIdx + 7] = mrand(0.0f, 1.0f); // Green
+        h_data[h_dataIdx + 8] = mrand(0.0f, 1.0f); // Blue
+
         // radius
-        h_data[i + 11] = RADIUS_VAR * rand() / RAND_MAX + RADIUS_MEAN;
+        h_data[h_dataIdx + 9] = RADIUS_VAR * rand() / RAND_MAX + RADIUS_MEAN;
     }
 
     glBindVertexArray(m_VAOs[0]);
@@ -164,26 +166,21 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
     std::cout << "Length: " << sizeof(h_data) << std::endl;
 
-    const GLint positionAttrib = m_lineShader->getAttribLocation("CylinderPosition");
-    glEnableVertexAttribArray(positionAttrib);
-    glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)0);
+    const GLint startAttrib = m_lineShader->getAttribLocation("Start");
+    glEnableVertexAttribArray(startAttrib);
+    glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)0);
 
-    const GLint extAttrib = m_lineShader->getAttribLocation("CylinderExt");
-    glEnableVertexAttribArray(extAttrib);
-    glVertexAttribPointer(extAttrib, 1, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(3 * sizeof(float)));
+    const GLint endAttrib = m_lineShader->getAttribLocation("End");
+    glEnableVertexAttribArray(endAttrib);
+    glVertexAttribPointer(endAttrib, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)(3 * sizeof(float)));
 
-    const GLint directionAttrib = m_lineShader->getAttribLocation("CylinderDirection");
-    glEnableVertexAttribArray(directionAttrib);
-    glVertexAttribPointer(directionAttrib, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(4 * sizeof(float)));
-
-    const GLint colorAttrib = m_lineShader->getAttribLocation("CylinderColor");
+    const GLint colorAttrib = m_lineShader->getAttribLocation("Color");
     glEnableVertexAttribArray(colorAttrib);
-    glVertexAttribPointer(colorAttrib, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(7 * sizeof(float)));
+    glVertexAttribPointer(colorAttrib, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)(6 * sizeof(float)));
 
-    const GLint radiusAttrib = m_lineShader->getAttribLocation("CylinderRadius");
+    const GLint radiusAttrib = m_lineShader->getAttribLocation("Radius");
     glEnableVertexAttribArray(radiusAttrib);
-    glVertexAttribPointer(radiusAttrib, 1, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void *)(11 * sizeof(float)));
-    std::cout << "Attr: " << positionAttrib << " " << extAttrib << " " << directionAttrib << std::endl;
+    glVertexAttribPointer(radiusAttrib, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)(9 * sizeof(float)));
 
     // -------------------------------------
 
@@ -268,7 +265,7 @@ void GUI::loop() {
     m_lineShader->setVec4("lightPos", glm::vec4(0.8f, 4.8f, 5.8f, 1.0f));
     m_lineShader->setMat3("NormalMatrix", m_camera.GetNormalMatrix());
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_POINTS, 0, 100);
+    glDrawArrays(GL_POINTS, 0, m_lineCount);
 
     glm::mat4 projection = m_camera.GetProjectionMatrix();
     glm::mat4 View = m_camera.GetViewMatrix();
@@ -345,7 +342,7 @@ void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 }
 
 void GUI::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
             m_state = pause;
             m_blur->SetEnabled(true);

@@ -86,6 +86,8 @@ class GUI {
     GLuint m_MaxNodes;
     GLuint m_node_buffer;
 
+    GLuint m_lineCount;
+
     static const uint8_t count = 3;
     unsigned int m_VAOs[count], m_VBOs[count];
 };
