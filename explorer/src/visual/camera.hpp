@@ -8,13 +8,20 @@
 
 enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
+struct CameraPositionData {
+    glm::vec3 position;
+    GLfloat yaw;
+    GLfloat pitch;
+};
+
 class Camera {
   public:
     Camera() {};
 
-    void SetPosition(const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
-                     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), const float yaw = glm::pi<float>(),
+    void SetPosition(const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), const float yaw = glm::pi<float>(),
                      const float pitch = 0.0f);
+
+    CameraPositionData GetPosition() const;
 
     glm::mat4 GetViewMatrix() const { return m_viewMatrix; }
     glm::mat4 GetProjectionMatrix() const { return m_projectionMatrix; }
@@ -36,7 +43,7 @@ class Camera {
     glm::vec3 m_front;
     glm::vec3 m_up;
     glm::vec3 m_right;
-    glm::vec3 m_worldUp;
+    const glm::vec3 m_worldUp = glm::vec3(0.0f, 1.0f, 0.0);
     glm::vec3 m_position = glm::vec3(0, 0, 0);
     glm::vec3 m_acceleration = glm::vec3(0.1, 0.1, 0.1);
     glm::vec3 m_velocity = glm::vec3(0, 0, 0);

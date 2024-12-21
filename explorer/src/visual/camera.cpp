@@ -2,13 +2,14 @@
 #include <glm/matrix.hpp>
 #include <glm/trigonometric.hpp>
 
-void Camera::SetPosition(const glm::vec3 position, const glm::vec3 up, const float yaw, const float pitch) {
+void Camera::SetPosition(const glm::vec3 position, const float yaw, const float pitch) {
     m_position = position;
-    m_worldUp = up;
     m_yaw = yaw;
     m_pitch = pitch;
     updateCameraVectors();
 }
+
+CameraPositionData Camera::GetPosition() const { return CameraPositionData{m_position, m_yaw, m_pitch}; }
 
 void Camera::ProcessKeyboard(const Camera_Movement direction) {
     if (direction == FORWARD)
