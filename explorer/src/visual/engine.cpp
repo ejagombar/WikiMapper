@@ -4,6 +4,7 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -37,6 +38,28 @@ void randomDirectionS(float *dir) {
     dir[0] = 2.f * u * uv;
     dir[1] = 2.f * v * uv;
     dir[2] = 1.f - 2.f * uv2;
+}
+
+std::vector<CameraPositionData> ReadPositionData(const std::string &filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        throw std::runtime_error("Failed to open file for reading.");
+    }
+
+    file.seekg(0, std::ios::end);
+    std::streamsize fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    size_t numEntries = fileSize / sizeof(CameraPositionData);
+
+    std::vector<CameraPositionData> data(numEntries);
+    file.read(reinterpret_cast<char *>(data.data()), fileSize);
+
+    if (!file) {
+        throw std::runtime_error("Error reading data from file.");
+    }
+
+    return data;
 }
 
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
@@ -84,6 +107,16 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
     m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
+
+#if RecordCameraMovement
+    std::remove("benchmarkCameraTrack");
+    m_positionFile.open("benchmarkCameraTrack", std::ios::binary);
+#endif
+#if ReplayCameraMovement
+    m_camPosData = ReadPositionData("benchmarkCameraTrack");
+    std::reverse(m_camPosData.begin(),
+                 m_camPosData.end()); // Inefficient but doesn't matter as this runs before the benchmark starts
+#endif
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
@@ -198,13 +231,20 @@ GUI::~GUI() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
 
+#if RecordCameraMovement
+    m_positionFile.close();
+#endif
+
     glfwTerminate();
 }
 
 int GUI::run() {
     int nbFrames = 0;
     double lastTime = glfwGetTime();
-    // glfwSwapInterval(0);
+
+#if ReplayCameraMovement
+    glfwSwapInterval(0);
+#endif
 
     while (!glfwWindowShouldClose(m_window)) {
         nbFrames++;
@@ -288,6 +328,23 @@ void GUI::loop() {
             glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f,
             glm::vec3(0.3, 0.7f, 0.9f));
     }
+
+    if (currentFrame >= m_lastCameraRecord + .016) {
+#if RecordCameraMovement
+        auto positionData = m_camera.GetPosition();
+        m_positionFile.write((char *)&positionData, sizeof(positionData));
+        m_lastCameraRecord = currentFrame;
+#endif
+#if ReplayCameraMovement
+        CameraPositionData p = m_camPosData.back();
+        m_camera.SetPosition(p.position, p.yaw, p.pitch);
+        m_camPosData.pop_back();
+        m_lastCameraRecord = currentFrame;
+
+        if (m_camPosData.size() == 0)
+            glfwSetWindowShouldClose(m_window, 1);
+#endif
+    }
 }
 
 void GUI::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -331,6 +388,7 @@ void GUI::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 }
 
 void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+#if !ReplayCameraMovement
     if (m_firstMouse) {
         m_lastX = xpos;
         m_lastY = ypos;
@@ -343,9 +401,11 @@ void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     m_lastY = ypos;
 
     m_camera.ProcessMouseMovement(xoffset, yoffset);
+#endif
 }
 
 void GUI::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+#if !ReplayCameraMovement
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
             m_state = pause;
@@ -362,9 +422,14 @@ void GUI::key_callback(GLFWwindow *window, int key, int scancode, int action, in
             glfwSetCursorPosCallback(m_window, mouse_callback_static);
         }
     }
+#endif
+    if (key == GLFW_KEY_X && action == GLFW_PRESS) {
+        glfwSetWindowShouldClose(m_window, 1);
+    }
 }
 
 void GUI::processEngineInput(GLFWwindow *window) {
+#if !ReplayCameraMovement
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_camera.ProcessKeyboard(FORWARD);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -377,4 +442,5 @@ void GUI::processEngineInput(GLFWwindow *window) {
         m_camera.ProcessKeyboard(UP);
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         m_camera.ProcessKeyboard(DOWN);
+#endif
 }

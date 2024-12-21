@@ -15,6 +15,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "./texture.hpp"
+#include <fstream>
+
+// #define RecordCameraMovement true
+#define ReplayCameraMovement true
 
 struct Node {
     glm::vec3 pos, speed;
@@ -58,12 +62,17 @@ class GUI {
     unsigned int m_ScrWidth = 1920;
     unsigned int m_ScrHeight = 1080;
 
+    std::ofstream m_positionFile;
+    std::ifstream m_positionFileRead;
+    std::vector<CameraPositionData> m_camPosData;
+
     float m_lastX;
     float m_lastY;
     bool m_firstMouse = true;
 
     float m_deltaTime = 0.0f;
     float m_lastFrame = 0.0f;
+    float m_lastCameraRecord = 0.0f;
 
     State m_state = play;
 

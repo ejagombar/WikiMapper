@@ -97,5 +97,5 @@ int main() {
     }
 
     GUI myGUI(numOfElements, nodes, lines);
-    return myGUI.run();
+    myGUI.run();
 }
