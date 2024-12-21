@@ -110,12 +110,14 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
-    m_positionFile.open("benchmarkCameraTrack", std::ios::binary);
+    m_positionFile.open("benchmarkCameraTrack", std::ios::in | std::ios::binary);
+    m_benchmarkTimestamps.open("benchmarkTimestamps", std::ios::in | std::ios::binary);
 #endif
 #if ReplayCameraMovement
     m_camPosData = ReadPositionData("benchmarkCameraTrack");
     std::reverse(m_camPosData.begin(),
-                 m_camPosData.end()); // Inefficient but doesn't matter as this runs before the benchmark starts
+                 m_camPosData.end()); // Inefficient, but doesn't matter as this runs before the benchmark starts
+    m_benchmarkTimestampsData = ReadFileData<double>("benchmarkTimestamps");
 #endif
 
     // -------------------- Texture -------------------------
@@ -234,6 +236,9 @@ GUI::~GUI() {
 #if RecordCameraMovement
     m_positionFile.close();
 #endif
+#if ReplayCameraMovement or RecordCameraMovement
+    m_benchmarkTimestamps.close();
+#endif
 
     glfwTerminate();
 }
@@ -246,9 +251,12 @@ int GUI::run() {
     glfwSwapInterval(0);
 #endif
 
+    m_startTime = lastTime;
+
     while (!glfwWindowShouldClose(m_window)) {
+        double currentTime = glfwGetTime();
         nbFrames++;
-        if (glfwGetTime() - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
+        if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
             printf("%f fps\n", double(nbFrames));
             nbFrames = 0;
             lastTime += 1.0;
@@ -258,6 +266,23 @@ int GUI::run() {
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
+
+        if (currentTime >= m_lastCameraRecord + .05) {
+#if RecordCameraMovement
+            auto positionData = m_camera.GetPosition();
+            m_positionFile.write((char *)&positionData, sizeof(positionData));
+            m_lastCameraRecord = currentTime;
+#endif
+#if ReplayCameraMovement
+            CameraPositionData p = m_camPosData.back();
+            m_camera.SetPosition(p.position, p.yaw, p.pitch);
+            m_camPosData.pop_back();
+            m_lastCameraRecord = currentTime;
+
+            if (m_camPosData.size() == 0)
+                glfwSetWindowShouldClose(m_window, 1);
+#endif
+        }
     }
 
     return 0;
@@ -327,23 +352,6 @@ void GUI::loop() {
             "WikiMapper",
             glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f,
             glm::vec3(0.3, 0.7f, 0.9f));
-    }
-
-    if (currentFrame >= m_lastCameraRecord + .016) {
-#if RecordCameraMovement
-        auto positionData = m_camera.GetPosition();
-        m_positionFile.write((char *)&positionData, sizeof(positionData));
-        m_lastCameraRecord = currentFrame;
-#endif
-#if ReplayCameraMovement
-        CameraPositionData p = m_camPosData.back();
-        m_camera.SetPosition(p.position, p.yaw, p.pitch);
-        m_camPosData.pop_back();
-        m_lastCameraRecord = currentFrame;
-
-        if (m_camPosData.size() == 0)
-            glfwSetWindowShouldClose(m_window, 1);
-#endif
     }
 }
 
@@ -424,8 +432,16 @@ void GUI::key_callback(GLFWwindow *window, int key, int scancode, int action, in
     }
 #endif
     if (key == GLFW_KEY_X && action == GLFW_PRESS) {
+        double time = glfwGetTime() - m_startTime;
+        m_benchmarkTimestamps.write((char *)&time, sizeof(time));
         glfwSetWindowShouldClose(m_window, 1);
     }
+#if RecordCameraMovement
+    if (key == GLFW_KEY_DELETE && action == GLFW_PRESS) {
+        double time = glfwGetTime() - m_startTime;
+        m_benchmarkTimestamps.write((char *)&time, sizeof(time));
+    }
+#endif
 }
 
 void GUI::processEngineInput(GLFWwindow *window) {

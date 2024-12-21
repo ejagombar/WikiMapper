@@ -18,7 +18,29 @@
 #include <fstream>
 
 // #define RecordCameraMovement true
-#define ReplayCameraMovement true
+// #define ReplayCameraMovement true
+
+// template <typename T> std::vector<T> ReadFileData(const std::string &filename) {
+//     std::ifstream file(filename, std::ios::binary);
+//     if (!file) {
+//         throw std::runtime_error("Failed to open file for reading.");
+//     }
+//
+//     file.seekg(0, std::ios::end);
+//     std::streamsize fileSize = file.tellg();
+//     file.seekg(0, std::ios::beg);
+//
+//     size_t numEntries = fileSize / sizeof(T);
+//
+//     std::vector<T> data(numEntries);
+//     file.read(reinterpret_cast<char *>(data.data()), fileSize);
+//
+//     if (!file) {
+//         throw std::runtime_error("Error reading data from file.");
+//     }
+//
+//     return data;
+// }
 
 struct Node {
     glm::vec3 pos, speed;
@@ -62,17 +84,19 @@ class GUI {
     unsigned int m_ScrWidth = 1920;
     unsigned int m_ScrHeight = 1080;
 
-    std::ofstream m_positionFile;
-    std::ifstream m_positionFileRead;
+    std::fstream m_positionFile;
+    std::fstream m_benchmarkTimestamps;
     std::vector<CameraPositionData> m_camPosData;
+    std::vector<double> m_benchmarkTimestampsData;
 
     float m_lastX;
     float m_lastY;
     bool m_firstMouse = true;
 
+    double m_startTime;
     float m_deltaTime = 0.0f;
     float m_lastFrame = 0.0f;
-    float m_lastCameraRecord = 0.0f;
+    double m_lastCameraRecord = 0.0;
 
     State m_state = play;
 
