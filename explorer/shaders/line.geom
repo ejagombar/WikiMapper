@@ -1,7 +1,7 @@
 #version 330 core
 
 layout(points) in;
-layout(triangle_strip, max_vertices = 6) out;
+layout(triangle_strip, max_vertices = 4) out;
 
 uniform mat4 MVMatrix;
 uniform mat4 PMatrix;
@@ -70,16 +70,12 @@ void main()
     vec4 xf0 = MVMatrix * vec4(center - ldir + left - up, 1.0);
     vec4 xf2 = MVMatrix * vec4(center - ldir - left - up, 1.0);
     vec4 xc0 = MVMatrix * vec4(center + ldir + left - up, 1.0);
-    vec4 xc1 = MVMatrix * vec4(center + ldir + left + up, 1.0);
     vec4 xc2 = MVMatrix * vec4(center + ldir - left - up, 1.0);
-    vec4 xc3 = MVMatrix * vec4(center + ldir - left + up, 1.0);
 
     vec4 w0 = xf0;
     vec4 w1 = xf2;
     vec4 w2 = xc0;
     vec4 w3 = xc2;
-    vec4 w4 = xc1;
-    vec4 w5 = xc3;
 
     // Vertex 1
     point = w0.xyz / w0.w;
@@ -99,16 +95,6 @@ void main()
     // Vertex 4
     point = w3.xyz / w3.w;
     gl_Position = PMatrix * w3;
-    EmitVertex();
-
-    // Vertex 5
-    point = w4.xyz / w4.w;
-    gl_Position = PMatrix * w4;
-    EmitVertex();
-
-    // Vertex 6
-    point = w5.xyz / w5.w;
-    gl_Position = PMatrix * w5;
     EmitVertex();
 
     EndPrimitive();

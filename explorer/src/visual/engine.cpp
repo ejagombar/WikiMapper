@@ -1,5 +1,6 @@
 #include "./engine.hpp"
 
+#include "../../lib/rgb_hsv.hpp"
 #include "./shader.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -18,27 +19,9 @@
 #include <random>
 #include <vector>
 
-const int COUNT = 42;
-
 float mrand(float a, float b) {
-    // 2.0f*rand()/RAND_MAX-1.0f
     float r = (float)rand() / RAND_MAX;
     return (b - a) * r + a;
-}
-
-void randomDirectionS(float *dir) {
-    float u;
-    float v;
-    float uv2;
-    do {
-        u = mrand(-1.f, 1.f);
-        v = mrand(-1.f, 1.f);
-        uv2 = u * u + v * v;
-    } while (uv2 > 1.f);
-    float uv = sqrt(1.f - uv2);
-    dir[0] = 2.f * u * uv;
-    dir[1] = 2.f * v * uv;
-    dir[2] = 1.f - 2.f * uv2;
 }
 
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
@@ -81,8 +64,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
     m_lineShader = std::make_unique<Shader>("line.vert", "line.frag", "line.geom");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight),
-                                            glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight), glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
 
     m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
@@ -111,21 +93,25 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     glGenBuffers(count, m_VBOs);
 
     // Nodes -------------------------------------------------------------------
-    float points[COUNT * 7]; // Pos(XYZ), Col(RGB), Size(R)
+    m_nodeCount = nodes.size();
+    float points[m_nodeCount * 7]; // Pos(XYZ), Col(RGB), Size(R)
 
     std::cout << "MaxNodes: " << MaxNodes << std::endl;
 
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_int_distribution<> dist{-100, 100};
-    for (int i = 0; i < COUNT; i++) {
+    std::uniform_real_distribution<> dist2{0, 1};
+    for (int i = 0; i < m_nodeCount; i++) {
+        auto col = hsv2rgb(mrand(0, 1), 1.0f, 1.0f);
+
         int j = i * 7;
         points[j] = nodes[i].pos.x;
         points[j + 1] = nodes[i].pos.y;
         points[j + 2] = nodes[i].pos.z;
-        points[j + 3] = nodes[i].r / 255.0f;
-        points[j + 4] = nodes[i].g / 255.0f;
-        points[j + 5] = nodes[i].b / 255.0f;
+        points[j + 3] = col.r;
+        points[j + 4] = col.g;
+        points[j + 5] = col.b;
         points[j + 6] = nodes[i].size;
     }
 
@@ -169,9 +155,10 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
         h_data[h_dataIdx + 5] = lines[lineIdx + 1].z; // vertex.z
 
         // color
-        h_data[h_dataIdx + 6] = mrand(0.0f, 1.0f); // Red
-        h_data[h_dataIdx + 7] = mrand(0.0f, 1.0f); // Green
-        h_data[h_dataIdx + 8] = mrand(0.0f, 1.0f); // Blue
+        auto col = hsv2rgb(mrand(0, 1), 1.0f, 1.0f);
+        h_data[h_dataIdx + 6] = col.r; // Red
+        h_data[h_dataIdx + 7] = col.g; // Green
+        h_data[h_dataIdx + 8] = col.b; // Blue
 
         // radius
         h_data[h_dataIdx + 9] = RADIUS_VAR * rand() / RAND_MAX + RADIUS_MEAN;
@@ -325,7 +312,7 @@ void GUI::loop() {
     m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
 
     glBindVertexArray(m_VAOs[1]);
-    glDrawArrays(GL_POINTS, 0, COUNT);
+    glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
     m_lineShader->use();
     m_lineShader->setMat4("PMatrix", m_camera.GetProjectionMatrix());
@@ -351,10 +338,7 @@ void GUI::loop() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (m_state == pause) {
-        m_text2d->Render(
-            "WikiMapper",
-            glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f,
-            glm::vec3(0.3, 0.7f, 0.9f));
+        m_text2d->Render("WikiMapper", glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f, glm::vec3(0.3, 0.7f, 0.9f));
     }
 }
 
