@@ -14,6 +14,7 @@
 #include <glm/matrix.hpp>
 #include <iostream>
 #include <memory>
+#include <ostream>
 #include <random>
 #include <vector>
 
@@ -38,28 +39,6 @@ void randomDirectionS(float *dir) {
     dir[0] = 2.f * u * uv;
     dir[1] = 2.f * v * uv;
     dir[2] = 1.f - 2.f * uv2;
-}
-
-std::vector<CameraPositionData> ReadPositionData(const std::string &filename) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file) {
-        throw std::runtime_error("Failed to open file for reading.");
-    }
-
-    file.seekg(0, std::ios::end);
-    std::streamsize fileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    size_t numEntries = fileSize / sizeof(CameraPositionData);
-
-    std::vector<CameraPositionData> data(numEntries);
-    file.read(reinterpret_cast<char *>(data.data()), fileSize);
-
-    if (!file) {
-        throw std::runtime_error("Error reading data from file.");
-    }
-
-    return data;
 }
 
 GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
@@ -110,14 +89,16 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
-    m_positionFile.open("benchmarkCameraTrack", std::ios::in | std::ios::binary);
-    m_benchmarkTimestamps.open("benchmarkTimestamps", std::ios::in | std::ios::binary);
+    std::remove("benchmarkTimestamps");
+    m_positionFile.open("benchmarkCameraTrack", std::ios::app | std::ios::binary);
+    m_benchmarkTimestamps.open("benchmarkTimestamps", std::ios::app | std::ios::binary);
 #endif
 #if ReplayCameraMovement
-    m_camPosData = ReadPositionData("benchmarkCameraTrack");
+    m_camPosData = ReadFileData<CameraPositionData>("benchmarkCameraTrack");
     std::reverse(m_camPosData.begin(),
                  m_camPosData.end()); // Inefficient, but doesn't matter as this runs before the benchmark starts
     m_benchmarkTimestampsData = ReadFileData<double>("benchmarkTimestamps");
+    std::reverse(m_benchmarkTimestampsData.begin(), m_benchmarkTimestampsData.end());
 #endif
 
     // -------------------- Texture -------------------------
@@ -239,50 +220,72 @@ GUI::~GUI() {
 #if ReplayCameraMovement or RecordCameraMovement
     m_benchmarkTimestamps.close();
 #endif
+    std::cout << "Execution Time: " << glfwGetTime() - m_startTime << std::endl;
 
     glfwTerminate();
 }
 
 int GUI::run() {
-    int nbFrames = 0;
     double lastTime = glfwGetTime();
+    m_startTime = lastTime;
+    m_startFrameTime = lastTime;
 
 #if ReplayCameraMovement
     glfwSwapInterval(0);
 #endif
 
-    m_startTime = lastTime;
-
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();
-        nbFrames++;
+
+        m_frameCount++;
+#if !ReplayCameraMovement
         if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
-            printf("%f fps\n", double(nbFrames));
-            nbFrames = 0;
+            printf("%f fps\n", double(m_frameCount));
+            m_frameCount = 0;
             lastTime += 1.0;
         }
+#endif
+
+#if ReplayCameraMovement
+        if (currentTime - m_startTime > m_benchmarkTimestampsData.back()) {
+
+            if (m_benchmarkRecord) {
+                std::cout << ((currentTime - m_startFrameTime) / m_frameCount) * 1000 << "," << std::flush;
+                glfwSetWindowTitle(m_window, "Not Benchmarking");
+            } else
+                glfwSetWindowTitle(m_window, "Benchmarking");
+
+            m_benchmarkRecord = !m_benchmarkRecord;
+            m_frameCount = 0;
+
+            m_startFrameTime = currentTime;
+            m_benchmarkTimestampsData.pop_back();
+            if (m_benchmarkTimestampsData.size() == 0)
+                glfwSetWindowShouldClose(m_window, 1);
+        }
+
+        if (currentTime >= m_startTime + .1 * m_recordCount) {
+            m_recordCount++;
+            CameraPositionData p = m_camPosData.back();
+            m_camera.SetPosition(p.position, p.yaw, p.pitch);
+            m_camPosData.pop_back();
+            m_lastCameraRecord = currentTime;
+        }
+#endif
+
+#if RecordCameraMovement
+        if (currentTime >= m_startTime + .1 * m_recordCount) {
+            m_recordCount++;
+            auto positionData = m_camera.GetPosition();
+            m_positionFile.write((char *)&positionData, sizeof(positionData));
+            m_lastCameraRecord = currentTime;
+        }
+#endif
 
         loop();
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
-
-        if (currentTime >= m_lastCameraRecord + .05) {
-#if RecordCameraMovement
-            auto positionData = m_camera.GetPosition();
-            m_positionFile.write((char *)&positionData, sizeof(positionData));
-            m_lastCameraRecord = currentTime;
-#endif
-#if ReplayCameraMovement
-            CameraPositionData p = m_camPosData.back();
-            m_camera.SetPosition(p.position, p.yaw, p.pitch);
-            m_camPosData.pop_back();
-            m_lastCameraRecord = currentTime;
-
-            if (m_camPosData.size() == 0)
-                glfwSetWindowShouldClose(m_window, 1);
-#endif
-        }
     }
 
     return 0;
@@ -433,13 +436,22 @@ void GUI::key_callback(GLFWwindow *window, int key, int scancode, int action, in
 #endif
     if (key == GLFW_KEY_X && action == GLFW_PRESS) {
         double time = glfwGetTime() - m_startTime;
-        m_benchmarkTimestamps.write((char *)&time, sizeof(time));
+        std::cout << m_benchmarkRecord << std::endl;
+#if RecordCameraMovement
+        if (m_benchmarkRecord)
+            m_benchmarkTimestamps.write((char *)&time, sizeof(time));
+#endif
         glfwSetWindowShouldClose(m_window, 1);
     }
 #if RecordCameraMovement
     if (key == GLFW_KEY_DELETE && action == GLFW_PRESS) {
         double time = glfwGetTime() - m_startTime;
         m_benchmarkTimestamps.write((char *)&time, sizeof(time));
+        if (m_benchmarkRecord) {
+            glfwSetWindowTitle(m_window, "Not recording");
+        } else
+            glfwSetWindowTitle(m_window, "Recording");
+        m_benchmarkRecord = !m_benchmarkRecord;
     }
 #endif
 }

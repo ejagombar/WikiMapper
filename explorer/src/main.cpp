@@ -40,7 +40,7 @@ int main() {
 
     // Display base node -----------------
 
-    std::cout << "UID: " << allNodes[0].title << std::endl;
+    // std::cout << "UID: " << allNodes[0].title << std::endl;
     uint32_t baseNodeUID = getTopNode(db, allNodes);
     auto baseNode = db.getNode(baseNodeUID);
 
@@ -59,7 +59,7 @@ int main() {
     uint32_t subNodeUID = getTopNode(db, neighbours);
 
     auto subNeighboursUID = db.getNeighborsUID(subNodeUID);
-    std::cout << " test" << subNeighboursUID.size() << std::endl;
+    // std::cout << " test" << subNeighboursUID.size() << std::endl;
     glm::vec3 rotation = spaceMap[subNodeUID] + glm::vec3(0, glm::pi<float>() * 0.5f, 0);
     auto subOut = spreadOrbitRand(spaceMap[subNodeUID], neighboursUID.size(), 2 * sqrt(subNeighboursUID.size()),
                                   glm::vec2(1, 2), glm::vec2(1, 2), rotation);
