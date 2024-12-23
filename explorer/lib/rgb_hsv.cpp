@@ -31,9 +31,9 @@ RGBColor hsv2rgb(float h, float s, float v) {
     }
 
     RGBColor color;
-    color.r = r;
-    color.g = g;
-    color.b = b;
+    color.r = static_cast<char>(r * 255);
+    color.g = static_cast<char>(g * 255);
+    color.b = static_cast<char>(b * 255);
 
     return color;
 }
