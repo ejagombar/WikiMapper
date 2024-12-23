@@ -142,53 +142,49 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
     m_lineCount = lines.size() / 2;
 
-    GLfloat h_data[10 * m_lineCount];
+    struct VertexData {
+        GLubyte r;      // Red channel (0-255)
+        GLubyte g;      // Green channel (0-255)
+        GLubyte b;      // Blue channel (0-255)
+        GLubyte radius; // Radius (0-255)
+        GLfloat position[6];
+    };
+
+    VertexData h_data[m_lineCount];
 
     for (unsigned int i = 0; i < m_lineCount; i++) {
         uint lineIdx = i * 2;
-        uint h_dataIdx = i * 10;
 
-        // start
-        h_data[h_dataIdx] = lines[lineIdx].x;     // vertex.x
-        h_data[h_dataIdx + 1] = lines[lineIdx].y; // vertex.y
-        h_data[h_dataIdx + 2] = lines[lineIdx].z; // vertex.z
-
-        // end
-        h_data[h_dataIdx + 3] = lines[lineIdx + 1].x; // vertex.x
-        h_data[h_dataIdx + 4] = lines[lineIdx + 1].y; // vertex.y
-        h_data[h_dataIdx + 5] = lines[lineIdx + 1].z; // vertex.z
-
-        // color
         auto col = hsv2rgb(mrand(0, 1), 1.0f, 1.0f);
-        h_data[h_dataIdx + 6] = col.r; // Red
-        h_data[h_dataIdx + 7] = col.g; // Green
-        h_data[h_dataIdx + 8] = col.b; // Blue
+        h_data[i].r = col.r;
+        h_data[i].g = col.g;
+        h_data[i].b = col.b;
+        h_data[i].radius = 1;
 
-        // radius
-        h_data[h_dataIdx + 9] = RADIUS_VAR * rand() / RAND_MAX + RADIUS_MEAN;
+        h_data[i].position[0] = lines[lineIdx].x;
+        h_data[i].position[1] = lines[lineIdx].y;
+        h_data[i].position[2] = lines[lineIdx].z;
+
+        h_data[i].position[3] = lines[lineIdx + 1].x;
+        h_data[i].position[4] = lines[lineIdx + 1].y;
+        h_data[i].position[5] = lines[lineIdx + 1].z;
     }
 
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(h_data), h_data, GL_STATIC_DRAW);
 
-    std::cout << "Length: " << sizeof(h_data) << std::endl;
+    const GLint radiusAttrib = m_lineShader->getAttribLocation("aRGBRadius");
+    glEnableVertexAttribArray(radiusAttrib);
+    glVertexAttribPointer(radiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(VertexData), (void *)0);
 
     const GLint startAttrib = m_lineShader->getAttribLocation("Start");
     glEnableVertexAttribArray(startAttrib);
-    glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)0);
+    glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(sizeof(float)));
 
     const GLint endAttrib = m_lineShader->getAttribLocation("End");
     glEnableVertexAttribArray(endAttrib);
-    glVertexAttribPointer(endAttrib, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)(3 * sizeof(float)));
-
-    const GLint colorAttrib = m_lineShader->getAttribLocation("Color");
-    glEnableVertexAttribArray(colorAttrib);
-    glVertexAttribPointer(colorAttrib, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)(6 * sizeof(float)));
-
-    const GLint radiusAttrib = m_lineShader->getAttribLocation("Radius");
-    glEnableVertexAttribArray(radiusAttrib);
-    glVertexAttribPointer(radiusAttrib, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void *)(9 * sizeof(float)));
+    glVertexAttribPointer(endAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(4 * sizeof(float)));
 
     // -------------------------------------
 
