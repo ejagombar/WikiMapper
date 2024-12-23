@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -39,12 +40,35 @@ std::vector<std::pair<uint32_t, uint32_t>> Graph::getAllLinks() const {
     std::vector<std::pair<uint32_t, uint32_t>> allLinks;
     for (const auto pair : adjList) {
         for (const auto pairLink : pair.second) {
-            // allLinks.emplace_back(pair.first, pair.second);
             allLinks.push_back({pair.first, pairLink});
         }
     }
     return allLinks;
 }
+struct pair_hash {
+    template <class T1, class T2> std::size_t operator()(const std::pair<T1, T2> &pair) const {
+        return std::hash<T1>{}(pair.first) ^ (std::hash<T2>{}(pair.second) << 1);
+    }
+};
+std::vector<std::pair<uint32_t, uint32_t>> Graph::getAllUniqueLinks() const {
+    std::unordered_set<std::pair<uint32_t, uint32_t>, pair_hash> uniqueLinks;
+
+    for (const auto &pair : adjList) {
+        uint32_t uid1 = pair.first;
+        for (const auto &uid2 : pair.second) {
+            if (uid1 < uid2) {
+                uniqueLinks.emplace(uid1, uid2);
+            } else if (uid1 > uid2) {
+                uniqueLinks.emplace(uid2, uid1);
+            }
+        }
+    }
+
+    // Convert the set back to a vector
+    return std::vector<std::pair<uint32_t, uint32_t>>(uniqueLinks.begin(), uniqueLinks.end());
+}
+
+// Hash function for unordered_set of pairs
 
 std::vector<Node> Graph::getNeighbors(uint32_t uid) const {
     std::vector<uint32_t> UIDs;
