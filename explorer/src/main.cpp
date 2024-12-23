@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/scalar_constants.hpp>
-#include <iostream>
 #include <json/json.h>
 #include <unordered_map>
 #include <vector>
@@ -21,7 +20,6 @@ uint32_t getTopNode(GraphDB::Graph &db, std::vector<GraphDB::Node> &nodes) {
         if (linkCount > maxLinkCount) {
             maxLinkCount = linkCount;
             topNode = n.UID;
-            std::cout << topNode << " " << linkCount << std::endl;
         }
     }
     return topNode;

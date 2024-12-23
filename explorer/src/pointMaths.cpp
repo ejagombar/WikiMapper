@@ -4,7 +4,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 #include <json/json.h>
 #include <random>
 #include <stdlib.h>
@@ -62,7 +61,6 @@ std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoin
         float z = center.z + radius * cos(theta);
 
         points.push_back(rotateVec(center, glm::vec3(x, y, z), rotation));
-        std::cout << x << " " << y << " " << z << std::endl;
     }
 
     return points;
