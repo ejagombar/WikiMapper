@@ -18,7 +18,7 @@
 #include <fstream>
 
 // #define RecordCameraMovement true
-#define ReplayCameraMovement true
+// #define ReplayCameraMovement true
 
 template <typename T> std::vector<T> ReadFileData(const std::string &filename) {
     std::ifstream file(filename, std::ios::binary);

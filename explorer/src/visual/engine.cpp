@@ -64,7 +64,8 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
     m_lineShader = std::make_unique<Shader>("line.vert", "line.frag", "line.geom");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight), glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight),
+                                            glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
 
     m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
@@ -93,8 +94,17 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     glGenBuffers(count, m_VBOs);
 
     // Nodes -------------------------------------------------------------------
+
+    struct NodeData {
+        GLubyte r;      // Red channel (0-255)
+        GLubyte g;      // Green channel (0-255)
+        GLubyte b;      // Blue channel (0-255)
+        GLubyte radius; // Radius (0-255)
+        GLfloat position[3];
+    };
+
     m_nodeCount = nodes.size();
-    float points[m_nodeCount * 7]; // Pos(XYZ), Col(RGB), Size(R)
+    NodeData points[m_nodeCount]; // Pos(XYZ), Col(RGB), Size(R)
 
     std::cout << "MaxNodes: " << MaxNodes << std::endl;
 
@@ -104,32 +114,26 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     std::uniform_real_distribution<> dist2{0, 1};
     for (int i = 0; i < m_nodeCount; i++) {
         auto col = hsv2rgb(mrand(0, 1), 1.0f, 1.0f);
-
-        int j = i * 7;
-        points[j] = nodes[i].pos.x;
-        points[j + 1] = nodes[i].pos.y;
-        points[j + 2] = nodes[i].pos.z;
-        points[j + 3] = col.r;
-        points[j + 4] = col.g;
-        points[j + 5] = col.b;
-        points[j + 6] = nodes[i].size;
+        points[i].r = nodes[i].r;
+        points[i].g = nodes[i].g;
+        points[i].b = nodes[i].b;
+        points[i].radius = static_cast<GLubyte>(nodes[i].size);
+        points[i].position[0] = nodes[i].pos.x;
+        points[i].position[1] = nodes[i].pos.y;
+        points[i].position[2] = nodes[i].pos.z;
     }
 
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 
+    const GLint aColorAttrib = m_sphereShader->getAttribLocation("aRGBRadius");
+    glEnableVertexAttribArray(aColorAttrib);
+    glVertexAttribPointer(aColorAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData), (void *)0);
+
     const GLint aPosAttrib = m_sphereShader->getAttribLocation("aPos");
     glEnableVertexAttribArray(aPosAttrib);
-    glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
-
-    const GLint aColorAttrib = m_sphereShader->getAttribLocation("aColor");
-    glEnableVertexAttribArray(aColorAttrib);
-    glVertexAttribPointer(aColorAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(3 * sizeof(float)));
-
-    const GLint aSizeAttrib = m_sphereShader->getAttribLocation("aSize");
-    glEnableVertexAttribArray(aSizeAttrib);
-    glVertexAttribPointer(aSizeAttrib, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(6 * sizeof(float)));
+    glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(NodeData), (void *)(sizeof(float)));
 
     // Lines -------------------------------------------------------------------
 
@@ -338,7 +342,10 @@ void GUI::loop() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (m_state == pause) {
-        m_text2d->Render("WikiMapper", glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f, glm::vec3(0.3, 0.7f, 0.9f));
+        m_text2d->Render(
+            "WikiMapper",
+            glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f,
+            glm::vec3(0.3, 0.7f, 0.9f));
     }
 }
 
