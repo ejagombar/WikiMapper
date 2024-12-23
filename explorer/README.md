@@ -11,6 +11,7 @@ Still very much under development.
 - [ ] **Search.** Allow a user to search for a page and the camera will jump to that node.
 - [ ] **External links.** Link each node to the original Wikipedia page.
 - [ ] **Lighting**. Add lighting to the spheres shading, and possibly the text and lines as well.
+- [ ] **Force Directed Graph Drawing.** Algorithm to spread points out in space. 
  
 
 ### Opportunities for Optimisation
@@ -24,6 +25,21 @@ There are many potential optimisations with this project. At the moment, I am fo
 - [ ] Simplify sphere imposter frag shader. Remove 4 * and / 2 calculation from quadratic equation. 
 - [ ] Use cylinder imposter for close by links and use flat line for futher ones.
 
+
+## Benchmarks
+In order to evaluate the impact that optimisiations and changes that I make have on performance, I have implemented a benchmark system. For now, the benchmark is enabled with some compile time if statements. This benchmark is just a temporary solution and I want to implement it better in the future. Using the compile time #defines allow me to easily add and remove this code. I have added two modes: one mode to record a benchmark path and one to run the benchmark. The benchmark recording mode records the movement of the camera and appends the position to a file. A second file is used to store timestamps of when the benchmark is stopped and started. This allows me to benchmark different scenarios separately. The second mode allows me to replay the recorded file and disable user input. The number of frames are recorded for each section and divided by the total time that it took to run that section. Two benchmark files have been added to the assets folder to allow me to test the code across multiple machines. 
+
+### Benchmark Setup
+- **Section 1** - Sphere (node) closeup.
+- **Section 2** - View of the whole graph.
+- **Section 3** - Closeup of a collection of cylinders (verticies).
+- **Section 4** - Facing away from the graph, with no objects in view.
+
+The below benchmarks were run on my computer. The frame time measurements are recorded in milliseconds.
+
+| Commit Tag | 1 | 2 | 3 | 4 | Overall | Notable Changes |
+| ---- | ---- | ---- | ---- | ---- | ---- | ---- | 
+|69967a7|1.395|1.701|1.382|1.269|1.437|Baseline|
 
 This [paper](https://www.cmu.edu/biolphys/deserno/pdf/sphere_equi.pdf) was used for the formula to evenly distribut points around a sphere
 https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere
