@@ -9,10 +9,9 @@ uniform mat3 NormalMatrix;
 uniform vec4 lightPos;
 uniform vec4 EyePoint;
 
-in vec3 cylinder_color_in[];
-in vec3 cylinder_direction_in[];
-in float cylinder_radius_in[];
-in float cylinder_ext_in[];
+in vec3 vEnd[];
+in vec3 vColor[];
+in float vRadius[];
 
 flat out vec3 cylinder_color;
 flat out vec3 lightDir;
@@ -34,17 +33,19 @@ out vec3 packed_data_5;
 
 void main()
 {
-    vec3 center = gl_in[0].gl_Position.xyz;
-    vec3 dir = cylinder_direction_in[0];
-    float ext = cylinder_ext_in[0];
-    vec3 ldir;
+    vec3 Start = gl_in[0].gl_Position.xyz;
 
-    cylinder_color = cylinder_color_in[0];
-    cylinder_radius = cylinder_radius_in[0];
+    cylinder_color = vColor[0];
+    cylinder_radius = vRadius[0];
+
+    vec3 dir = normalize(Start - vEnd[0]);
+    float ext = distance(vEnd[0], Start);
     lightDir = normalize(lightPos.xyz);
 
-    vec3 cam_dir = normalize(EyePoint.xyz - center);
+    vec3 cam_dir = normalize(EyePoint.xyz - Start);
     float b = dot(cam_dir, dir);
+
+    vec3 ldir;
     if (b < 0.0) // direction vector looks away, so flip
         ldir = -ext * dir;
     else // direction vector already looks in my direction
@@ -60,22 +61,17 @@ void main()
     U = normalize(NormalMatrix * up);
     V = normalize(NormalMatrix * left);
 
-    vec4 base4 = MVMatrix * vec4(center - ldir, 1.0);
+    vec4 base4 = MVMatrix * vec4(Start - ldir, 1.0);
     base = base4.xyz / base4.w;
 
-    vec4 top_position = MVMatrix * (vec4(center + ldir, 1.0));
+    vec4 top_position = MVMatrix * (vec4(Start + ldir, 1.0));
     vec4 end4 = top_position;
     end = end4.xyz / end4.w;
 
-    vec4 xf0 = MVMatrix * vec4(center - ldir + left - up, 1.0);
-    vec4 xf2 = MVMatrix * vec4(center - ldir - left - up, 1.0);
-    vec4 xc0 = MVMatrix * vec4(center + ldir + left - up, 1.0);
-    vec4 xc2 = MVMatrix * vec4(center + ldir - left - up, 1.0);
-
-    vec4 w0 = xf0;
-    vec4 w1 = xf2;
-    vec4 w2 = xc0;
-    vec4 w3 = xc2;
+    vec4 w0 = MVMatrix * vec4(Start + left - up, 1.0);
+    vec4 w1 = MVMatrix * vec4(Start - left - up, 1.0);
+    vec4 w2 = MVMatrix * vec4(vEnd[0] + left - up, 1.0);
+    vec4 w3 = MVMatrix * vec4(vEnd[0] - left - up, 1.0);
 
     // Vertex 1
     point = w0.xyz / w0.w;

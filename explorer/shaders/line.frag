@@ -51,9 +51,7 @@ void main()
     float radius2 = radius * radius;
 
     // calculate distance to the cylinder from ray origin
-    vec3 D = vec3(dot(U, ray_direction),
-            dot(V, ray_direction),
-            dz);
+    vec3 D = vec3(dot(U, ray_direction), dot(V, ray_direction), dz);
     float a0 = P.x * P.x + P.y * P.y - radius2;
     float a1 = P.x * D.x + P.y * D.y;
     float a2 = D.x * D.x + D.y * D.y;
@@ -72,49 +70,6 @@ void main()
     vec3 normal = normalize(tmp_point - axis * dot(tmp_point, axis));
 
     ray_origin = mix(ray_origin, surface_point, 0);
-
-    // test front cap
-    float cap_test = dot((new_point - base), axis);
-
-    // to calculate caps, simply check the angle between
-    // the point of intersection - cylinder end vector
-    // and a cap plane normal (which is the cylinder cylinder_axis)
-    // if the angle < 0, the point is outside of cylinder
-    // test front cap
-
-    // flat
-    if (cap_test < 0.0)
-    {
-        // ray-plane intersection
-        float dNV = dot(-axis, ray_direction);
-        if (dNV < 0.0)
-            discard;
-        float near = dot(-axis, (base)) / dNV;
-        new_point = ray_direction * near + ray_origin;
-        // within the cap radius?
-        if (dot(new_point - base, new_point - base) > radius2)
-            discard;
-        normal = -axis;
-    }
-
-    // test end cap
-
-    cap_test = dot((new_point - end_cyl), axis);
-
-    // flat
-    if (cap_test > 0.0)
-    {
-        // ray-plane intersection
-        float dNV = dot(axis, ray_direction);
-        if (dNV < 0.0)
-            discard;
-        float near = dot(axis, end_cyl) / dNV;
-        new_point = ray_direction * near + ray_origin;
-        // within the cap radius?
-        if (dot(new_point - end_cyl, new_point - base) > radius2)
-            discard;
-        normal = axis;
-    }
 
     vec2 clipZW = new_point.z * PMatrix[2].zw + PMatrix[3].zw;
     float depth = 0.5 + 0.5 * clipZW.x / clipZW.y;
