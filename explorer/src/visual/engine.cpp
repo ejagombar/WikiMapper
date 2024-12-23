@@ -96,15 +96,15 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     // Nodes -------------------------------------------------------------------
 
     struct NodeData {
-        GLubyte r;      // Red channel (0-255)
-        GLubyte g;      // Green channel (0-255)
-        GLubyte b;      // Blue channel (0-255)
-        GLubyte radius; // Radius (0-255)
+        GLubyte r;
+        GLubyte g;
+        GLubyte b;
+        GLubyte radius;
         GLfloat position[3];
     };
 
     m_nodeCount = nodes.size();
-    NodeData points[m_nodeCount]; // Pos(XYZ), Col(RGB), Size(R)
+    NodeData points[m_nodeCount];
 
     std::cout << "MaxNodes: " << MaxNodes << std::endl;
 

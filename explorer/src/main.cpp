@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/scalar_constants.hpp>
+#include <iostream>
 #include <json/json.h>
 #include <unordered_map>
 #include <vector>
@@ -88,10 +89,13 @@ int main() {
         }
     }
 
+    // auto allLinks = db.getAllUniqueLinks();
     auto allLinks = db.getAllLinks();
     for (auto linkPair : allLinks) {
         lines.push_back(spaceMap[linkPair.first]);
         lines.push_back(spaceMap[linkPair.second]);
+
+        std::cout << linkPair.first << "->" << linkPair.second << std::endl;
     }
 
     GUI myGUI(numOfElements, nodes, lines);
