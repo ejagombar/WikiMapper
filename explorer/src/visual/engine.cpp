@@ -136,17 +136,13 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(NodeData), (void *)(sizeof(float)));
 
     // Lines -------------------------------------------------------------------
-
-    const float RADIUS_MEAN = 0.06f;
-    const float RADIUS_VAR = 0.08f;
-
     m_lineCount = lines.size() / 2;
 
     struct VertexData {
-        GLubyte r;      // Red channel (0-255)
-        GLubyte g;      // Green channel (0-255)
-        GLubyte b;      // Blue channel (0-255)
-        GLubyte radius; // Radius (0-255)
+        GLubyte r;
+        GLubyte g;
+        GLubyte b;
+        GLubyte radius;
         GLfloat position[6];
     };
 
@@ -154,8 +150,8 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
     for (unsigned int i = 0; i < m_lineCount; i++) {
         uint lineIdx = i * 2;
-
         auto col = hsv2rgb(mrand(0, 1), 1.0f, 1.0f);
+
         h_data[i].r = col.r;
         h_data[i].g = col.g;
         h_data[i].b = col.b;

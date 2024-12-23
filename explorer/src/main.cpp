@@ -80,7 +80,7 @@ int main() {
         if (it != spaceMap.end()) {
             nodes[i].pos = it->second;
             nodes[i].a = 255;
-            nodes[i].size = 1;
+            nodes[i].size = 20;
         } else {
             nodes[i].pos = glm::vec3(50, 50, 50);
             nodes[i].a = 0;
