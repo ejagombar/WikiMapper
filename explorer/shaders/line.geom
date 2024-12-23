@@ -39,24 +39,19 @@ void main()
     cylinder_radius = vRadius[0];
 
     vec3 dir = normalize(Start - vEnd[0]);
-    float ext = distance(vEnd[0], Start);
     lightDir = normalize(lightPos.xyz);
 
     vec3 cam_dir = normalize(EyePoint.xyz - Start);
     float b = dot(cam_dir, dir);
 
-    vec3 ldir;
-    if (b < 0.0) // direction vector looks away, so flip
-        ldir = -ext * dir;
-    else // direction vector already looks in my direction
-        ldir = ext * dir;
+    vec3 ldir = b < 0.0 ? -dir : dir; // Ensure direction vector points correctly
 
     vec3 left = cross(cam_dir, ldir);
     vec3 up = cross(left, ldir);
     left = cylinder_radius * normalize(left);
     up = cylinder_radius * normalize(up);
 
-    // transform to modelview coordinates
+    // Transform to model-view coordinates
     axis = normalize(NormalMatrix * ldir);
     U = normalize(NormalMatrix * up);
     V = normalize(NormalMatrix * left);
@@ -64,8 +59,7 @@ void main()
     vec4 base4 = MVMatrix * vec4(Start - ldir, 1.0);
     base = base4.xyz / base4.w;
 
-    vec4 top_position = MVMatrix * (vec4(Start + ldir, 1.0));
-    vec4 end4 = top_position;
+    vec4 end4 = MVMatrix * vec4(vEnd[0], 1.0);
     end = end4.xyz / end4.w;
 
     vec4 w0 = MVMatrix * vec4(Start + left - up, 1.0);
@@ -73,25 +67,23 @@ void main()
     vec4 w2 = MVMatrix * vec4(vEnd[0] + left - up, 1.0);
     vec4 w3 = MVMatrix * vec4(vEnd[0] - left - up, 1.0);
 
-    // Vertex 1
+    // Emit vertices for the cylinder sides
     point = w0.xyz / w0.w;
     gl_Position = PMatrix * w0;
     EmitVertex();
 
-    // Vertex 2
     point = w1.xyz / w1.w;
     gl_Position = PMatrix * w1;
     EmitVertex();
 
-    // Vertex 3
     point = w2.xyz / w2.w;
     gl_Position = PMatrix * w2;
     EmitVertex();
 
-    // Vertex 4
     point = w3.xyz / w3.w;
     gl_Position = PMatrix * w3;
     EmitVertex();
 
     EndPrimitive();
 }
+

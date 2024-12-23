@@ -50,15 +50,15 @@ void main()
 
     float radius2 = radius * radius;
 
-    // calculate distance to the cylinder from ray origin
     vec3 D = vec3(dot(U, ray_direction), dot(V, ray_direction), dz);
+
     float a0 = P.x * P.x + P.y * P.y - radius2;
     float a1 = P.x * D.x + P.y * D.y;
     float a2 = D.x * D.x + D.y * D.y;
-    // calculate a dicriminant of the above quadratic equation
+
     float d = a1 * a1 - a0 * a2;
+
     if (d < 0.0)
-        // outside of the cylinder
         discard;
 
     float dist = (-a1 + sqrt(d)) / a2;
@@ -68,8 +68,6 @@ void main()
 
     vec3 tmp_point = new_point - base;
     vec3 normal = normalize(tmp_point - axis * dot(tmp_point, axis));
-
-    ray_origin = mix(ray_origin, surface_point, 0);
 
     vec2 clipZW = new_point.z * PMatrix[2].zw + PMatrix[3].zw;
     float depth = 0.5 + 0.5 * clipZW.x / clipZW.y;
