@@ -22,16 +22,16 @@ void Impostor(out vec3 cameraPos, out vec3 cameraNormal)
     vec3 cameraPlanePos = vec3(mapping * fSize, 0.0) + cameraSpherePos;
     vec3 rayDirection = normalize(cameraPlanePos);
 
-    float B = 2.0 * dot(rayDirection, -cameraSpherePos);
+    float B = dot(rayDirection, -cameraSpherePos);
     float C = dot(cameraSpherePos, cameraSpherePos) - (fSize * fSize);
 
-    float det = (B * B) - (4 * C);
+    float det = (B * B) - C;
     if (det < 0.0)
         discard;
 
     float sqrtDet = sqrt(det);
-    float posT = (-B + sqrtDet) / 2;
-    float negT = (-B - sqrtDet) / 2;
+    float posT = -B + sqrtDet;
+    float negT = -B - sqrtDet;
 
     float intersectT = min(posT, negT);
     cameraPos = rayDirection * intersectT;

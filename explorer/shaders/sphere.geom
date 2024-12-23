@@ -11,8 +11,8 @@ in float vSize[];
 
 out vec3 fPos; // Pass world position to fragment shader
 out vec3 fColor;
-out vec2 mapping;
 out float fSize;
+out vec2 mapping;
 
 const float g_boxCorrection = 1.5;
 
