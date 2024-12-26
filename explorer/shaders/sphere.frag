@@ -1,12 +1,14 @@
 #version 330 core
 
-uniform vec3 CameraPosition; // Camera position in world space
 uniform vec3 LightPosition; // Light position in world space
 uniform vec3 LightColor; // Color of the point light
 uniform vec3 GlobalLightColor; // Color of the global light (e.g., sunlight)
 
-uniform mat4 Projection;
-uniform mat4 View;
+layout(std140) uniform GlobalUniforms {
+    mat4 Projection;
+    mat4 View;
+    vec4 CameraPosition;
+};
 
 in vec3 fColor; // Interpolated color from the geometry shader
 in vec3 fPos; // World position of the sphere
@@ -68,7 +70,7 @@ void main()
     float diffuse = max(dot(normal, lightDir), 0.0);
 
     // Specular component
-    vec3 viewDir = normalize(CameraPosition - fPos);
+    vec3 viewDir = normalize(CameraPosition.xyz - fPos);
     vec3 reflectDir = reflect(-lightDir, normal);
     float specularStrength = 0.9;
     float shininess = 128.0;

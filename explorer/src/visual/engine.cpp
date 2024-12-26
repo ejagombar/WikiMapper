@@ -70,6 +70,23 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
 
+    m_globalUBO = std::make_unique<UBOManager<GlobalUniforms>>(m_GLOBAL_UNIFORM_BINDING_POINT);
+
+    m_sphereShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
+    m_lineShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
+
+    const char *names[] = {"Projection", "View", "Normal", "CameraPosition"};
+
+    int shaderProgram = m_lineShader->ID;
+    GLuint indices[4]; // Indices for "Projection", "View", "Normal", "CameraPosition"
+    glGetUniformIndices(shaderProgram, 4, names, indices);
+    GLint offsets[4];
+    glGetActiveUniformsiv(shaderProgram, 4, indices, GL_UNIFORM_OFFSET, offsets);
+
+    for (int i = 0; i < 4; ++i) {
+        std::cout << "Offset of " << names[i] << ": " << offsets[i] << std::endl;
+    }
+
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
     std::remove("benchmarkTimestamps");
@@ -297,6 +314,11 @@ void GUI::loop() {
     glm::mat4 camera_direction = m_camera.GetProjectionMatrix() * glm::mat4(glm::mat3(m_camera.GetViewMatrix()));
     m_skybox->Display(camera_direction);
 
+    GlobalUniforms uniforms = {m_camera.GetProjectionMatrix(), m_camera.GetViewMatrix(),
+                               glm::vec4(m_camera.GetCameraPosition(), 1.0f)};
+
+    m_globalUBO->update(uniforms);
+
     // -----------------------------
     m_sphereShader->use();
     m_sphereShader->setMat4("Projection", m_camera.GetProjectionMatrix());
@@ -313,9 +335,9 @@ void GUI::loop() {
     m_lineShader->use();
     m_lineShader->setMat4("PMatrix", m_camera.GetProjectionMatrix());
     m_lineShader->setMat4("MVMatrix", m_camera.GetViewMatrix());
-    m_lineShader->setVec4("EyePoint", glm::vec4(m_camera.GetCameraPosition(), 1.0f));
+    m_lineShader->setVec3("EyePoint", m_camera.GetCameraPosition());
     m_lineShader->setVec4("lightPos", glm::vec4(0.8f, 4.8f, 5.8f, 1.0f));
-    m_lineShader->setMat3("NormalMatrix", m_camera.GetNormalMatrix());
+    m_lineShader->setMat3("NormalMat", m_camera.GetNormalMatrix());
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_POINTS, 0, m_lineCount);
 

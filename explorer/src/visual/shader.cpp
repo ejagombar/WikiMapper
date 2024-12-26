@@ -138,6 +138,17 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const {
 
 GLint Shader::getAttribLocation(const std::string &name) const { return glGetAttribLocation(ID, name.c_str()); }
 
+void Shader::linkUBO(const std::string &blockName, GLuint bindingPoint) const {
+    GLuint blockIndex = glGetUniformBlockIndex(ID, blockName.c_str());
+
+    if (blockIndex == GL_INVALID_INDEX) {
+        std::cerr << "Error: Uniform block \"" << blockName << "\" not found in shader!" << std::endl;
+        return;
+    }
+
+    glUniformBlockBinding(ID, blockIndex, bindingPoint);
+}
+
 void Shader::checkCompileErrors(unsigned int shader, std::string type) {
     int success;
     char infoLog[1024];

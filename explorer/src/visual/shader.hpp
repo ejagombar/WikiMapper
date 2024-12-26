@@ -32,6 +32,7 @@ class Shader {
     void setMat2(const std::string &name, const glm::mat2 &mat) const;
     void setMat3(const std::string &name, const glm::mat3 &mat) const;
     void setMat4(const std::string &name, const glm::mat4 &mat) const;
+    void linkUBO(const std::string &blockName, GLuint bindingPoint) const;
 
     GLint getAttribLocation(const std::string &name) const;
 

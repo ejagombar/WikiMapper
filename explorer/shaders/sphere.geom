@@ -3,8 +3,11 @@
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
 
-uniform mat4 Projection;
-uniform mat4 View;
+layout(std140) uniform GlobalUniforms {
+    mat4 Projection;
+    mat4 View;
+    vec4 CameraPosition;
+};
 
 in vec3 vColor[];
 in float vSize[];

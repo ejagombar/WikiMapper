@@ -5,6 +5,7 @@
 #include "./filter.hpp"
 #include "./skybox.hpp"
 #include "./text.hpp"
+#include "./uniformBufferObject.hpp"
 #include <GL/gl.h> // This header isn't required as glad already provides it, however if it is not here, then the the language server automatically adds it when autocomplete is used on a OpenGL function
 #include <GLFW/glfw3.h>
 #include <math.h>
@@ -18,7 +19,7 @@
 #include <fstream>
 
 // #define RecordCameraMovement true
-#define ReplayCameraMovement true
+// #define ReplayCameraMovement true
 
 template <typename T> std::vector<T> ReadFileData(const std::string &filename) {
     std::ifstream file(filename, std::ios::binary);
@@ -41,6 +42,12 @@ template <typename T> std::vector<T> ReadFileData(const std::string &filename) {
 
     return data;
 }
+
+struct GlobalUniforms {
+    glm::mat4 Projection;
+    glm::mat4 View;
+    glm::vec4 CameraPosition;
+};
 
 struct Node {
     glm::vec3 pos, speed;
@@ -117,6 +124,9 @@ class GUI {
 
     std::unique_ptr<Text> m_text;
     std::unique_ptr<Text2d> m_text2d;
+
+    const GLuint m_GLOBAL_UNIFORM_BINDING_POINT = 0;
+    std::unique_ptr<UBOManager<GlobalUniforms>> m_globalUBO;
 
     std::vector<Node> m_nodes;
 
