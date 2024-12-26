@@ -6,7 +6,7 @@ Still very much under development.
 
 ### Features
 - [ ] **Oscillating spheres.** Spheres slowly 'wobble' and drift in space to make the graph feel more reactive. Will require modifiying the geometry shader of the spheres and applying an offset over time.
-- [ ] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness
+- [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness
 - [ ] **Menu.** A menu that give the user options to enable/disable features, change the font size etc.
 - [ ] **Search.** Allow a user to search for a page and the camera will jump to that node.
 - [ ] **External links.** Link each node to the original Wikipedia page.
@@ -17,12 +17,12 @@ Still very much under development.
 ### Opportunities for Optimisation
 There are many potential optimisations with this project. At the moment, I am focusing on adding new features and performance will be slightly sidelined. Some important performance choices have been made, such as using imposter spheres instead of sphere meshes. This allows for 500,000 of spheres to be created and run at over 200fps. However, many optimisations have been left to later. One of the main reasons for this is to allow me to implement new features faster and eventaully compare the performance between the future optimised version and non-optimised version.
 
-- [ ] Bake the sphere imposter depth maps into a texture, instead of calculating per sphere every frame.
-- [ ] Pack the data more tightly that is being sent to the GPU for the imposter spheres. Float values are not required for the positions of the sphere. This can be significantly reduced by having discreet positions in space that the spheres can be placed at which would allow variables smaller than floats to be used. Floats do also not need to be used for the sphere size of colour either.
+- [x] ~~Bake the sphere imposter depth maps into a texture, instead of calculating per sphere every frame.~~ This is barely more efficient than the current method it seems. (Source)[http://11235813tdd.blogspot.com/2013/04/raycasted-spheres-and-point-sprites-vs.html]
+- [x] Pack the data more tightly that is being sent to the GPU for the imposter spheres. Float values are not required for the positions of the sphere. This can be significantly reduced by having discreet positions in space that the spheres can be placed at which would allow variables smaller than floats to be used. Floats do also not need to be used for the sphere size of colour either. ** The size and colour has been compressed into a single float for the spheres.**
 - [ ] When rendering text, create a texture that contains the word or sentance that needs to be displayed, instead of having a separate draw call for every letter of every word.
 - [ ] Deferred shading.
-- [ ] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once.
-- [ ] Simplify sphere imposter frag shader. Remove 4 * and / 2 calculation from quadratic equation. 
+- [x] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once. Not all variables have been moved to this, just the very common ones.
+- [x] Simplify sphere imposter frag shader. Remove 4 * and / 2 calculation from quadratic equation. 
 - [ ] Use cylinder imposter for close by links and use flat line for futher ones.
 
 
@@ -40,6 +40,7 @@ The below benchmarks were run on my computer. The frame time measurements are re
 | Commit Tag | 1 | 2 | 3 | 4 | Overall | Notable Changes |
 | ---- | ---- | ---- | ---- | ---- | ---- | ---- | 
 |69967a7|1.395|1.701|1.382|1.269|1.437|Baseline|
+|8122499|1.287|1.679|1.303|1.250|1.380| Simplify imposter cylinder shaders.|
 
 This [paper](https://www.cmu.edu/biolphys/deserno/pdf/sphere_equi.pdf) was used for the formula to evenly distribut points around a sphere
 https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere
