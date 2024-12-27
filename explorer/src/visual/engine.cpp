@@ -20,11 +20,6 @@
 #include <random>
 #include <vector>
 
-float mrand(float a, float b) {
-    float r = (float)rand() / RAND_MAX;
-    return (b - a) * r + a;
-}
-
 Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
     m_nodes = nodes;
 
@@ -111,10 +106,9 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
 
     std::random_device seed;
     std::mt19937 gen{seed()};
-    std::uniform_int_distribution<> dist{-100, 100};
-    std::uniform_real_distribution<> dist2{0, 1};
+    std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i < m_nodeCount; i++) {
-        auto col = hsv2rgb(mrand(0, 1), 1.0f, 1.0f);
+        auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
         points[i].r = nodes[i].r;
         points[i].g = nodes[i].g;
         points[i].b = nodes[i].b;
@@ -151,7 +145,7 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
 
     for (unsigned int i = 0; i < m_lineCount; i++) {
         uint lineIdx = i * 2;
-        auto col = hsv2rgb(mrand(0, 1), 1.0f, 1.0f);
+        auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
 
         h_data[i].r = col.r;
         h_data[i].g = col.g;
@@ -445,5 +439,7 @@ void Engine::processEngineInput(GLFWwindow *window) {
         m_camera.ProcessKeyboard(UP);
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         m_camera.ProcessKeyboard(DOWN);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        m_camera.ProcessKeyboard(SNEAK);
 #endif
 }

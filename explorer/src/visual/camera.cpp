@@ -15,19 +15,23 @@ CameraMatrices Camera::GetMatrices() const {
     return CameraMatrices{m_projectionMatrix, m_viewMatrix, glm::vec4(m_cameraPosition, 1.0f)};
 }
 
-void Camera::ProcessKeyboard(const Camera_Movement direction) {
-    if (direction == FORWARD)
+void Camera::ProcessKeyboard(const Camera_Movement movement) {
+    if (movement == FORWARD)
         m_direction += m_front;
-    if (direction == BACKWARD)
+    if (movement == BACKWARD)
         m_direction -= m_front;
-    if (direction == LEFT)
+    if (movement == LEFT)
         m_direction -= m_right;
-    if (direction == RIGHT)
+    if (movement == RIGHT)
         m_direction += m_right;
-    if (direction == UP)
+    if (movement == UP)
         m_direction += m_worldUp;
-    if (direction == DOWN)
+    if (movement == DOWN)
         m_direction -= m_worldUp;
+    if (movement == SNEAK)
+        m_accelerationReduce = 0.92f;
+    else
+        m_accelerationReduce = 0.97f;
 }
 
 void Camera::ProcessMouseMovement(const double xoffsetIn, const double yoffsetIn) {

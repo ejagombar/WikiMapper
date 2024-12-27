@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
+enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN, SNEAK };
 
 struct CameraPositionData {
     glm::vec3 position;
@@ -68,8 +68,7 @@ class Camera {
     GLfloat m_fov = 45.0f;
 
     GLfloat m_movementSpeed = 1.0f;
-    const GLfloat m_accelerationReduce = 0.97f;
-    const GLfloat m_accelerationReduceSlowed = 0.95f;
+    GLfloat m_accelerationReduce = 0.97f;
 
     const GLfloat m_scrollSensitivity = 2.0f;
     const GLfloat m_minDisplayRange = 0.1f;
