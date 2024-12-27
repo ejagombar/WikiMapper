@@ -14,6 +14,12 @@ struct CameraPositionData {
     GLfloat pitch;
 };
 
+struct CameraMatrices {
+    glm::mat4 Projection;
+    glm::mat4 View;
+    glm::vec4 Position;
+};
+
 class Camera {
   public:
     Camera() {};
@@ -26,6 +32,8 @@ class Camera {
     glm::mat4 GetViewMatrix() const { return m_viewMatrix; }
     glm::mat4 GetProjectionMatrix() const { return m_projectionMatrix; }
     glm::mat3 GetNormalMatrix() const;
+
+    CameraMatrices GetMatrices() const;
 
     void ProcessKeyboard(const Camera_Movement direction);
 
@@ -47,11 +55,11 @@ class Camera {
     glm::vec3 m_position = glm::vec3(0, 0, 0);
     glm::vec3 m_acceleration = glm::vec3(0.1, 0.1, 0.1);
     glm::vec3 m_velocity = glm::vec3(0, 0, 0);
-    glm::vec3 m_cameraPosition;
     glm::vec3 m_direction = glm::vec3(0, 0, 0);
 
     glm::mat4 m_viewMatrix;
     glm::mat4 m_projectionMatrix;
+    glm::vec3 m_cameraPosition;
 
     GLfloat m_yaw = 3.14f;
     GLfloat m_pitch = 0.0f;

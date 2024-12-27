@@ -43,12 +43,6 @@ template <typename T> std::vector<T> ReadFileData(const std::string &filename) {
     return data;
 }
 
-struct GlobalUniforms {
-    glm::mat4 Projection;
-    glm::mat4 View;
-    glm::vec4 CameraPosition;
-};
-
 struct Node {
     glm::vec3 pos, speed;
     unsigned char r, g, b, a; // Color
@@ -126,7 +120,7 @@ class GUI {
     std::unique_ptr<Text2d> m_text2d;
 
     const GLuint m_GLOBAL_UNIFORM_BINDING_POINT = 0;
-    std::unique_ptr<UBOManager<GlobalUniforms>> m_globalUBO;
+    std::unique_ptr<UBOManager<CameraMatrices>> m_globalUBO;
 
     std::vector<Node> m_nodes;
 

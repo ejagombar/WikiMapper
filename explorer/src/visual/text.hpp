@@ -24,15 +24,15 @@ class Text {
     Text(const std::string font, const std::string vertexShader, const std::string fragmentShader);
     ~Text() {};
 
-    void SetTransforms(const glm::mat4 projection, const glm::mat4 view, const glm::vec3 cameraPosition);
+    void SetTransforms(const glm::mat4 view);
     void Render(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color);
+
+    std::unique_ptr<Shader> m_textShader;
 
   private:
     FT_Face m_face;
     GLuint m_VAO, m_VBO;
     std::unordered_map<char, Character> m_characters;
-
-    std::unique_ptr<Shader> m_textShader;
 };
 
 class Text2d : public Text {

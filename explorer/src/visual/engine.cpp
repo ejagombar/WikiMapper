@@ -2,6 +2,7 @@
 
 #include "../../lib/rgb_hsv.hpp"
 #include "./shader.hpp"
+#include "camera.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GLFW/glfw3.h>
@@ -9,6 +10,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <functional>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
@@ -31,10 +33,6 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
 
     m_window = glfwCreateWindow(m_ScrWidth, m_ScrHeight, "WikiMapper", NULL, NULL);
     if (m_window == NULL) {
@@ -70,22 +68,14 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
 
-    m_globalUBO = std::make_unique<UBOManager<GlobalUniforms>>(m_GLOBAL_UNIFORM_BINDING_POINT);
+    m_globalUBO = std::make_unique<UBOManager<CameraMatrices>>(m_GLOBAL_UNIFORM_BINDING_POINT);
 
     m_sphereShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
     m_lineShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
+    m_text2d->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
+    m_text->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
 
     const char *names[] = {"Projection", "View", "Normal", "CameraPosition"};
-
-    int shaderProgram = m_lineShader->ID;
-    GLuint indices[4]; // Indices for "Projection", "View", "Normal", "CameraPosition"
-    glGetUniformIndices(shaderProgram, 4, names, indices);
-    GLint offsets[4];
-    glGetActiveUniformsiv(shaderProgram, 4, indices, GL_UNIFORM_OFFSET, offsets);
-
-    for (int i = 0; i < 4; ++i) {
-        std::cout << "Offset of " << names[i] << ": " << offsets[i] << std::endl;
-    }
 
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
@@ -111,7 +101,6 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     glGenBuffers(count, m_VBOs);
 
     // Nodes -------------------------------------------------------------------
-
     struct NodeData {
         GLubyte r;
         GLubyte g;
@@ -122,8 +111,6 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
 
     m_nodeCount = nodes.size();
     NodeData points[m_nodeCount];
-
-    std::cout << "MaxNodes: " << MaxNodes << std::endl;
 
     std::random_device seed;
     std::mt19937 gen{seed()};
@@ -198,8 +185,6 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     const GLint endAttrib = m_lineShader->getAttribLocation("End");
     glEnableVertexAttribArray(endAttrib);
     glVertexAttribPointer(endAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(4 * sizeof(float)));
-
-    // -------------------------------------
 
     glBindVertexArray(0);
 
@@ -310,41 +295,27 @@ void GUI::loop() {
 
     m_camera.ProcessPosition(deltaTime);
 
-    //------------------------------------------------------------------------------------------
-    glm::mat4 camera_direction = m_camera.GetProjectionMatrix() * glm::mat4(glm::mat3(m_camera.GetViewMatrix()));
-    m_skybox->Display(camera_direction);
+    const CameraMatrices cameraMatrices = m_camera.GetMatrices();
+    const glm::mat4 cameraDirection = cameraMatrices.Projection * glm::mat4(glm::mat3(cameraMatrices.View));
 
-    GlobalUniforms uniforms = {m_camera.GetProjectionMatrix(), m_camera.GetViewMatrix(),
-                               glm::vec4(m_camera.GetCameraPosition(), 1.0f)};
+    m_skybox->Display(cameraDirection);
 
-    m_globalUBO->update(uniforms);
+    m_globalUBO->Update(cameraMatrices);
 
-    // -----------------------------
     m_sphereShader->use();
-    m_sphereShader->setMat4("Projection", m_camera.GetProjectionMatrix());
-    m_sphereShader->setMat4("View", m_camera.GetViewMatrix());
-
-    m_sphereShader->setVec3("CameraPosition", m_camera.GetCameraPosition());
     m_sphereShader->setVec3("LightPosition", m_camera.GetCameraPosition());
     m_sphereShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
     m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
-
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
     m_lineShader->use();
-    m_lineShader->setMat4("PMatrix", m_camera.GetProjectionMatrix());
-    m_lineShader->setMat4("MVMatrix", m_camera.GetViewMatrix());
-    m_lineShader->setVec3("EyePoint", m_camera.GetCameraPosition());
     m_lineShader->setVec4("lightPos", glm::vec4(0.8f, 4.8f, 5.8f, 1.0f));
     m_lineShader->setMat3("NormalMat", m_camera.GetNormalMatrix());
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_POINTS, 0, m_lineCount);
 
-    glm::mat4 projection = m_camera.GetProjectionMatrix();
-    glm::mat4 View = m_camera.GetViewMatrix();
-
-    m_text->SetTransforms(projection, View, m_camera.GetCameraPosition());
+    m_text->SetTransforms(cameraMatrices.View);
 
     for (Node node : m_nodes) {
         m_text->Render(node.text, node.pos, 0.004f, glm::vec3(1.0, 1.0f, 1.0f));

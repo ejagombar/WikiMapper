@@ -11,6 +11,10 @@ void Camera::SetPosition(const glm::vec3 position, const float yaw, const float 
 
 CameraPositionData Camera::GetPosition() const { return CameraPositionData{m_position, m_yaw, m_pitch}; }
 
+CameraMatrices Camera::GetMatrices() const {
+    return CameraMatrices{m_projectionMatrix, m_viewMatrix, glm::vec4(m_cameraPosition, 1.0f)};
+}
+
 void Camera::ProcessKeyboard(const Camera_Movement direction) {
     if (direction == FORWARD)
         m_direction += m_front;
