@@ -21,6 +21,8 @@ void main()
     float size = BillboardSize;
     if (dis < 20.0)
         size *= dis * 0.05;
+    if (dis < 1.5)
+        size = 0;
 
     vec3 vertexPosition_worldspace =
         BillboardPos
