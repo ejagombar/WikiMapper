@@ -58,10 +58,10 @@ struct Node {
 
 enum State { play, pause };
 
-class GUI {
+class Engine {
   public:
-    GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines);
-    ~GUI();
+    Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines);
+    ~Engine();
     int run();
 
   private:

@@ -89,15 +89,12 @@ int main() {
         }
     }
 
-    // auto allLinks = db.getAllUniqueLinks();
-    auto allLinks = db.getAllLinks();
+    auto allLinks = db.getAllUniqueLinks();
     for (auto linkPair : allLinks) {
         lines.push_back(spaceMap[linkPair.first]);
         lines.push_back(spaceMap[linkPair.second]);
-
-        std::cout << linkPair.first << "->" << linkPair.second << std::endl;
     }
 
-    GUI myGUI(numOfElements, nodes, lines);
+    Engine myGUI(numOfElements, nodes, lines);
     myGUI.run();
 }

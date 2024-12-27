@@ -10,7 +10,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
-#include <functional>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
@@ -26,7 +25,7 @@ float mrand(float a, float b) {
     return (b - a) * r + a;
 }
 
-GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
+Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
     m_nodes = nodes;
 
     glfwInit();
@@ -74,8 +73,6 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_lineShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
     m_text2d->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
     m_text->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
-
-    const char *names[] = {"Projection", "View", "Normal", "CameraPosition"};
 
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
@@ -195,7 +192,7 @@ GUI::GUI(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &
     m_text2d->UpdateScreenSize(static_cast<float>(m_ScrWidth), static_cast<float>(m_ScrHeight));
 }
 
-GUI::~GUI() {
+Engine::~Engine() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
 
@@ -210,7 +207,7 @@ GUI::~GUI() {
     glfwTerminate();
 }
 
-int GUI::run() {
+int Engine::run() {
     double lastTime = glfwGetTime();
     m_startTime = lastTime;
     m_startFrameTime = lastTime;
@@ -276,9 +273,9 @@ int GUI::run() {
     return 0;
 }
 
-void GUI::loop() {
+void Engine::loop() {
     processEngineInput(m_window);
-    float currentFrame = static_cast<float>(glfwGetTime());
+    const float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
 
@@ -334,37 +331,39 @@ void GUI::loop() {
     }
 }
 
-void GUI::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    GUI *instance = static_cast<GUI *>(glfwGetWindowUserPointer(window));
+void Engine::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->key_callback(window, key, scancode, action, mods);
     }
 }
 
-void GUI::framebuffer_size_callback_static(GLFWwindow *window, int width, int height) {
-    GUI *instance = static_cast<GUI *>(glfwGetWindowUserPointer(window));
+void Engine::framebuffer_size_callback_static(GLFWwindow *window, int width, int height) {
+    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->framebuffer_size_callback(window, width, height);
     }
 }
 
-void GUI::mouse_callback_static(GLFWwindow *window, double xpos, double ypos) {
-    GUI *instance = static_cast<GUI *>(glfwGetWindowUserPointer(window));
+void Engine::mouse_callback_static(GLFWwindow *window, double xpos, double ypos) {
+    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->mouse_callback(window, xpos, ypos);
     }
 }
 
-void GUI::scroll_callback_static(GLFWwindow *window, double xoffset, double yoffset) {
-    GUI *instance = static_cast<GUI *>(glfwGetWindowUserPointer(window));
+void Engine::scroll_callback_static(GLFWwindow *window, double xoffset, double yoffset) {
+    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->scroll_callback(window, xoffset, yoffset);
     }
 }
 
-void GUI::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) { m_camera.ProcessMouseScroll(yoffset); }
+void Engine::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+    m_camera.ProcessMouseScroll(yoffset);
+}
 
-void GUI::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
@@ -374,7 +373,7 @@ void GUI::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     m_ScrHeight = height;
 }
 
-void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 #if !ReplayCameraMovement
     if (m_firstMouse) {
         m_lastX = xpos;
@@ -391,7 +390,7 @@ void GUI::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 #endif
 }
 
-void GUI::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
 #if !ReplayCameraMovement
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
@@ -432,7 +431,7 @@ void GUI::key_callback(GLFWwindow *window, int key, int scancode, int action, in
 #endif
 }
 
-void GUI::processEngineInput(GLFWwindow *window) {
+void Engine::processEngineInput(GLFWwindow *window) {
 #if !ReplayCameraMovement
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_camera.ProcessKeyboard(FORWARD);
