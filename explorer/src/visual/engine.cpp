@@ -141,13 +141,12 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::v
         GLubyte g;
         GLubyte b;
         GLubyte radius;
-        GLfloat position[6];
+        GLfloat position[3];
     };
 
-    VertexData h_data[m_lineCount];
+    VertexData h_data[lines.size()];
 
-    for (unsigned int i = 0; i < m_lineCount; i++) {
-        uint lineIdx = i * 2;
+    for (unsigned int i = 0; i < lines.size(); i++) {
         auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
 
         h_data[i].r = col.r;
@@ -155,13 +154,9 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::v
         h_data[i].b = col.b;
         h_data[i].radius = 1;
 
-        h_data[i].position[0] = lines[lineIdx].x;
-        h_data[i].position[1] = lines[lineIdx].y;
-        h_data[i].position[2] = lines[lineIdx].z;
-
-        h_data[i].position[3] = lines[lineIdx + 1].x;
-        h_data[i].position[4] = lines[lineIdx + 1].y;
-        h_data[i].position[5] = lines[lineIdx + 1].z;
+        h_data[i].position[0] = lines[i].x;
+        h_data[i].position[1] = lines[i].y;
+        h_data[i].position[2] = lines[i].z;
     }
 
     glBindVertexArray(m_VAOs[0]);
@@ -172,13 +167,9 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::v
     glEnableVertexAttribArray(radiusAttrib);
     glVertexAttribPointer(radiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(VertexData), (void *)0);
 
-    const GLint startAttrib = m_lineShader->getAttribLocation("Start");
+    const GLint startAttrib = m_lineShader->getAttribLocation("aPos");
     glEnableVertexAttribArray(startAttrib);
     glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(sizeof(float)));
-
-    const GLint endAttrib = m_lineShader->getAttribLocation("End");
-    glEnableVertexAttribArray(endAttrib);
-    glVertexAttribPointer(endAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(4 * sizeof(float)));
 
     glBindVertexArray(0);
 
@@ -318,7 +309,7 @@ void Engine::loop() {
     m_lineShader->use();
     m_lineShader->setMat3("normalMat", normal);
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_POINTS, 0, m_lineCount);
+    glDrawArrays(GL_LINES, 0, m_lineCount * 2);
 
     m_text->SetTransforms(view);
 

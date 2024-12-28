@@ -21,22 +21,17 @@ layout(std140) uniform GlobalUniforms {
     vec4 cameraPosition;
 };
 
-in vec3 cylinder_color;
+in vec3 gColor;
 
-in vec3 packed_data_0;
-in vec3 packed_data_1;
-in vec3 packed_data_2;
-in vec4 packed_data_3;
-in vec3 packed_data_4;
-in vec3 packed_data_5;
+in vec3 point;
+in vec3 axis;
+in vec3 base;
+in vec3 U;
+in vec3 V;
+in vec4 packedData;
 
-#define surface_point ( packed_data_0 )
-#define axis ( packed_data_1 )
-#define base ( packed_data_2 )
-#define end_cyl packed_data_3.xyz
-#define U ( packed_data_4 )
-#define V ( packed_data_5 )
-#define radius ( packed_data_3.w )
+#define end_cyl packedData.xyz
+#define radius ( packedData.w )
 
 out vec4 out_Color;
 
@@ -53,8 +48,8 @@ vec4 ComputeColorForLight(vec3 N, vec3 L, vec4 ambient, vec4 diffuse, vec4 color
 
 void main()
 {
-    vec4 color = vec4(cylinder_color, 1.0);
-    vec3 ray_target = surface_point;
+    vec4 color = vec4(gColor, 1.0);
+    vec3 ray_target = point;
     vec3 ray_origin = vec3(0.0);
     vec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), 0);
     mat3 basis = mat3(U, V, axis);

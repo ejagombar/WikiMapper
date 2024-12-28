@@ -1,6 +1,6 @@
 #version 330 core
 
-layout(points) in;
+layout(lines) in;
 layout(triangle_strip, max_vertices = 4) out;
 
 layout(std140) uniform GlobalUniforms {
@@ -9,66 +9,60 @@ layout(std140) uniform GlobalUniforms {
     vec4 cameraPosition;
 };
 
-uniform vec4 lightPos;
 uniform mat3 normalMat;
 
-in vec3 vEnd[];
 in vec3 vColor[];
 in float vRadius[];
 
-out vec3 cylinder_color;
+out vec3 gColor;
 
-out vec3 packed_data_0;
-out vec3 packed_data_1;
-out vec3 packed_data_2;
-out vec4 packed_data_3;
-out vec3 packed_data_4;
-out vec3 packed_data_5;
+out vec3 point;
+out vec3 axis;
+out vec3 base;
+out vec4 packedData;
+out vec3 U;
+out vec3 V;
 
-#define point ( packed_data_0 )
-#define axis ( packed_data_1 )
-#define base ( packed_data_2 )
-#define end ( packed_data_3.xyz )
-#define U ( packed_data_4.xyz )
-#define V ( packed_data_5.xyz )
-#define cylinder_radius (packed_data_3.w)
+#define end  packedData.xyz
+#define gRadius packedData.w
 
 void main()
 {
-    vec3 Start = gl_in[0].gl_Position.xyz;
+    vec3 startPos = gl_in[0].gl_Position.xyz;
+    vec3 endPos = gl_in[1].gl_Position.xyz;
 
-    cylinder_color = vColor[0];
-    cylinder_radius = vRadius[0];
+    gRadius = vRadius[0];
 
-    vec3 dir = normalize(Start - vEnd[0]);
+    vec3 dir = normalize(startPos - endPos);
 
-    vec3 cam_dir = normalize(cameraPosition.xyz - Start);
-    float b = dot(cam_dir, dir);
+    vec3 camDir = normalize(cameraPosition.xyz - startPos);
+    float b = dot(camDir, dir);
 
     vec3 ldir = b < 0.0 ? -dir : dir; // Ensure direction vector points correctly
 
-    vec3 left = cross(cam_dir, ldir);
+    vec3 left = cross(camDir, ldir);
     vec3 up = cross(left, ldir);
-    left = cylinder_radius * normalize(left);
-    up = cylinder_radius * normalize(up);
+    left = gRadius * normalize(left);
+    up = gRadius * normalize(up);
 
     // Transform to model-view coordinates
     axis = normalize(normalMat * ldir);
     U = normalize(normalMat * up);
     V = normalize(normalMat * left);
 
-    vec4 base4 = view * vec4(Start - ldir, 1.0);
+    vec4 base4 = view * vec4(startPos - ldir, 1.0);
     base = base4.xyz / base4.w;
 
-    vec4 end4 = view * vec4(vEnd[0], 1.0);
+    vec4 end4 = view * vec4(endPos, 1.0);
     end = end4.xyz / end4.w;
 
-    vec4 w0 = view * vec4(Start + left - up, 1.0);
-    vec4 w1 = view * vec4(Start - left - up, 1.0);
-    vec4 w2 = view * vec4(vEnd[0] + left - up, 1.0);
-    vec4 w3 = view * vec4(vEnd[0] - left - up, 1.0);
+    vec4 w0 = view * vec4(startPos + left - up, 1.0);
+    vec4 w1 = view * vec4(startPos - left - up, 1.0);
+    vec4 w2 = view * vec4(endPos + left - up, 1.0);
+    vec4 w3 = view * vec4(endPos - left - up, 1.0);
 
-    // Emit vertices for the cylinder sides
+    gColor = vColor[0];
+
     point = w0.xyz / w0.w;
     gl_Position = projection * w0;
     EmitVertex();
@@ -76,6 +70,8 @@ void main()
     point = w1.xyz / w1.w;
     gl_Position = projection * w1;
     EmitVertex();
+
+    gColor = vColor[1];
 
     point = w2.xyz / w2.w;
     gl_Position = projection * w2;
