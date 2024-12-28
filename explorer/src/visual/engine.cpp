@@ -63,11 +63,14 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
 
     m_globalUBO = std::make_unique<UBOManager<CameraMatrices>>(m_GLOBAL_UNIFORM_BINDING_POINT);
+    m_EnvironmentUBO = std::make_unique<UBOManager<GlobalUniforms>>(m_LIGHTING_UBO);
 
     m_sphereShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
     m_lineShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
     m_text2d->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
     m_text->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
+
+    m_sphereShader->linkUBO("EnvironmentUniforms", m_LIGHTING_UBO);
 
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
@@ -109,9 +112,9 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
     std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i < m_nodeCount; i++) {
         auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
-        points[i].r = nodes[i].r;
-        points[i].g = nodes[i].g;
-        points[i].b = nodes[i].b;
+        points[i].r = col.r;
+        points[i].g = col.g;
+        points[i].b = col.b;
         points[i].radius = static_cast<GLubyte>(nodes[i].size);
         points[i].position[0] = nodes[i].pos.x;
         points[i].position[1] = nodes[i].pos.y;
@@ -286,15 +289,30 @@ void Engine::loop() {
 
     m_camera.ProcessPosition(deltaTime);
 
-    const CameraMatrices cameraMatrices = m_camera.GetMatrices();
-    const glm::mat4 cameraDirection = cameraMatrices.Projection * glm::mat4(glm::mat3(cameraMatrices.View));
+    glm::vec3 cameraPosition = m_camera.GetCameraPosition();
+    glm::mat4 projection = m_camera.GetProjectionMatrix();
+    glm::mat4 view = m_camera.GetViewMatrix();
+    glm::mat3 normal = m_camera.CalcNormalMatrix();
+
+    const CameraMatrices cameraMatrices{projection, view, glm::vec4(cameraPosition, 1.0)};
+    const glm::mat4 cameraDirection = cameraMatrices.Projection * glm::mat4(glm::mat3(view));
+
+    GlobalUniforms uniforms = {};
+    uniforms.GlobalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    uniforms.GlobalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
+    uniforms.NumPointLights = 2;
+
+    uniforms.PointLights[0] = {cameraPosition, glm::vec3(1.0f, 0.5f, 0.5f), 1.0f, 0.09f, 0.032f};
+    uniforms.PointLights[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
+
+    m_EnvironmentUBO->Update(uniforms);
 
     m_skybox->Display(cameraDirection);
 
     m_globalUBO->Update(cameraMatrices);
 
     m_sphereShader->use();
-    m_sphereShader->setVec3("LightPosition", m_camera.GetCameraPosition());
+    m_sphereShader->setVec3("LightPosition", cameraPosition);
     m_sphereShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
     m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
     glBindVertexArray(m_VAOs[1]);
@@ -302,11 +320,11 @@ void Engine::loop() {
 
     m_lineShader->use();
     m_lineShader->setVec4("lightPos", glm::vec4(0.8f, 4.8f, 5.8f, 1.0f));
-    m_lineShader->setMat3("NormalMat", m_camera.GetNormalMatrix());
+    m_lineShader->setMat3("NormalMat", normal);
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_POINTS, 0, m_lineCount);
 
-    m_text->SetTransforms(cameraMatrices.View);
+    m_text->SetTransforms(view);
 
     for (Node node : m_nodes) {
         m_text->Render(node.text, node.pos, 0.004f, glm::vec3(1.0, 1.0f, 1.0f));

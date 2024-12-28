@@ -56,6 +56,28 @@ struct Node {
     }
 };
 
+struct PointLight {
+    alignas(16) glm::vec3 Position;
+    alignas(16) glm::vec3 Color;
+    alignas(4) float Constant;
+    alignas(4) float Linear;
+    alignas(4) float Quadratic;
+};
+
+// Struct matching the GlobalUniforms block in the GLSL shader
+struct GlobalUniforms {
+    alignas(16) glm::vec3 GlobalLightColor;
+    alignas(16) glm::vec3 GlobalLightDir;
+    alignas(4) int NumPointLights;
+    alignas(16) PointLight PointLights[4];
+};
+
+struct CameraMatrices {
+    glm::mat4 Projection;
+    glm::mat4 View;
+    glm::vec4 Position;
+};
+
 enum State { play, pause };
 
 class Engine {
@@ -120,7 +142,9 @@ class Engine {
     std::unique_ptr<Text2d> m_text2d;
 
     const GLuint m_GLOBAL_UNIFORM_BINDING_POINT = 0;
+    const GLuint m_LIGHTING_UBO = 1;
     std::unique_ptr<UBOManager<CameraMatrices>> m_globalUBO;
+    std::unique_ptr<UBOManager<GlobalUniforms>> m_EnvironmentUBO;
 
     std::vector<Node> m_nodes;
 

@@ -14,12 +14,6 @@ struct CameraPositionData {
     GLfloat pitch;
 };
 
-struct CameraMatrices {
-    glm::mat4 Projection;
-    glm::mat4 View;
-    glm::vec4 Position;
-};
-
 class Camera {
   public:
     Camera() {};
@@ -27,13 +21,13 @@ class Camera {
     void SetPosition(const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), const float yaw = glm::pi<float>(),
                      const float pitch = 0.0f);
 
-    CameraPositionData GetPosition() const;
+    CameraPositionData GetPositionData() const;
 
     glm::mat4 GetViewMatrix() const { return m_viewMatrix; }
     glm::mat4 GetProjectionMatrix() const { return m_projectionMatrix; }
-    glm::mat3 GetNormalMatrix() const;
+    glm::vec3 GetCameraPosition() const { return m_cameraPosition; }
 
-    CameraMatrices GetMatrices() const;
+    glm::mat3 CalcNormalMatrix() const;
 
     void ProcessKeyboard(const Camera_Movement direction);
 
@@ -43,17 +37,16 @@ class Camera {
 
     void ProcessPosition(const float deltaTime);
 
-    glm::vec3 GetCameraPosition() const { return m_cameraPosition; }
-
     void SetAspectRatio(const float aspectRatio) { m_aspectRatio = aspectRatio; }
 
   private:
+    const glm::vec3 m_worldUp = glm::vec3(0.0f, 1.0f, 0.0);
+
     glm::vec3 m_front;
     glm::vec3 m_up;
     glm::vec3 m_right;
-    const glm::vec3 m_worldUp = glm::vec3(0.0f, 1.0f, 0.0);
     glm::vec3 m_position = glm::vec3(0, 0, 0);
-    glm::vec3 m_acceleration = glm::vec3(0.1, 0.1, 0.1);
+    glm::vec3 m_acceleration = glm::vec3(0, 0, 0);
     glm::vec3 m_velocity = glm::vec3(0, 0, 0);
     glm::vec3 m_direction = glm::vec3(0, 0, 0);
 

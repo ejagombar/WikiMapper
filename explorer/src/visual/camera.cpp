@@ -9,11 +9,7 @@ void Camera::SetPosition(const glm::vec3 position, const float yaw, const float 
     updateCameraVectors();
 }
 
-CameraPositionData Camera::GetPosition() const { return CameraPositionData{m_position, m_yaw, m_pitch}; }
-
-CameraMatrices Camera::GetMatrices() const {
-    return CameraMatrices{m_projectionMatrix, m_viewMatrix, glm::vec4(m_cameraPosition, 1.0f)};
-}
+CameraPositionData Camera::GetPositionData() const { return CameraPositionData{m_position, m_yaw, m_pitch}; }
 
 void Camera::ProcessKeyboard(const Camera_Movement movement) {
     if (movement == FORWARD)
@@ -75,7 +71,7 @@ void Camera::ProcessPosition(const float deltaTime) {
     m_cameraPosition = (glm::inverse(m_viewMatrix)[3]);
 }
 
-glm::mat3 Camera::GetNormalMatrix() const {
+glm::mat3 Camera::CalcNormalMatrix() const {
     glm::mat3 submv = glm::mat3(m_viewMatrix);
     submv = glm::inverse(submv);
     return glm::transpose(submv);
