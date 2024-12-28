@@ -134,7 +134,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::v
     glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(NodeData), (void *)(sizeof(float)));
 
     // Lines -------------------------------------------------------------------
-    m_lineCount = lines.size() / 2;
+    m_lineCount = lines.size();
 
     struct VertexData {
         GLubyte r;
@@ -174,6 +174,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::v
     glBindVertexArray(0);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_FRAMEBUFFER_SRGB);
     glDepthFunc(GL_LESS);
 
     m_blur->SetEnabled(false);
@@ -309,7 +310,7 @@ void Engine::loop() {
     m_lineShader->use();
     m_lineShader->setMat3("normalMat", normal);
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_LINES, 0, m_lineCount * 2);
+    glDrawArrays(GL_LINES, 0, m_lineCount);
 
     m_text->SetTransforms(view);
 
