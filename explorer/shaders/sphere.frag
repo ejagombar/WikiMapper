@@ -8,17 +8,17 @@ struct PointLight {
     float quadratic;
 };
 
-layout(std140) uniform GlobalUniforms {
-    mat4 projection;
-    mat4 view;
-    vec4 cameraPosition;
-};
-
 layout(std140) uniform EnvironmentUniforms {
     vec3 globalLightColor;
     vec3 globalLightDir;
     int pointLightCount;
     PointLight pointLight[4];
+};
+
+layout(std140) uniform GlobalUniforms {
+    mat4 projection;
+    mat4 view;
+    vec4 cameraPosition;
 };
 
 in vec3 fColor; // Interpolated color from the geometry shader

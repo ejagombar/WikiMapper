@@ -20,7 +20,7 @@
 #include <random>
 #include <vector>
 
-Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
+Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
     m_nodes = nodes;
 
     glfwInit();
@@ -48,13 +48,13 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
     glfwSetScrollCallback(m_window, scroll_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
 
-    m_camera.SetPosition();
+    m_camera.SetPosition(glm::vec3(3.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
-    m_lineShader = std::make_unique<Shader>("line.vert", "line.frag", "line.geom");
+    m_lineShader = std::make_unique<Shader>("cylinder.vert", "cylinder.frag", "cylinder.geom");
 
     m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_scrWidth, m_scrHeight),
                                             glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
@@ -302,7 +302,7 @@ void Engine::loop() {
     uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
     uniforms.pointLightCount = 2;
 
-    uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 0.5f, 0.5f), 1.0f, 0.09f, 0.032f};
+    uniforms.pointLight[0] = {cameraPosition, glm::vec3(0.5f, 0.5f, 0.5f), 1.0f, 0.09f, 0.032f};
     uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
 
     m_environmentUBO->Update(uniforms);
@@ -312,14 +312,10 @@ void Engine::loop() {
     m_cameraMatricesUBO->Update(cameraMatrices);
 
     m_sphereShader->use();
-    m_sphereShader->setVec3("lightPosition", cameraPosition);
-    m_sphereShader->setVec3("lightColor", glm::vec3(0.8f, 0.8f, 0.8f));
-    m_sphereShader->setVec3("globalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
     m_lineShader->use();
-    m_lineShader->setVec4("lightPos", glm::vec4(0.8f, 4.8f, 5.8f, 1.0f));
     m_lineShader->setMat3("normalMat", normal);
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_POINTS, 0, m_lineCount);

@@ -22,7 +22,6 @@ layout(std140) uniform GlobalUniforms {
 };
 
 in vec3 cylinder_color;
-flat in vec3 lightDir;
 
 in vec3 packed_data_0;
 in vec3 packed_data_1;
@@ -93,8 +92,8 @@ void main()
     gl_FragDepth = depth;
 
     vec4 final_color = 0.01 * color;
-    final_color += ComputeColorForLight(normal, lightDir,
-            vec4(0.05, 0.05, 0.05, 1.0), // ambient
+    final_color += ComputeColorForLight(normal, globalLightDir,
+            vec4(0.12, 0.12, 0.12, 1.0), // ambient
             vec4(1.0, 1.0, 1.0, 1.0), // diffuse
             color);
 

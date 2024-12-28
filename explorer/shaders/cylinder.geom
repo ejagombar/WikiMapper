@@ -17,7 +17,6 @@ in vec3 vColor[];
 in float vRadius[];
 
 out vec3 cylinder_color;
-flat out vec3 lightDir;
 
 out vec3 packed_data_0;
 out vec3 packed_data_1;
@@ -42,7 +41,6 @@ void main()
     cylinder_radius = vRadius[0];
 
     vec3 dir = normalize(Start - vEnd[0]);
-    lightDir = normalize(lightPos.xyz);
 
     vec3 cam_dir = normalize(cameraPosition.xyz - Start);
     float b = dot(cam_dir, dir);
@@ -78,8 +76,6 @@ void main()
     point = w1.xyz / w1.w;
     gl_Position = projection * w1;
     EmitVertex();
-
-    cylinder_color = vec3(1, 0, 0);
 
     point = w2.xyz / w2.w;
     gl_Position = projection * w2;
