@@ -96,5 +96,5 @@ int main() {
     }
 
     Engine myGUI(numOfElements, nodes, lines);
-    myGUI.run();
+    myGUI.Run();
 }

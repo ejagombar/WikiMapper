@@ -28,7 +28,7 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    m_window = glfwCreateWindow(m_ScrWidth, m_ScrHeight, "WikiMapper", NULL, NULL);
+    m_window = glfwCreateWindow(m_scrWidth, m_scrHeight, "WikiMapper", NULL, NULL);
     if (m_window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -39,7 +39,7 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
         std::cout << "Failed to initialize GLAD" << std::endl;
     }
 
-    glViewport(0, 0, m_ScrWidth, m_ScrHeight);
+    glViewport(0, 0, m_scrWidth, m_scrHeight);
 
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowUserPointer(m_window, this);
@@ -49,28 +49,28 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
 
     m_camera.SetPosition();
-    m_camera.SetAspectRatio(static_cast<float>(m_ScrWidth) / static_cast<float>(m_ScrHeight));
+    m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
     m_lineShader = std::make_unique<Shader>("line.vert", "line.frag", "line.geom");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_ScrWidth, m_ScrHeight),
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_scrWidth, m_scrHeight),
                                             glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
 
     m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
 
-    m_globalUBO = std::make_unique<UBOManager<CameraMatrices>>(m_GLOBAL_UNIFORM_BINDING_POINT);
-    m_EnvironmentUBO = std::make_unique<UBOManager<GlobalUniforms>>(m_LIGHTING_UBO);
+    m_cameraMatricesUBO = std::make_unique<UBOManager<CameraMatrices>>(m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_environmentUBO = std::make_unique<UBOManager<EnvironmentLighting>>(m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
 
-    m_sphereShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
-    m_lineShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
-    m_text2d->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
-    m_text->m_textShader->linkUBO("GlobalUniforms", m_GLOBAL_UNIFORM_BINDING_POINT);
+    m_sphereShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_lineShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_text2d->m_textShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_text->m_textShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
 
-    m_sphereShader->linkUBO("EnvironmentUniforms", m_LIGHTING_UBO);
+    m_sphereShader->linkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
 
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
@@ -186,7 +186,7 @@ Engine::Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::v
     glDepthFunc(GL_LESS);
 
     m_blur->SetEnabled(false);
-    m_text2d->UpdateScreenSize(static_cast<float>(m_ScrWidth), static_cast<float>(m_ScrHeight));
+    m_text2d->UpdateScreenSize(static_cast<float>(m_scrWidth), static_cast<float>(m_scrHeight));
 }
 
 Engine::~Engine() {
@@ -204,7 +204,7 @@ Engine::~Engine() {
     glfwTerminate();
 }
 
-int Engine::run() {
+int Engine::Run() {
     double lastTime = glfwGetTime();
     m_startTime = lastTime;
     m_startFrameTime = lastTime;
@@ -295,32 +295,32 @@ void Engine::loop() {
     glm::mat3 normal = m_camera.CalcNormalMatrix();
 
     const CameraMatrices cameraMatrices{projection, view, glm::vec4(cameraPosition, 1.0)};
-    const glm::mat4 cameraDirection = cameraMatrices.Projection * glm::mat4(glm::mat3(view));
+    const glm::mat4 cameraDirection = cameraMatrices.projection * glm::mat4(glm::mat3(view));
 
-    GlobalUniforms uniforms = {};
-    uniforms.GlobalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    uniforms.GlobalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
-    uniforms.NumPointLights = 2;
+    EnvironmentLighting uniforms = {};
+    uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
+    uniforms.pointLightCount = 2;
 
-    uniforms.PointLights[0] = {cameraPosition, glm::vec3(1.0f, 0.5f, 0.5f), 1.0f, 0.09f, 0.032f};
-    uniforms.PointLights[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
+    uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 0.5f, 0.5f), 1.0f, 0.09f, 0.032f};
+    uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
 
-    m_EnvironmentUBO->Update(uniforms);
+    m_environmentUBO->Update(uniforms);
 
     m_skybox->Display(cameraDirection);
 
-    m_globalUBO->Update(cameraMatrices);
+    m_cameraMatricesUBO->Update(cameraMatrices);
 
     m_sphereShader->use();
-    m_sphereShader->setVec3("LightPosition", cameraPosition);
-    m_sphereShader->setVec3("LightColor", glm::vec3(0.8f, 0.8f, 0.8f));
-    m_sphereShader->setVec3("GlobalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
+    m_sphereShader->setVec3("lightPosition", cameraPosition);
+    m_sphereShader->setVec3("lightColor", glm::vec3(0.8f, 0.8f, 0.8f));
+    m_sphereShader->setVec3("globalLightColor", glm::vec3(0.7f, 0.8f, 0.8f));
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
     m_lineShader->use();
     m_lineShader->setVec4("lightPos", glm::vec4(0.8f, 4.8f, 5.8f, 1.0f));
-    m_lineShader->setMat3("NormalMat", normal);
+    m_lineShader->setMat3("normalMat", normal);
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_POINTS, 0, m_lineCount);
 
@@ -338,7 +338,7 @@ void Engine::loop() {
     if (m_state == pause) {
         m_text2d->Render(
             "WikiMapper",
-            glm::vec3((static_cast<float>(m_ScrWidth) * 0.5f), static_cast<float>(m_ScrHeight) * 0.5f, 1.0f), 1.0f,
+            glm::vec3((static_cast<float>(m_scrWidth) * 0.5f), static_cast<float>(m_scrHeight) * 0.5f, 1.0f), 1.0f,
             glm::vec3(0.3, 0.7f, 0.9f));
     }
 }
@@ -381,8 +381,8 @@ void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height
     m_blur->ScreenResize(glm::ivec2(width, height));
     m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
 
-    m_ScrWidth = width;
-    m_ScrHeight = height;
+    m_scrWidth = width;
+    m_scrHeight = height;
 }
 
 void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {

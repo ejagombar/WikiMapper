@@ -1,12 +1,12 @@
 #version 330 core
 
 layout(std140) uniform GlobalUniforms {
-    mat4 Projection;
-    mat4 View;
-    vec4 CameraPosition;
+    mat4 projection;
+    mat4 view;
+    vec4 cameraPosition;
 };
 
-flat in vec3 cylinder_color;
+in vec3 cylinder_color;
 flat in vec3 lightDir;
 
 in vec3 packed_data_0;
@@ -73,7 +73,7 @@ void main()
     vec3 tmp_point = new_point - base;
     vec3 normal = normalize(tmp_point - axis * dot(tmp_point, axis));
 
-    vec2 clipZW = new_point.z * Projection[2].zw + Projection[3].zw;
+    vec2 clipZW = new_point.z * projection[2].zw + projection[3].zw;
     float depth = 0.5 + 0.5 * clipZW.x / clipZW.y;
 
     gl_FragDepth = depth;

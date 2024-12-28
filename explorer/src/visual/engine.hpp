@@ -57,34 +57,33 @@ struct Node {
 };
 
 struct PointLight {
-    alignas(16) glm::vec3 Position;
-    alignas(16) glm::vec3 Color;
-    alignas(4) float Constant;
-    alignas(4) float Linear;
-    alignas(4) float Quadratic;
+    alignas(16) glm::vec3 position;
+    alignas(16) glm::vec3 color;
+    alignas(4) float constant;
+    alignas(4) float linear;
+    alignas(4) float quadratic;
 };
 
-// Struct matching the GlobalUniforms block in the GLSL shader
-struct GlobalUniforms {
-    alignas(16) glm::vec3 GlobalLightColor;
-    alignas(16) glm::vec3 GlobalLightDir;
-    alignas(4) int NumPointLights;
-    alignas(16) PointLight PointLights[4];
+struct EnvironmentLighting {
+    alignas(16) glm::vec3 globalLightColor;
+    alignas(16) glm::vec3 globalLightDir;
+    alignas(4) int pointLightCount;
+    alignas(16) PointLight pointLight[4];
 };
 
 struct CameraMatrices {
-    glm::mat4 Projection;
-    glm::mat4 View;
-    glm::vec4 Position;
+    glm::mat4 projection;
+    glm::mat4 view;
+    glm::vec4 position;
 };
 
 enum State { play, pause };
 
 class Engine {
   public:
-    Engine(const int &MaxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines);
+    Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines);
     ~Engine();
-    int run();
+    int Run();
 
   private:
     void loop();
@@ -102,10 +101,10 @@ class Engine {
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
-    void RenderText(std::string text, float x, float y, float scale, glm::vec3 color);
+    void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
-    unsigned int m_ScrWidth = 1920;
-    unsigned int m_ScrHeight = 1080;
+    unsigned int m_scrWidth = 1920;
+    unsigned int m_scrHeight = 1080;
 
     std::fstream m_positionFile;
     int m_recordCount = 0;
@@ -141,14 +140,15 @@ class Engine {
     std::unique_ptr<Text> m_text;
     std::unique_ptr<Text2d> m_text2d;
 
-    const GLuint m_GLOBAL_UNIFORM_BINDING_POINT = 0;
-    const GLuint m_LIGHTING_UBO = 1;
-    std::unique_ptr<UBOManager<CameraMatrices>> m_globalUBO;
-    std::unique_ptr<UBOManager<GlobalUniforms>> m_EnvironmentUBO;
+    const GLuint m_CAMERA_MATRICES_UBO_BINDING_POINT = 0;
+    const GLuint m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT = 1;
+
+    std::unique_ptr<UBOManager<CameraMatrices>> m_cameraMatricesUBO;
+    std::unique_ptr<UBOManager<EnvironmentLighting>> m_environmentUBO;
 
     std::vector<Node> m_nodes;
 
-    GLuint m_MaxNodes;
+    GLuint m_maxNodes;
     GLuint m_node_buffer;
 
     GLuint m_lineCount;

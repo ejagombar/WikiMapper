@@ -5,7 +5,8 @@
 #include <iostream>
 #include <sstream>
 
-Shader::Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath) {
+Shader::Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath)
+    : m_vertexPath(vertexPath), m_fragmentPath(fragmentPath), m_geometryPath(geometryPath) {
     std::string vertexCode;
     std::string fragmentCode;
     std::string geometryCode;
@@ -155,6 +156,12 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type) {
     if (type != "PROGRAM") {
         glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
         if (!success) {
+            if (type == "GEOMETRY")
+                std::cout << m_geometryPath << std::endl;
+            if (type == "FRAGMENT")
+                std::cout << m_fragmentPath << std::endl;
+            if (type == "VERTEX")
+                std::cout << m_vertexPath << std::endl;
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
             std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n"
                       << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
@@ -162,6 +169,12 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type) {
     } else {
         glGetProgramiv(shader, GL_LINK_STATUS, &success);
         if (!success) {
+            if (type == "GEOMETRY")
+                std::cout << m_geometryPath << std::endl;
+            if (type == "FRAGMENT")
+                std::cout << m_fragmentPath << std::endl;
+            if (type == "VERTEX")
+                std::cout << m_vertexPath << std::endl;
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
             std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n"
                       << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;

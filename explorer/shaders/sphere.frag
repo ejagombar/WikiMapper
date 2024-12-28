@@ -1,25 +1,24 @@
 #version 330 core
 
-// Light structure definition
 struct PointLight {
-    vec3 Position; // Position of the light in world space
-    vec3 Color; // Color of the point light
-    float Constant; // Constant attenuation factor
-    float Linear; // Linear attenuation factor
-    float Quadratic; // Quadratic attenuation factor
+    vec3 position;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 layout(std140) uniform GlobalUniforms {
-    mat4 Projection;
-    mat4 View;
-    vec4 CameraPosition;
+    mat4 projection;
+    mat4 view;
+    vec4 cameraPosition;
 };
 
 layout(std140) uniform EnvironmentUniforms {
-    vec3 GlobalLightColor;
-    vec3 GlobalLightDir;
-    int NumPointLights;
-    PointLight PointLights[16];
+    vec3 globalLightColor;
+    vec3 globalLightDir;
+    int pointLightCount;
+    PointLight pointLight[4];
 };
 
 in vec3 fColor; // Interpolated color from the geometry shader
@@ -31,7 +30,7 @@ out vec4 FragColor;
 
 void Impostor(out vec3 cameraPos, out vec3 cameraNormal)
 {
-    vec3 cameraSpherePos = vec3(View * vec4(fPos, 1.0));
+    vec3 cameraSpherePos = vec3(view * vec4(fPos, 1.0));
 
     vec3 cameraPlanePos = vec3(mapping * fSize, 0.0) + cameraSpherePos;
     vec3 rayDirection = normalize(cameraPlanePos);
@@ -59,39 +58,38 @@ void main()
 
     Impostor(cameraPos, cameraNormal);
 
-    vec4 clipPos = Projection * vec4(cameraPos, 1.0);
+    vec4 clipPos = projection * vec4(cameraPos, 1.0);
     float ndcDepth = clipPos.z / clipPos.w;
     gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
 
     // Transform normals to world space
-    vec3 normal = normalize(mat3(transpose(View)) * cameraNormal);
+    vec3 normal = normalize(mat3(transpose(view)) * cameraNormal);
 
-    // Global light contribution
-    float globalDiffuse = max(dot(normal, normalize(GlobalLightDir)), 0.0);
-    vec3 globalLighting = globalDiffuse * GlobalLightColor;
+    float globalDiffuse = max(dot(normal, normalize(globalLightDir)), 0.0);
+    vec3 globalLighting = globalDiffuse * globalLightColor;
 
     // Accumulate point light contributions
     vec3 pointLighting = vec3(0.0);
-    for (int i = 0; i < NumPointLights; ++i) {
-        PointLight light = PointLights[i];
-        vec3 lightDir = normalize(light.Position - fPos);
-        float distance = length(light.Position - fPos);
+    for (int i = 0; i < pointLightCount; ++i) {
+        PointLight light = pointLight[i];
+        vec3 lightDir = normalize(light.position - fPos);
+        float distance = length(light.position - fPos);
 
         // Attenuation
-        float attenuation = 1.0 / (light.Constant + light.Linear * distance + light.Quadratic * (distance * distance));
+        float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
         // Diffuse component
         float diffuse = max(dot(normal, lightDir), 0.0);
 
         // Specular component
-        vec3 viewDir = normalize(CameraPosition.xyz - fPos);
+        vec3 viewDir = normalize(cameraPosition.xyz - fPos);
         vec3 reflectDir = reflect(-lightDir, normal);
         float specularStrength = 0.9;
         float shininess = 128.0;
         float specular = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 
         // Combine point light components
-        pointLighting += attenuation * (diffuse + specularStrength * specular) * light.Color;
+        pointLighting += attenuation * (diffuse + specularStrength * specular) * light.color;
     }
 
     // Ambient component
@@ -102,4 +100,3 @@ void main()
 
     FragColor = vec4(lighting * fColor, 1.0);
 }
-

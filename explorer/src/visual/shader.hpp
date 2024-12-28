@@ -38,6 +38,10 @@ class Shader {
 
   private:
     void checkCompileErrors(unsigned int shader, std::string type);
+
+    const char *m_vertexPath;
+    const char *m_fragmentPath;
+    const char *m_geometryPath;
 };
 
 #endif
