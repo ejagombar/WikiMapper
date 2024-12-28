@@ -1,5 +1,20 @@
 #version 330 core
 
+struct PointLight {
+    vec3 position;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+layout(std140) uniform EnvironmentUniforms {
+    vec3 globalLightColor;
+    vec3 globalLightDir;
+    int pointLightCount;
+    PointLight pointLight[4];
+};
+
 layout(std140) uniform GlobalUniforms {
     mat4 projection;
     mat4 view;
@@ -19,7 +34,6 @@ in vec3 packed_data_5;
 #define surface_point ( packed_data_0 )
 #define axis ( packed_data_1 )
 #define base ( packed_data_2 )
-// end -> end_cyl
 #define end_cyl packed_data_3.xyz
 #define U ( packed_data_4 )
 #define V ( packed_data_5 )
