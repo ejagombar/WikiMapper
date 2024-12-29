@@ -72,8 +72,6 @@ int main() {
         spaceMap.insert({neighboursUID[i], {out[i], colFloat}});
     }
 
-    std::cout << spaceMap.size() << std::endl;
-
     // Display next node -----------------
     auto neighbours = db.getNeighbors(baseNodeUID);
 
@@ -82,8 +80,8 @@ int main() {
     auto subNeighboursUID = db.getNeighborsUID(subNodeUID);
 
     glm::vec3 rotation = spaceMap[subNodeUID].first + glm::vec3(0, glm::pi<float>() * 0.5f, 0);
-    auto subOut = spreadOrbitRand(spaceMap[subNodeUID].first, neighboursUID.size(), 2 * sqrt(subNeighboursUID.size()),
-                                  glm::vec2(1, 2), glm::vec2(1, 2), rotation);
+    auto subOut = spreadOrbitRand(spaceMap[subNodeUID].first, subNeighboursUID.size(),
+                                  2 * sqrt(subNeighboursUID.size()), glm::vec2(1, 2), glm::vec2(1, 2), rotation);
 
     for (int i = 0; i < subNeighboursUID.size(); i++) {
         auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
@@ -118,23 +116,29 @@ int main() {
     }
 
     auto allLinks = db.getAllUniqueLinks();
-    for (auto linkPair : allLinks) {
-        Edge edge;
-        edge.start = spaceMap[linkPair.first].first;
-        edge.end = spaceMap[linkPair.second].first;
+    for (const auto linkPair : allLinks) {
+        auto itStart = spaceMap.find(linkPair.first);
+        auto itEnd = spaceMap.find(linkPair.second);
 
-        unsigned char r, g, b;
-        unpackFloatToRGB(spaceMap[linkPair.first].second, r, g, b);
-        edge.startRGB[0] = r;
-        edge.startRGB[1] = g;
-        edge.startRGB[2] = b;
+        if (itStart != spaceMap.end() and itEnd != spaceMap.end()) {
+            Edge edge;
 
-        unpackFloatToRGB(spaceMap[linkPair.second].second, r, g, b);
-        edge.endRGB[0] = r;
-        edge.endRGB[1] = g;
-        edge.endRGB[2] = b;
+            edge.start = itStart->second.first;
+            edge.end = itEnd->second.first;
 
-        edges.push_back(edge);
+            unsigned char r, g, b;
+            unpackFloatToRGB(itStart->second.second, r, g, b);
+            edge.startRGB[0] = r;
+            edge.startRGB[1] = g;
+            edge.startRGB[2] = b;
+
+            unpackFloatToRGB(itEnd->second.second, r, g, b);
+            edge.endRGB[0] = r;
+            edge.endRGB[1] = g;
+            edge.endRGB[2] = b;
+
+            edges.push_back(edge);
+        }
     }
 
     Engine myGUI(numOfElements, nodes, edges);

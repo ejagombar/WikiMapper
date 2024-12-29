@@ -135,7 +135,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     // Lines -------------------------------------------------------------------
     m_lineCount = lines.size();
 
-    struct VertexData {
+    struct EdgeData {
         GLubyte r;
         GLubyte g;
         GLubyte b;
@@ -143,39 +143,39 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
         GLfloat position[3];
     };
 
-    VertexData h_data[m_lineCount * 2];
+    EdgeData edgeData[m_lineCount * 2];
 
     for (unsigned int i = 0; i < m_lineCount; i++) {
         const int lineIdx = i * 2;
 
-        h_data[lineIdx].r = lines[i].startRGB[0];
-        h_data[lineIdx].g = lines[i].startRGB[1];
-        h_data[lineIdx].b = lines[i].startRGB[2];
-        h_data[lineIdx].radius = 1;
-        h_data[lineIdx].position[0] = lines[i].start.x;
-        h_data[lineIdx].position[1] = lines[i].start.y;
-        h_data[lineIdx].position[2] = lines[i].start.z;
+        edgeData[lineIdx].r = lines[i].startRGB[0];
+        edgeData[lineIdx].g = lines[i].startRGB[1];
+        edgeData[lineIdx].b = lines[i].startRGB[2];
+        edgeData[lineIdx].radius = 1;
+        edgeData[lineIdx].position[0] = lines[i].start.x;
+        edgeData[lineIdx].position[1] = lines[i].start.y;
+        edgeData[lineIdx].position[2] = lines[i].start.z;
 
-        h_data[lineIdx + 1].r = lines[i].endRGB[0];
-        h_data[lineIdx + 1].g = lines[i].endRGB[1];
-        h_data[lineIdx + 1].b = lines[i].endRGB[2];
-        h_data[lineIdx + 1].radius = 1;
-        h_data[lineIdx + 1].position[0] = lines[i].end.x;
-        h_data[lineIdx + 1].position[1] = lines[i].end.y;
-        h_data[lineIdx + 1].position[2] = lines[i].end.z;
+        edgeData[lineIdx + 1].r = lines[i].endRGB[0];
+        edgeData[lineIdx + 1].g = lines[i].endRGB[1];
+        edgeData[lineIdx + 1].b = lines[i].endRGB[2];
+        edgeData[lineIdx + 1].radius = 1;
+        edgeData[lineIdx + 1].position[0] = lines[i].end.x;
+        edgeData[lineIdx + 1].position[1] = lines[i].end.y;
+        edgeData[lineIdx + 1].position[2] = lines[i].end.z;
     }
 
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(h_data), h_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(edgeData), edgeData, GL_STATIC_DRAW);
 
     const GLint radiusAttrib = m_lineShader->getAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(radiusAttrib);
-    glVertexAttribPointer(radiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(VertexData), (void *)0);
+    glVertexAttribPointer(radiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData), (void *)0);
 
     const GLint startAttrib = m_lineShader->getAttribLocation("aPos");
     glEnableVertexAttribArray(startAttrib);
-    glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(sizeof(float)));
+    glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(EdgeData), (void *)(sizeof(float)));
 
     glBindVertexArray(0);
 
