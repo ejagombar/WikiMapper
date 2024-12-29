@@ -20,7 +20,7 @@
 #include <random>
 #include <vector>
 
-Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines) {
+Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> &lines) {
     m_nodes = nodes;
 
     glfwInit();
@@ -111,10 +111,9 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::v
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i < m_nodeCount; i++) {
-        auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
-        points[i].r = col.r;
-        points[i].g = col.g;
-        points[i].b = col.b;
+        points[i].r = nodes[i].rgb[0];
+        points[i].g = nodes[i].rgb[1];
+        points[i].b = nodes[i].rgb[2];
         points[i].radius = static_cast<GLubyte>(nodes[i].size);
         points[i].position[0] = nodes[i].pos.x;
         points[i].position[1] = nodes[i].pos.y;
@@ -144,19 +143,26 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::v
         GLfloat position[3];
     };
 
-    VertexData h_data[lines.size()];
+    VertexData h_data[m_lineCount * 2];
 
-    for (unsigned int i = 0; i < lines.size(); i++) {
-        auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
+    for (unsigned int i = 0; i < m_lineCount; i++) {
+        const int lineIdx = i * 2;
 
-        h_data[i].r = col.r;
-        h_data[i].g = col.g;
-        h_data[i].b = col.b;
-        h_data[i].radius = 1;
+        h_data[lineIdx].r = lines[i].startRGB[0];
+        h_data[lineIdx].g = lines[i].startRGB[1];
+        h_data[lineIdx].b = lines[i].startRGB[2];
+        h_data[lineIdx].radius = 1;
+        h_data[lineIdx].position[0] = lines[i].start.x;
+        h_data[lineIdx].position[1] = lines[i].start.y;
+        h_data[lineIdx].position[2] = lines[i].start.z;
 
-        h_data[i].position[0] = lines[i].x;
-        h_data[i].position[1] = lines[i].y;
-        h_data[i].position[2] = lines[i].z;
+        h_data[lineIdx + 1].r = lines[i].endRGB[0];
+        h_data[lineIdx + 1].g = lines[i].endRGB[1];
+        h_data[lineIdx + 1].b = lines[i].endRGB[2];
+        h_data[lineIdx + 1].radius = 1;
+        h_data[lineIdx + 1].position[0] = lines[i].end.x;
+        h_data[lineIdx + 1].position[1] = lines[i].end.y;
+        h_data[lineIdx + 1].position[2] = lines[i].end.z;
     }
 
     glBindVertexArray(m_VAOs[0]);
@@ -310,7 +316,7 @@ void Engine::loop() {
     m_lineShader->use();
     m_lineShader->setMat3("normalMat", normal);
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_LINES, 0, m_lineCount);
+    glDrawArrays(GL_LINES, 0, m_lineCount * 2);
 
     m_text->SetTransforms(view);
 

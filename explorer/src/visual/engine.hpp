@@ -44,16 +44,17 @@ template <typename T> std::vector<T> ReadFileData(const std::string &filename) {
 }
 
 struct Node {
-    glm::vec3 pos, speed;
-    unsigned char r, g, b, a; // Color
-    float size, angle, weight;
-    float cameradistance; // *Squared* distance to the camera. if dead : -1.0f
+    glm::vec3 pos;
+    unsigned char rgb[3];
+    float size;
     std::string text;
+};
 
-    bool operator<(const Node &that) const {
-        // Sort in reverse order : far nodes drawn first.
-        return this->cameradistance > that.cameradistance;
-    }
+struct Edge {
+    glm::vec3 start, end;
+    unsigned char startRGB[3];
+    unsigned char endRGB[3];
+    float size;
 };
 
 struct PointLight {
@@ -81,7 +82,7 @@ enum State { play, pause };
 
 class Engine {
   public:
-    Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<glm::vec3> &lines);
+    Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> &lines);
     ~Engine();
     int Run();
 

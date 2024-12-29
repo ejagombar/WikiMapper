@@ -1,6 +1,8 @@
+#include <tuple>
 #define STB_IMAGE_IMPLEMENTATION
 #include "./visual/engine.hpp"
 
+#include "../lib/rgb_hsv.hpp"
 #include "graph.hpp"
 #include "pointMaths.hpp"
 
@@ -10,6 +12,7 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <iostream>
 #include <json/json.h>
+#include <random>
 #include <unordered_map>
 #include <vector>
 
@@ -26,6 +29,19 @@ uint32_t getTopNode(GraphDB::Graph &db, std::vector<GraphDB::Node> &nodes) {
     return topNode;
 }
 
+float packRGBToFloat(unsigned char r, unsigned char g, unsigned char b) {
+    uint32_t packed = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b));
+    return *reinterpret_cast<float *>(&packed);
+}
+
+void unpackFloatToRGB(float packedFloat, unsigned char &r, unsigned char &g, unsigned char &b) {
+    uint32_t packed = *reinterpret_cast<uint32_t *>(&packedFloat);
+
+    r = (packed >> 16) & 0xFF;
+    g = (packed >> 8) & 0xFF;
+    b = packed & 0xFF;
+}
+
 int main() {
     GraphDB::Graph db;
     generateFakeData(db);
@@ -33,9 +49,7 @@ int main() {
     auto allNodes = db.getAllNodes();
     const int numOfElements = allNodes.size();
 
-    std::vector<glm::vec3> lines;
-    std::vector<Node> nodes(numOfElements);
-    std::unordered_map<uint32_t, glm::vec3> spaceMap(numOfElements);
+    std::unordered_map<uint32_t, std::pair<glm::vec3, float>> spaceMap(numOfElements);
 
     // Display base node -----------------
 
@@ -43,14 +57,22 @@ int main() {
     uint32_t baseNodeUID = getTopNode(db, allNodes);
     auto baseNode = db.getNode(baseNodeUID);
 
-    spaceMap.insert({baseNodeUID, glm::vec3(0, 0, 0)});
+    spaceMap.insert({baseNodeUID, {glm::vec3(0, 0, 0), packRGBToFloat(50, 10, 200)}});
 
     auto neighboursUID = db.getNeighborsUID(baseNodeUID);
-    auto out = spreadOrbit(spaceMap[baseNode->UID], neighboursUID.size(), 2 * sqrt(numOfElements), glm::vec3(0, 0, 0));
+    auto out =
+        spreadOrbit(spaceMap[baseNode->UID].first, neighboursUID.size(), 2 * sqrt(numOfElements), glm::vec3(0, 0, 0));
 
+    std::random_device seed;
+    std::mt19937 gen{seed()};
+    std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i < neighboursUID.size(); i++) {
-        spaceMap.insert({neighboursUID[i], out[i]});
+        auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
+        auto colFloat = packRGBToFloat(col.r, col.g, col.b);
+        spaceMap.insert({neighboursUID[i], {out[i], colFloat}});
     }
+
+    std::cout << spaceMap.size() << std::endl;
 
     // Display next node -----------------
     auto neighbours = db.getNeighbors(baseNodeUID);
@@ -58,43 +80,63 @@ int main() {
     uint32_t subNodeUID = getTopNode(db, neighbours);
 
     auto subNeighboursUID = db.getNeighborsUID(subNodeUID);
-    // std::cout << " test" << subNeighboursUID.size() << std::endl;
-    glm::vec3 rotation = spaceMap[subNodeUID] + glm::vec3(0, glm::pi<float>() * 0.5f, 0);
-    auto subOut = spreadOrbitRand(spaceMap[subNodeUID], neighboursUID.size(), 2 * sqrt(subNeighboursUID.size()),
+
+    glm::vec3 rotation = spaceMap[subNodeUID].first + glm::vec3(0, glm::pi<float>() * 0.5f, 0);
+    auto subOut = spreadOrbitRand(spaceMap[subNodeUID].first, neighboursUID.size(), 2 * sqrt(subNeighboursUID.size()),
                                   glm::vec2(1, 2), glm::vec2(1, 2), rotation);
 
     for (int i = 0; i < subNeighboursUID.size(); i++) {
-        spaceMap.insert({subNeighboursUID[i], subOut[i]});
+        auto col = hsv2rgb(dist(gen), 1.0f, 1.0f);
+        auto colFloat = packRGBToFloat(col.r, col.g, col.b);
+        spaceMap.insert({subNeighboursUID[i], {subOut[i], colFloat}});
     }
 
     // -----------------------------------
 
+    std::vector<Node> nodes(numOfElements);
+    std::vector<Edge> edges;
+
     for (int i = 0; i < numOfElements; i++) {
+        std::cout << i << std::endl;
         auto it = spaceMap.find(allNodes[i].UID);
 
-        nodes[i].r = rand() % 256;
-        nodes[i].g = rand() % 256;
-        nodes[i].b = rand() % 256;
-
-        nodes[i].text = allNodes[i].title;
-
         if (it != spaceMap.end()) {
-            nodes[i].pos = it->second;
-            nodes[i].a = 255;
+            unsigned char r, g, b;
+
+            std::cout << it->second.second << std::endl;
+            unpackFloatToRGB(it->second.second, r, g, b);
+
+            nodes[i].rgb[0] = r;
+            nodes[i].rgb[1] = g;
+            nodes[i].rgb[2] = b;
+
+            nodes[i].text = allNodes[i].title;
+
+            nodes[i].pos = it->second.first;
             nodes[i].size = 20;
-        } else {
-            nodes[i].pos = glm::vec3(50, 50, 50);
-            nodes[i].a = 0;
-            nodes[i].size = 0;
         }
     }
 
     auto allLinks = db.getAllUniqueLinks();
     for (auto linkPair : allLinks) {
-        lines.push_back(spaceMap[linkPair.first]);
-        lines.push_back(spaceMap[linkPair.second]);
+        Edge edge;
+        edge.start = spaceMap[linkPair.first].first;
+        edge.end = spaceMap[linkPair.second].first;
+
+        unsigned char r, g, b;
+        unpackFloatToRGB(spaceMap[linkPair.first].second, r, g, b);
+        edge.startRGB[0] = r;
+        edge.startRGB[1] = g;
+        edge.startRGB[2] = b;
+
+        unpackFloatToRGB(spaceMap[linkPair.second].second, r, g, b);
+        edge.endRGB[0] = r;
+        edge.endRGB[1] = g;
+        edge.endRGB[2] = b;
+
+        edges.push_back(edge);
     }
 
-    Engine myGUI(numOfElements, nodes, lines);
+    Engine myGUI(numOfElements, nodes, edges);
     myGUI.Run();
 }
