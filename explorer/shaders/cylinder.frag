@@ -35,15 +35,20 @@ in vec4 packedData;
 
 out vec4 out_Color;
 
-vec4 ComputeColorForLight(vec3 N, vec3 L, vec4 ambient, vec4 diffuse, vec4 color) {
-    float NdotL;
-    vec4 ret_val = vec4(0.);
-    ret_val += ambient * color;
-    NdotL = dot(N, L);
+vec4 ComputeColorForLight(vec3 N, vec3 L, vec4 ambient, vec4 diffuse, vec4 specular, vec4 color, vec3 viewDir) {
+    float NdotL = max(dot(N, L), 0.0);
+    vec4 result = ambient * color;
+
     if (NdotL > 0.0) {
-        ret_val += diffuse * NdotL * color;
+        result += diffuse * NdotL * color;
+
+        // Specular lighting
+        vec3 R = reflect(-L, N);
+        float spec = pow(max(dot(viewDir, R), 0.0), 32.0); // Shininess factor
+        result += specular * spec * color;
     }
-    return ret_val;
+
+    return result;
 }
 
 void main()
@@ -51,7 +56,7 @@ void main()
     vec4 color = vec4(gColor, 1.0);
     vec3 ray_target = point;
     vec3 ray_origin = vec3(0.0);
-    vec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), 0);
+    vec3 ray_direction = normalize(ray_origin - ray_target);
     mat3 basis = mat3(U, V, axis);
 
     vec3 diff = ray_target - 0.5 * (base + end_cyl);
@@ -59,7 +64,6 @@ void main()
 
     // angle (cos) between cylinder cylinder_axis and ray direction
     float dz = dot(axis, ray_direction);
-
     float radius2 = radius * radius;
 
     vec3 D = vec3(dot(U, ray_direction), dot(V, ray_direction), dz);
@@ -77,7 +81,6 @@ void main()
 
     // point of intersection on cylinder surface
     vec3 new_point = ray_target + dist * ray_direction;
-
     vec3 tmp_point = new_point - base;
     vec3 normal = normalize(tmp_point - axis * dot(tmp_point, axis));
 
@@ -86,11 +89,37 @@ void main()
 
     gl_FragDepth = depth;
 
-    vec4 final_color = 0.01 * color;
-    final_color += ComputeColorForLight(normal, globalLightDir,
-            vec4(0.12, 0.12, 0.12, 1.0), // ambient
-            vec4(1.0, 1.0, 1.0, 1.0), // diffuse
-            color);
+    vec3 viewDir = normalize(vec3(cameraPosition) - new_point);
+
+    vec4 final_color = vec4(0.0);
+
+    // Global light contributions
+    vec3 lightDir = normalize(-globalLightDir);
+    final_color += ComputeColorForLight(
+            normal, lightDir,
+            vec4(0.12, 0.12, 0.12, 1.0) * vec4(globalLightColor, 1.0), // ambient
+            vec4(1.0, 1.0, 1.0, 1.0) * vec4(globalLightColor, 1.0), // diffuse
+            vec4(0.5, 0.5, 0.5, 1.0), // specular
+            color, viewDir
+        );
+
+    // Point light contributions
+    for (int i = 0; i < pointLightCount; ++i) {
+        PointLight light = pointLight[i];
+        vec3 toLight = light.position - new_point;
+        float distance = length(toLight);
+        vec3 lightDir = normalize(toLight);
+
+        float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+
+        final_color += ComputeColorForLight(
+                normal, lightDir,
+                vec4(0.1, 0.1, 0.1, 1.0) * vec4(light.color, 1.0) * attenuation, // ambient
+                vec4(1.0, 1.0, 1.0, 1.0) * vec4(light.color, 1.0) * attenuation, // diffuse
+                vec4(0.3, 0.3, 0.3, 1.0) * attenuation, // specular
+                color, viewDir
+            );
+    }
 
     out_Color = final_color;
 }
