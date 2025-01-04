@@ -24,7 +24,7 @@ class Text {
     Text(const std::string font, const std::string vertexShader, const std::string fragmentShader);
     ~Text() {};
 
-    void SetTransforms(const glm::mat4 view);
+    void SetTransforms(const glm::mat4 view, const float time);
     void Render(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color);
 
     std::unique_ptr<Shader> m_textShader;

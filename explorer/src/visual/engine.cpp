@@ -71,6 +71,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     m_text->m_textShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
 
     m_sphereShader->linkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_lineShader->linkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
 
 #if RecordCameraMovement
     std::remove("benchmarkCameraTrack");
@@ -151,7 +152,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
         edgeData[lineIdx].r = lines[i].startRGB[0];
         edgeData[lineIdx].g = lines[i].startRGB[1];
         edgeData[lineIdx].b = lines[i].startRGB[2];
-        edgeData[lineIdx].radius = 1;
+        edgeData[lineIdx].radius = static_cast<GLubyte>(lines[i].size);
         edgeData[lineIdx].position[0] = lines[i].start.x;
         edgeData[lineIdx].position[1] = lines[i].start.y;
         edgeData[lineIdx].position[2] = lines[i].start.z;
@@ -159,7 +160,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
         edgeData[lineIdx + 1].r = lines[i].endRGB[0];
         edgeData[lineIdx + 1].g = lines[i].endRGB[1];
         edgeData[lineIdx + 1].b = lines[i].endRGB[2];
-        edgeData[lineIdx + 1].radius = 1;
+        edgeData[lineIdx + 1].radius = static_cast<GLubyte>(lines[i].size);
         edgeData[lineIdx + 1].position[0] = lines[i].end.x;
         edgeData[lineIdx + 1].position[1] = lines[i].end.y;
         edgeData[lineIdx + 1].position[2] = lines[i].end.z;
@@ -310,15 +311,17 @@ void Engine::loop() {
     m_cameraMatricesUBO->Update(cameraMatrices);
 
     m_sphereShader->use();
+    m_sphereShader->setFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
     m_lineShader->use();
     m_lineShader->setMat3("normalMat", normal);
+    m_lineShader->setFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_LINES, 0, m_lineCount * 2);
 
-    m_text->SetTransforms(view);
+    m_text->SetTransforms(view, currentFrame);
 
     for (Node node : m_nodes) {
         m_text->Render(node.text, node.pos, 0.004f, glm::vec3(1.0, 1.0f, 1.0f));
@@ -330,7 +333,7 @@ void Engine::loop() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (m_state == pause) {
-        m_text2d->Render(
+        m_text2d->Render2d(
             "WikiMapper",
             glm::vec3((static_cast<float>(m_scrWidth) * 0.5f), static_cast<float>(m_scrHeight) * 0.5f, 1.0f), 1.0f,
             glm::vec3(0.3, 0.7f, 0.9f));

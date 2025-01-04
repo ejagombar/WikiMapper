@@ -62,10 +62,11 @@ Text::Text(const std::string fontPath, const std::string vertexShader, const std
     glBindVertexArray(0);
 }
 
-void Text::SetTransforms(const glm::mat4 view) {
+void Text::SetTransforms(const glm::mat4 view, const float time) {
     m_textShader->use();
     m_textShader->setVec3("CameraUp_worldspace", view[0][1], view[1][1], view[2][1]);
     m_textShader->setVec3("CameraRight_worldspace", view[0][0], view[1][0], view[2][0]);
+    m_textShader->setFloat("time", time);
 }
 
 void Text::Render(const std::string text, glm::vec3 position, const float scale, const glm::vec3 color) {
@@ -123,7 +124,7 @@ void Text::Render(const std::string text, glm::vec3 position, const float scale,
 
 void Text2d::UpdateScreenSize(const float width, const float height) {
     m_projection = glm::ortho(0.0f, width, 0.0f, height);
-    SetTransforms(glm::mat4(1.0f));
+    SetTransforms(glm::mat4(1.0f),0);
 }
 
 void Text2d::Render2d(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color) {

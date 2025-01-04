@@ -8,6 +8,8 @@ layout(std140) uniform GlobalUniforms {
     vec4 CameraPosition;
 };
 
+uniform float time;
+
 uniform vec3 BillboardPos;
 uniform float BillboardSize;
 uniform vec3 CameraRight_worldspace;
@@ -17,7 +19,8 @@ out vec2 TexCoords;
 
 void main()
 {
-    float dis = distance(CameraPosition.xyz, BillboardPos);
+    vec3 pos = BillboardPos + vec3(sin(time + BillboardPos.z * 0.1) * 0.04, sin(time + BillboardPos.y * 0.1) * 0.055, sin(time + BillboardPos.x * 0.1) * 0.07);
+    float dis = distance(CameraPosition.xyz, pos);
     float size = BillboardSize;
     if (dis < 20.0)
         size *= dis * 0.05;
@@ -25,10 +28,10 @@ void main()
         size = 0;
 
     vec3 vertexPosition_worldspace =
-        BillboardPos
+        pos
             + CameraRight_worldspace * aCoord.x * size
             + CameraUp_worldspace * aCoord.y * size
-            + normalize(CameraPosition.xyz - BillboardPos) * aCoord.z;
+            + normalize(CameraPosition.xyz - pos) * aCoord.z;
 
     gl_Position = Projection * View * vec4(vertexPosition_worldspace, 1.0f);
 
