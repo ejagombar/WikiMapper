@@ -4,6 +4,7 @@ layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
 
 uniform float time;
+const float offsetSpeed = 0.4;
 
 layout(std140) uniform GlobalUniforms {
     mat4 projection;
@@ -33,7 +34,7 @@ void main() {
     vec3 position = gl_in[0].gl_Position.xyz;
     float scale = 1;
 
-    vec3 center = gl_in[0].gl_Position.xyz + vec3(sin(time + gl_in[0].gl_Position.z * 0.1) * 0.04, sin(time + gl_in[0].gl_Position.y * 0.1) * 0.055, sin(time + gl_in[0].gl_Position.x * 0.1) * 0.07);
+    vec3 center = gl_in[0].gl_Position.xyz + vec3(sin(time + gl_in[0].gl_Position.z * offsetSpeed) * 0.04, sin(time + gl_in[0].gl_Position.y * offsetSpeed) * 0.055, sin(time + gl_in[0].gl_Position.x * offsetSpeed) * 0.07);
 
     vec3 offsetX = vSize[0] * cameraRight;
     vec3 offsetY = vSize[0] * cameraUp;

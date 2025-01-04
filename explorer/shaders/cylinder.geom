@@ -11,6 +11,7 @@ layout(std140) uniform GlobalUniforms {
 
 uniform mat3 normalMat;
 uniform float time;
+const float offsetSpeed = 0.4;
 
 in vec3 vColor[];
 in float vRadius[];
@@ -29,8 +30,8 @@ out vec3 V;
 
 void main()
 {
-    vec3 startPos = gl_in[0].gl_Position.xyz + vec3(sin(time + gl_in[0].gl_Position.z * 0.1) * 0.04, sin(time + gl_in[0].gl_Position.y * 0.1) * 0.055, sin(time + gl_in[0].gl_Position.x * 0.1) * 0.07);
-    vec3 endPos = gl_in[1].gl_Position.xyz + vec3(sin(time + gl_in[1].gl_Position.z * 0.1) * 0.04, sin(time + gl_in[1].gl_Position.y * 0.1) * 0.055, sin(time + gl_in[1].gl_Position.x * 0.1) * 0.07);
+    vec3 startPos = gl_in[0].gl_Position.xyz + vec3(sin(time + gl_in[0].gl_Position.z * offsetSpeed) * 0.04, sin(time + gl_in[0].gl_Position.y * offsetSpeed) * 0.055, sin(time + gl_in[0].gl_Position.x * offsetSpeed) * 0.07);
+    vec3 endPos = gl_in[1].gl_Position.xyz + vec3(sin(time + gl_in[1].gl_Position.z * offsetSpeed) * 0.04, sin(time + gl_in[1].gl_Position.y * offsetSpeed) * 0.055, sin(time + gl_in[1].gl_Position.x * offsetSpeed) * 0.07);
 
     gRadius = vRadius[0];
 

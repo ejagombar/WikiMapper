@@ -9,6 +9,7 @@ layout(std140) uniform GlobalUniforms {
 };
 
 uniform float time;
+const float offsetSpeed = 0.4;
 
 uniform vec3 BillboardPos;
 uniform float BillboardSize;
@@ -19,7 +20,7 @@ out vec2 TexCoords;
 
 void main()
 {
-    vec3 pos = BillboardPos + vec3(sin(time + BillboardPos.z * 0.1) * 0.04, sin(time + BillboardPos.y * 0.1) * 0.055, sin(time + BillboardPos.x * 0.1) * 0.07);
+    vec3 pos = BillboardPos + vec3(sin(time + BillboardPos.z * offsetSpeed) * 0.04, sin(time + BillboardPos.y * offsetSpeed) * 0.055, sin(time + BillboardPos.x * offsetSpeed) * 0.07);
     float dis = distance(CameraPosition.xyz, pos);
     float size = BillboardSize;
     if (dis < 20.0)
