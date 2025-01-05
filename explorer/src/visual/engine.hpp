@@ -135,6 +135,20 @@ class Engine {
     std::unique_ptr<Shader> m_sphereShader;
     std::unique_ptr<Shader> m_lineShader;
 
+    void renderQuad();
+
+    std::unique_ptr<Shader> shaderBlur;
+    std::unique_ptr<Shader> shaderBloomFinal;
+
+    unsigned int pingpongFBO[2];
+    unsigned int pingpongColorbuffers[2];
+
+    unsigned int hdrFBO;
+    unsigned int colorBuffers[2];
+
+    unsigned int quadVAO = 0;
+    unsigned int quadVBO;
+
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
 

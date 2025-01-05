@@ -33,7 +33,8 @@ in vec4 packedData;
 #define end_cyl packedData.xyz
 #define radius ( packedData.w )
 
-out vec4 out_Color;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 BrightColor;
 
 vec4 ComputeColorForLight(vec3 N, vec3 L, vec4 ambient, vec4 diffuse, vec4 specular, vec4 color, vec3 viewDir) {
     float NdotL = max(dot(N, L), 0.0);
@@ -121,5 +122,13 @@ void main()
             );
     }
 
-    out_Color = final_color;
+    vec3 result = final_color.rgb;
+
+    float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
+    if (brightness > 0.1)
+        BrightColor = vec4(result, 1.0);
+    else
+        BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    FragColor = vec4(result, 1.0);
 }

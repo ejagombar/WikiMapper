@@ -47,7 +47,7 @@ int main() {
     generateFakeData(db);
 
     auto allNodes = db.getAllNodes();
-    const int numOfElements = allNodes.size();
+    int numOfElements = allNodes.size();
 
     std::unordered_map<uint32_t, std::pair<glm::vec3, float>> spaceMap(numOfElements);
 
@@ -136,11 +136,60 @@ int main() {
             edge.endRGB[0] = r;
             edge.endRGB[1] = g;
             edge.endRGB[2] = b;
+            edge.size = 1;
 
             edges.push_back(edge);
         }
     }
 
-    Engine myGUI(numOfElements, nodes, edges);
+            Engine myGUI(numOfElements, nodes, edges);
     myGUI.Run();
+    // numOfElements = 50;
+    // int size = 2;
+    //
+    // std::vector<Node> nodes(numOfElements * numOfElements * numOfElements);
+    // std::vector<Edge> edges;
+    // glm::vec3 prev = glm::vec3(0, 0, 0);
+    //
+    // for (int z = 0; z < numOfElements; z++) {
+    //     for (int y = 0; y < numOfElements; y++) {
+    //         for (int x = 0; x < numOfElements; x++) {
+    //             unsigned char r, g, b;
+    //             int i = numOfElements * y + numOfElements * numOfElements * z + x;
+    //
+    //             r = x * size * 5;
+    //             g = y * size * 4;
+    //             b = z * size * 3;
+    //
+    //             nodes[i].rgb[0] = r;
+    //             nodes[i].rgb[1] = g;
+    //             nodes[i].rgb[2] = b;
+    //
+    //             nodes[i].text = "";
+    //
+    //             nodes[i].pos = glm::vec3(x * size, y * size, z * size);
+    //             nodes[i].size = 20;
+    //
+    //             Edge edge;
+    //             edge.start = glm::vec3(x * size, y * size, z * size);
+    //             edge.end = prev;
+    //             edge.size = 5;
+    //
+    //             prev = glm::vec3(x * size, y * size, z * size);
+    //
+    //             edge.startRGB[0] = r;
+    //             edge.startRGB[1] = g;
+    //             edge.startRGB[2] = b;
+    //
+    //             edge.endRGB[0] = r;
+    //             edge.endRGB[1] = g;
+    //             edge.endRGB[2] = b;
+    //
+    //             edges.push_back(edge);
+    //         }
+    //     }
+    // }
+    //
+    // Engine myGUI(numOfElements, nodes, edges);
+    // myGUI.Run();
 }

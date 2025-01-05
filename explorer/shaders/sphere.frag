@@ -26,7 +26,8 @@ in vec3 fPos; // World position of the sphere
 in float fSize;
 in vec2 mapping; // Mapping coordinates for normal calculation
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 BrightColor;
 
 void Impostor(out vec3 cameraPos, out vec3 cameraNormal)
 {
@@ -98,5 +99,13 @@ void main()
     // Combine all contributions
     vec3 lighting = ambient + globalLighting + pointLighting;
 
-    FragColor = vec4(lighting * fColor, 1.0);
+    vec3 result = lighting * fColor;
+
+    float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
+    if (brightness > 0.3)
+        BrightColor = vec4(result, 1.0);
+    else
+        BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    FragColor = vec4(result, 1.0);
 }
