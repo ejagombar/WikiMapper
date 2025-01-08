@@ -186,3 +186,11 @@ Struggled with this for a long time. Here are some resources that I used:
  - [Learning GLSL: the goal](https://github.com/ssloy/glsltuto/tree/master)
  - [Raycasted Spheres and Point Sprites vs. Geometry Instancing (OpenGL 3.3)](http://11235813tdd.blogspot.com/2013/04/raycasted-spheres-and-point-sprites-vs.html)
  - [Imposter Sphere](https://community.khronos.org/t/imposter-sphere/71189)
+
+
+## Explorer Dev Update
+
+I have not made an update for a long time however have still been developing the OpenGL explorer. I have now implemented Imposter spheres and Cylinders which was quite a challenge.
+Furthermore, I have worked on adding lighting to both these shaders, with simple Phong shading tecniques. I have also implemented a very basic text drawing class, however it is currently horribly optimised as I have a separate draw call for every single letter. This is obviously the performance bottleneck at the moment so this will be worked on at some point, however it works for now. A full list of features can be seen in the Explorer readme or by looking at the commit logs.
+
+The next steps for the project is to integrate the Neo4j database into the explorer project so I can pull down some real data with real links. I do have some basic test data but it would be useful to have the actual data as I am soon to be working on the algorithm that will layout the graph in 3d space.
