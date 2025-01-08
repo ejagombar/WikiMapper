@@ -137,6 +137,7 @@ int main() {
             edge.endRGB[1] = g;
             edge.endRGB[2] = b;
 
+            edge.size = 1;
             edges.push_back(edge);
         }
     }
