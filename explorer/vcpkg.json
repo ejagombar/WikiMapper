@@ -1,11 +1,11 @@
 {
-    "dependencies": [
-        "boost-asio",
-        "cpp-httplib",
-        "jsoncpp",
-        "freetype",
-        "glad",
-        "glfw3",
-        "glm"
-    ]
+  "dependencies": [
+    "boost-asio",
+    "cpp-httplib",
+    "freetype",
+    "glad",
+    "glfw3",
+    "glm",
+    "jsoncpp"
+  ]
 }

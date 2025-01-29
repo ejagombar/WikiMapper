@@ -1,32 +1,54 @@
 #include "store.hpp"
-#include <random>
+#include "../lib/base64.hpp"
+#include "../lib/json.hpp"
+#include <httplib.h>
+#include <memory>
+#include <string>
 #include <vector>
 
-void generateFakeData(DB &db, const int size) {
+using json = nlohmann::json;
 
-    const int idOffset = 1000;
-    db.resize(size);
+Neo4jInterface::Neo4jInterface(const std::string url) { m_httpClient = std::make_unique<httplib::Client>(url); }
 
-    std::default_random_engine generator;
-    std::binomial_distribution<int> distribution(25, 0.1);
+bool Neo4jInterface::Authenticate(const std::string username, const std::string password) {
+    const std::string basicToken = base64::to_base64(username + ":" + password);
 
-    NodeStore obj;
-    for (int id = 0; id < size; ++id) {
-        obj.UID = id + idOffset;
-        obj.name = "Node" + std::to_string(obj.UID);
+    const httplib::Headers headers = {{"Authorization", "Basic " + basicToken}};
+    const httplib::Result res = m_httpClient->Get("/", headers);
 
-        // int numOfLinks = 1 + rand() % 4;
-        int numOfLinks = distribution(generator) + 1;
-
-        // obj.linksTo.resize(numOfLinks);
-        obj.linksTo.resize(1);
-
-        // for (int i = 0; i < numOfLinks; i++) {
-        //     obj.linksTo[i] = idOffset + rand() % size;
-        // }
-
-        obj.linksTo[0] = 1126;
-
-        db[id] = obj;
+    if (res->status == httplib::StatusCode::OK_200) {
+        m_httpClient->set_default_headers(headers);
+        return true;
     }
+    return false;
+}
+
+std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string pageName) {
+    const std::string cypherQuery =
+        R"( { "statements": [ { "statement": "MATCH (:PAGE {pageName: $name})-[]->(related:PAGE) RETURN related", "parameters": { "name": ")" +
+        pageName + R"(" } } ] })";
+
+    std::vector<LinkedPage> linkedPages;
+
+    httplib::Result res = m_httpClient->Post("/db/neo4j/tx/commit", cypherQuery, "application/json");
+
+    if (res && res->status != httplib::StatusCode::OK_200) {
+        std::cerr << "Failed to fetch nodes. Status: " << (res ? res->status : -1)
+                  << ". Error: " << (res ? res->body : "No response") << std::endl;
+        return linkedPages;
+    }
+
+    json data = json::parse(res->body);
+
+    const auto &result = data["results"][0];
+    const auto rows = result["data"];
+
+    linkedPages.reserve(rows.size());
+
+    for (const auto &row : rows) {
+        const auto &x = row["row"][0];
+        linkedPages.emplace_back(LinkedPage{x["pageName"], x["title"]});
+    }
+
+    return linkedPages;
 }
