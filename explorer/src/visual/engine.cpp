@@ -275,7 +275,7 @@ void Engine::loop() {
     float deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
 
-    if (m_state == pause)
+    if (m_state == stop)
         deltaTime = 0;
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -332,7 +332,7 @@ void Engine::loop() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    if (m_state == pause) {
+    if (m_state == stop) {
         m_text2d->Render2d(
             "WikiMapper",
             glm::vec3((static_cast<float>(m_scrWidth) * 0.5f), static_cast<float>(m_scrHeight) * 0.5f, 1.0f), 1.0f,
@@ -403,8 +403,8 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
 #if !ReplayCameraMovement
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
-            m_state = pause;
-            m_blur->SetEnabled(true);
+            m_state = stop;
+            // m_blur->SetEnabled(true);
 
             glfwSetCursorPosCallback(m_window, NULL);
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);

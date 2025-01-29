@@ -78,7 +78,7 @@ struct CameraMatrices {
     glm::vec4 position;
 };
 
-enum State { play, pause };
+enum State { play, stop};
 
 class Engine {
   public:
