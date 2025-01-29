@@ -1,3 +1,5 @@
+#include "store.hpp"
+#include <ostream>
 #include <tuple>
 #define STB_IMAGE_IMPLEMENTATION
 #include "./visual/engine.hpp"
@@ -42,9 +44,28 @@ void unpackFloatToRGB(float packedFloat, unsigned char &r, unsigned char &g, uns
     b = packed & 0xFF;
 }
 
+void generateRealData(GraphDB::Graph &graph) {
+    Neo4jInterface neo4jDB("http://127.0.0.1:7474");
+    if (!neo4jDB.Authenticate("neo4j", "test1234")) {
+        return;
+    }
+
+    auto randomPage = neo4jDB.GetRandomPages(1).at(0);
+    auto linkedPages = neo4jDB.GetLinkedPages("physics");
+
+    int idx = 0;
+    graph.addNode(0, "Physics");
+
+    for (const auto &page : linkedPages) {
+        idx++;
+        graph.addNode(idx, page.title.c_str());
+        graph.addEdge(0, idx);
+    }
+}
+
 int main() {
     GraphDB::Graph db;
-    generateFakeData(db);
+    generateRealData(db);
 
     auto allNodes = db.getAllNodes();
     const int numOfElements = allNodes.size();
@@ -52,8 +73,6 @@ int main() {
     std::unordered_map<uint32_t, std::pair<glm::vec3, float>> spaceMap(numOfElements);
 
     // Display base node -----------------
-
-    // std::cout << "UID: " << allNodes[0].title << std::endl;
     uint32_t baseNodeUID = getTopNode(db, allNodes);
     auto baseNode = db.getNode(baseNodeUID);
 
@@ -137,7 +156,7 @@ int main() {
             edge.endRGB[1] = g;
             edge.endRGB[2] = b;
 
-            edge.size = 1;
+            edge.size = 5;
             edges.push_back(edge);
         }
     }

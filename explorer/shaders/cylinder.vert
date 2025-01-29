@@ -9,7 +9,7 @@ out float vRadius;
 void main()
 {
     vColor = aRGBRadius.rgb;
-    vRadius = aRGBRadius.a * 10;
+    vRadius = aRGBRadius.a;
 
     gl_Position = vec4(aPos, 1.0f);
 }
