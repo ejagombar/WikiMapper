@@ -65,7 +65,7 @@ class Camera {
 
     const GLfloat m_scrollSensitivity = 2.0f;
     const GLfloat m_minDisplayRange = 0.1f;
-    const GLfloat m_maxDisplayRange = 500.0f;
+    const GLfloat m_maxDisplayRange = 1000.0f;
     const bool m_lockViewingAngle = false;
 
     void updateCameraVectors();

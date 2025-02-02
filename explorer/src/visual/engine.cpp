@@ -48,7 +48,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     glfwSetScrollCallback(m_window, scroll_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
 
-    m_camera.SetPosition(glm::vec3(3.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
+    m_camera.SetPosition(glm::vec3(250.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
@@ -208,6 +208,7 @@ int Engine::Run() {
     m_startTime = lastTime;
     m_startFrameTime = lastTime;
 
+    glfwSwapInterval(0);
 #if ReplayCameraMovement
     glfwSwapInterval(0);
 #endif
@@ -315,17 +316,17 @@ void Engine::loop() {
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
-    m_lineShader->use();
-    m_lineShader->setMat3("normalMat", normal);
-    m_lineShader->setFloat("time", currentFrame);
-    glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_LINES, 0, m_lineCount * 2);
-
     m_text->SetTransforms(view, currentFrame);
 
     for (Node node : m_nodes) {
         m_text->Render(node.text, node.pos, 0.004f, glm::vec3(1.0, 1.0f, 1.0f));
     }
+
+    m_lineShader->use();
+    m_lineShader->setMat3("normalMat", normal);
+    m_lineShader->setFloat("time", currentFrame);
+    glBindVertexArray(m_VAOs[0]);
+    glDrawArrays(GL_LINES, 0, m_lineCount * 2);
 
     m_blur->Display();
 

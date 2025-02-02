@@ -53,7 +53,7 @@ vec4 ComputeColorForLight(vec3 N, vec3 L, vec4 ambient, vec4 diffuse, vec4 specu
 
 void main()
 {
-    vec4 color = vec4(gColor, 1.0);
+    vec4 color = vec4(gColor, 0.3);
     vec3 ray_target = point;
     vec3 ray_origin = vec3(0.0);
     vec3 ray_direction = normalize(ray_origin - ray_target);

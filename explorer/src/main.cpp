@@ -51,16 +51,17 @@ void generateRealData(GraphDB::Graph &graph) {
     }
 
     auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = neo4jDB.GetLinkedPages("physics");
+    auto linkedPages = neo4jDB.GetLinkedPages("angus stone");
 
     int idx = 0;
-    graph.addNode(0, "Physics");
+    graph.addNode(0, "DOPE LEMON");
 
     for (const auto &page : linkedPages) {
         idx++;
         graph.addNode(idx, page.title.c_str());
         graph.addEdge(0, idx);
     }
+    std::cout << idx << std::endl;
 }
 
 int main() {
@@ -120,7 +121,6 @@ int main() {
         if (it != spaceMap.end()) {
             unsigned char r, g, b;
 
-            std::cout << it->second.second << std::endl;
             unpackFloatToRGB(it->second.second, r, g, b);
 
             nodes[i].rgb[0] = r;
