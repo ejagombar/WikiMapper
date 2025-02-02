@@ -8,7 +8,7 @@ uniform vec3 textColor;
 void main()
 {
     float val = texture(tex, TexCoords).r;
-    if (val < 0.1) {
+    if (val < 0.5) {
         discard;
     }
     vec4 sampled = vec4(1.0, 1.0, 1.0, val);

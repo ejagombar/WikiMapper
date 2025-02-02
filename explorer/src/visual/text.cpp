@@ -1,4 +1,5 @@
 #include "./text.hpp"
+#include "shader.hpp"
 #include <stdexcept>
 
 Text::Text(const std::string fontPath, const std::string vertexShader, const std::string fragmentShader) {
@@ -14,12 +15,16 @@ Text::Text(const std::string fontPath, const std::string vertexShader, const std
     FT_Set_Pixel_Sizes(m_face, 0, 128);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
+    FT_GlyphSlot slot = m_face->glyph;
 
     for (unsigned char c = 0; c < 128; c++) {
         // load character glyph
         if (FT_Load_Char(m_face, c, FT_LOAD_RENDER)) {
             throw std::runtime_error("ERROR::FREETYTPE: Failed to load Glyph");
         }
+
+        FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
+
         // generate texture
         unsigned int texture;
         glGenTextures(1, &texture);
@@ -124,7 +129,7 @@ void Text::Render(const std::string text, glm::vec3 position, const float scale,
 
 void Text2d::UpdateScreenSize(const float width, const float height) {
     m_projection = glm::ortho(0.0f, width, 0.0f, height);
-    SetTransforms(glm::mat4(1.0f),0);
+    SetTransforms(glm::mat4(1.0f), 0);
 }
 
 void Text2d::Render2d(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color) {
