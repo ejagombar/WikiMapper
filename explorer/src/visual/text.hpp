@@ -1,3 +1,6 @@
+#ifndef TEXT_H
+#define TEXT_H
+
 #include "./shader.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -46,3 +49,5 @@ class Text2d : public Text {
   private:
     glm::mat4 m_projection;
 };
+
+#endif

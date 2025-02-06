@@ -1,3 +1,6 @@
+#ifndef UBO_H
+#define UBO_H
+
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
@@ -30,3 +33,5 @@ template <typename T> class UBOManager {
     GLuint uboID;
     GLuint bindingPoint;
 };
+
+#endif

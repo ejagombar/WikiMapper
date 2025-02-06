@@ -1,3 +1,6 @@
+#ifndef SKYBOX_H
+#define SKYBOX_H
+
 #include "./shader.hpp"
 #include <sys/types.h>
 
@@ -18,3 +21,4 @@ class Skybox {
     GLuint m_skyboxVBO;
     GLuint m_cubemapTexture;
 };
+#endif

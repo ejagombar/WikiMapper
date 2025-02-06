@@ -1,3 +1,6 @@
+#ifndef ENGINE_H
+#define ENGINE_H
+
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
@@ -17,9 +20,6 @@
 
 #include "./texture.hpp"
 #include <fstream>
-
-// #define RecordCameraMovement true
-// #define ReplayCameraMovement true
 
 template <typename T> std::vector<T> ReadFileData(const std::string &filename) {
     std::ifstream file(filename, std::ios::binary);
@@ -78,7 +78,7 @@ struct CameraMatrices {
     glm::vec4 position;
 };
 
-enum State { play, stop};
+enum State { play, stop };
 
 class Engine {
   public:
@@ -158,3 +158,5 @@ class Engine {
     static const uint8_t count = 3;
     unsigned int m_VAOs[count], m_VBOs[count];
 };
+
+#endif

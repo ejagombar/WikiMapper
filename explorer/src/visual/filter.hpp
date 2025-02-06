@@ -1,3 +1,6 @@
+#ifndef FILTER_H
+#define FILTER_H
+
 #include "./shader.hpp"
 #include <GL/gl.h>
 #include <glm/detail/qualifier.hpp>
@@ -46,3 +49,5 @@ class Blur {
     GLfloat m_brightnessModifier;
 };
 } // namespace Filter
+
+#endif

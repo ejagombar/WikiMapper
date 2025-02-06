@@ -48,7 +48,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     glfwSetScrollCallback(m_window, scroll_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
 
-    m_camera.SetPosition(glm::vec3(250.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
+    m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
     m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
@@ -72,20 +72,6 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
 
     m_sphereShader->linkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
     m_lineShader->linkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
-
-#if RecordCameraMovement
-    std::remove("benchmarkCameraTrack");
-    std::remove("benchmarkTimestamps");
-    m_positionFile.open("benchmarkCameraTrack", std::ios::app | std::ios::binary);
-    m_benchmarkTimestamps.open("benchmarkTimestamps", std::ios::app | std::ios::binary);
-#endif
-#if ReplayCameraMovement
-    m_camPosData = ReadFileData<CameraPositionData>("benchmarkCameraTrack");
-    std::reverse(m_camPosData.begin(),
-                 m_camPosData.end()); // Inefficient, but doesn't matter as this runs before the benchmark starts
-    m_benchmarkTimestampsData = ReadFileData<double>("benchmarkTimestamps");
-    std::reverse(m_benchmarkTimestampsData.begin(), m_benchmarkTimestampsData.end());
-#endif
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
@@ -192,12 +178,6 @@ Engine::~Engine() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
 
-#if RecordCameraMovement
-    m_positionFile.close();
-#endif
-#if ReplayCameraMovement or RecordCameraMovement
-    m_benchmarkTimestamps.close();
-#endif
     std::cout << "Execution Time: " << glfwGetTime() - m_startTime << std::endl;
 
     glfwTerminate();
@@ -209,57 +189,16 @@ int Engine::Run() {
     m_startFrameTime = lastTime;
 
     glfwSwapInterval(0);
-#if ReplayCameraMovement
-    glfwSwapInterval(0);
-#endif
 
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();
 
         m_frameCount++;
-#if !ReplayCameraMovement
         if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
             printf("%f fps\n", double(m_frameCount));
             m_frameCount = 0;
             lastTime += 1.0;
         }
-#endif
-
-#if ReplayCameraMovement
-        if (currentTime - m_startTime > m_benchmarkTimestampsData.back()) {
-
-            if (m_benchmarkRecord) {
-                std::cout << ((currentTime - m_startFrameTime) / m_frameCount) * 1000 << "," << std::flush;
-                glfwSetWindowTitle(m_window, "Not Benchmarking");
-            } else
-                glfwSetWindowTitle(m_window, "Benchmarking");
-
-            m_benchmarkRecord = !m_benchmarkRecord;
-            m_frameCount = 0;
-
-            m_startFrameTime = currentTime;
-            m_benchmarkTimestampsData.pop_back();
-            if (m_benchmarkTimestampsData.size() == 0)
-                glfwSetWindowShouldClose(m_window, 1);
-        }
-
-        if (currentTime >= m_startTime + .1 * m_recordCount) {
-            m_recordCount++;
-            CameraPositionData p = m_camPosData.back();
-            m_camera.SetPosition(p.position, p.yaw, p.pitch);
-            m_camPosData.pop_back();
-            m_lastCameraRecord = currentTime;
-        }
-#endif
-
-#if RecordCameraMovement
-        if (currentTime >= m_startTime + .1 * m_recordCount) {
-            m_recordCount++;
-            auto positionData = m_camera.GetPosition();
-            m_positionFile.write((char *)&positionData, sizeof(positionData));
-            m_lastCameraRecord = currentTime;
-        }
-#endif
 
         loop();
 
@@ -384,7 +323,6 @@ void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height
 }
 
 void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
-#if !ReplayCameraMovement
     if (m_firstMouse) {
         m_lastX = xpos;
         m_lastY = ypos;
@@ -397,11 +335,9 @@ void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     m_lastY = ypos;
 
     m_camera.ProcessMouseMovement(xoffset, yoffset);
-#endif
 }
 
 void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-#if !ReplayCameraMovement
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
             m_state = stop;
@@ -418,31 +354,14 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
             glfwSetCursorPosCallback(m_window, mouse_callback_static);
         }
     }
-#endif
     if (key == GLFW_KEY_X && action == GLFW_PRESS) {
         double time = glfwGetTime() - m_startTime;
         std::cout << m_benchmarkRecord << std::endl;
-#if RecordCameraMovement
-        if (m_benchmarkRecord)
-            m_benchmarkTimestamps.write((char *)&time, sizeof(time));
-#endif
         glfwSetWindowShouldClose(m_window, 1);
     }
-#if RecordCameraMovement
-    if (key == GLFW_KEY_DELETE && action == GLFW_PRESS) {
-        double time = glfwGetTime() - m_startTime;
-        m_benchmarkTimestamps.write((char *)&time, sizeof(time));
-        if (m_benchmarkRecord) {
-            glfwSetWindowTitle(m_window, "Not recording");
-        } else
-            glfwSetWindowTitle(m_window, "Recording");
-        m_benchmarkRecord = !m_benchmarkRecord;
-    }
-#endif
 }
 
 void Engine::processEngineInput(GLFWwindow *window) {
-#if !ReplayCameraMovement
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_camera.ProcessKeyboard(FORWARD);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -457,5 +376,4 @@ void Engine::processEngineInput(GLFWwindow *window) {
         m_camera.ProcessKeyboard(DOWN);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         m_camera.ProcessKeyboard(SNEAK);
-#endif
 }

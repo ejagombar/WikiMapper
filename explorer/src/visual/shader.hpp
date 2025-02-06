@@ -1,5 +1,3 @@
-// Shader class, sourced from https://learnopengl.com/
-
 #ifndef SHADER_H
 #define SHADER_H
 

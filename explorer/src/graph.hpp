@@ -43,6 +43,7 @@ class Graph {
 };
 
 } // namespace GraphDB
-#endif
 
 void generateFakeData(GraphDB::Graph &graph);
+
+#endif

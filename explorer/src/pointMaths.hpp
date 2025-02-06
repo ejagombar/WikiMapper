@@ -1,3 +1,6 @@
+#ifndef POINTMATHS_H
+#define POINTMATHS_H
+
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -17,3 +20,5 @@ std::vector<glm::vec3> spreadOrbit(const glm::vec3 center, const int numPoints, 
 
 std::vector<glm::vec3> generatePointsOnSphericalSectorSurface(int numPoints, float radius, float thetaMin,
                                                               float thetaMax, float phiMin, float phiMax);
+
+#endif

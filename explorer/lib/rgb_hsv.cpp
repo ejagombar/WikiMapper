@@ -1,3 +1,6 @@
+#ifndef RGB_HSV_H
+#define RGB_HSV_H
+
 #include "./rgb_hsv.hpp"
 
 RGBColor hsv2rgb(float h, float s, float v) {
@@ -37,3 +40,5 @@ RGBColor hsv2rgb(float h, float s, float v) {
 
     return color;
 }
+
+#endif
