@@ -6,7 +6,6 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GLFW/glfw3.h>
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -65,13 +64,13 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     m_cameraMatricesUBO = std::make_unique<UBOManager<CameraMatrices>>(m_CAMERA_MATRICES_UBO_BINDING_POINT);
     m_environmentUBO = std::make_unique<UBOManager<EnvironmentLighting>>(m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
 
-    m_sphereShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_lineShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_text2d->m_textShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_text->m_textShader->linkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_sphereShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_lineShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_text2d->m_textShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_text->m_textShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
 
-    m_sphereShader->linkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
-    m_lineShader->linkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_sphereShader->LinkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_lineShader->LinkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
@@ -111,11 +110,11 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 
-    const GLint aColorAttrib = m_sphereShader->getAttribLocation("aRGBRadius");
+    const GLint aColorAttrib = m_sphereShader->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(aColorAttrib);
     glVertexAttribPointer(aColorAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData), (void *)0);
 
-    const GLint aPosAttrib = m_sphereShader->getAttribLocation("aPos");
+    const GLint aPosAttrib = m_sphereShader->GetAttribLocation("aPos");
     glEnableVertexAttribArray(aPosAttrib);
     glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(NodeData), (void *)(sizeof(float)));
 
@@ -156,11 +155,11 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(edgeData), edgeData, GL_STATIC_DRAW);
 
-    const GLint radiusAttrib = m_lineShader->getAttribLocation("aRGBRadius");
+    const GLint radiusAttrib = m_lineShader->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(radiusAttrib);
     glVertexAttribPointer(radiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData), (void *)0);
 
-    const GLint startAttrib = m_lineShader->getAttribLocation("aPos");
+    const GLint startAttrib = m_lineShader->GetAttribLocation("aPos");
     glEnableVertexAttribArray(startAttrib);
     glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(EdgeData), (void *)(sizeof(float)));
 
@@ -250,8 +249,8 @@ void Engine::loop() {
 
     m_cameraMatricesUBO->Update(cameraMatrices);
 
-    m_sphereShader->use();
-    m_sphereShader->setFloat("time", currentFrame);
+    m_sphereShader->Use();
+    m_sphereShader->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
@@ -261,9 +260,9 @@ void Engine::loop() {
         m_text->Render(node.text, node.pos, 0.004f, glm::vec3(1.0, 1.0f, 1.0f));
     }
 
-    m_lineShader->use();
-    m_lineShader->setMat3("normalMat", normal);
-    m_lineShader->setFloat("time", currentFrame);
+    m_lineShader->Use();
+    m_lineShader->SetMat3("normalMat", normal);
+    m_lineShader->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_LINES, 0, m_lineCount * 2);
 
@@ -341,7 +340,7 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
             m_state = stop;
-            // m_blur->SetEnabled(true);
+            m_blur->SetEnabled(true);
 
             glfwSetCursorPosCallback(m_window, NULL);
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);

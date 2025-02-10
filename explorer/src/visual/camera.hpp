@@ -21,7 +21,8 @@ class Camera {
           m_yaw(glm::pi<float>()), m_pitch(0.0f), m_mouseSensitivity(0.0015f), m_fov(45.0f), m_movementSpeed(1.5f),
           m_accelerationReduce(0.97f), m_aspectRatio(1.0f) {}
 
-    void SetPosition(const glm::vec3 position, const float yaw, const float pitch);
+    void SetPosition(const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), const float yaw = glm::pi<float>(),
+                     const float pitch = 0.0f);
     void SetAspectRatio(const float aspectRatio) { m_aspectRatio = aspectRatio; }
 
     inline const CameraPositionData GetPositionData() const;

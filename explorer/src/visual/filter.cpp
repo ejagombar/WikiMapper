@@ -8,6 +8,7 @@ Blur::Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint ra
            uint blurPasses, GLfloat brightnessModifier)
     : m_enabled(enabled), m_blurShader(blurShader), m_screenSize(screenSize), m_size(size), m_radius(radius),
       m_scale(scale), m_passes(blurPasses), m_brightnessModifier(brightnessModifier) {
+
     // Two triangles that will cover the full screen when rendered in screen space. Position and texture coordinates.
     float quadVertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
                             -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f};
@@ -83,24 +84,24 @@ void Blur::ScreenResize(const glm::ivec2 screenSize) {
     initSizeDependantBuffers();
 }
 
+// The blur is applied in alternating directions, reading from one buffer and writing to the other with the blur shader
+// On the final pass, the output is written to the screen (Framebuffer 0).
 void Blur::Display() {
     if (!m_enabled) {
         return;
     }
 
-    m_blurShader.use();
-    m_blurShader.setInt("width", m_size.x);
-    m_blurShader.setInt("height", m_size.y);
-    m_blurShader.setInt("radius", m_radius);
-    m_blurShader.setFloat("blurScale", m_scale);
-    m_blurShader.setFloat("brightnessModifier", m_brightnessModifier);
+    m_blurShader.Use();
+    m_blurShader.SetInt("width", m_size.x);
+    m_blurShader.SetInt("height", m_size.y);
+    m_blurShader.SetInt("radius", m_radius);
+    m_blurShader.SetFloat("blurScale", m_scale);
+    m_blurShader.SetFloat("brightnessModifier", m_brightnessModifier);
 
-    // Apply blur in alternating directions, reading from one buffer and writing to the other with the blur shader
-    // On the final pass, the output is written to the screen (Framebuffer 0).
     bool horizontal(true);
     for (uint i = 0; i < m_passes; i++) {
         horizontal = ((i ^ 1) == (i + 1));
-        m_blurShader.setBool("horizontal", horizontal);
+        m_blurShader.SetBool("horizontal", horizontal);
         glBindFramebuffer(GL_FRAMEBUFFER, (i == (m_passes - 1)) ? 0 : m_blurFBO[horizontal ? 1 : 0]);
         glClear(GL_COLOR_BUFFER_BIT);
         glBindVertexArray(m_quadVAO);

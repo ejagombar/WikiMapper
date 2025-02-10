@@ -30,8 +30,8 @@ Skybox::~Skybox() {
 void Skybox::Display(const glm::mat4 camera_direction) {
     glDepthFunc(GL_LEQUAL);
 
-    m_skyboxShader.use();
-    m_skyboxShader.setMat4("PV", camera_direction);
+    m_skyboxShader.Use();
+    m_skyboxShader.SetMat4("PV", camera_direction);
 
     glBindVertexArray(m_skyboxVAO);
     glActiveTexture(GL_TEXTURE0);

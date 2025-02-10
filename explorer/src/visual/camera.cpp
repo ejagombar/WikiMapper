@@ -2,8 +2,7 @@
 #include <glm/matrix.hpp>
 #include <glm/trigonometric.hpp>
 
-void Camera::SetPosition(const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), const float yaw = glm::pi<float>(),
-                         const float pitch = 0.0f) {
+void Camera::SetPosition(const glm::vec3 position, const float yaw, const float pitch) {
     m_position = position;
     m_yaw = yaw;
     m_pitch = pitch;
@@ -31,6 +30,8 @@ void Camera::ProcessKeyboard(const CameraMovement movement) {
         m_accelerationReduce = 0.97f;
 }
 
+// Update the angle of the camera, using the change in position in the cursor position. Every frame, the cursor is move
+// back to (0,0) so that the change each frame can be calculated again.
 void Camera::ProcessMouseMovement(const double xoffsetIn, const double yoffsetIn) {
     float xoffset = static_cast<float>(xoffsetIn);
     float yoffset = static_cast<float>(yoffsetIn);
@@ -57,6 +58,9 @@ void Camera::ProcessMouseScroll(const float yoffset) {
         m_fov = 160.0f;
 }
 
+// Calculate the new position of the camera, using velocity and acceleration. The position is updated taking into
+// account the amount of time that has passed since the last frame. This ensures that movememnt speed is constant at
+// different FPS.
 void Camera::ProcessPosition(const float deltaTime) {
     if (glm::length(m_direction) > 0.0f) {
         m_direction = glm::normalize(m_direction);

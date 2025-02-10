@@ -9,8 +9,8 @@
 namespace Filter {
 class Blur {
   public:
-    Blur(Shader &shader, glm::ivec2 screenSize, glm::ivec2 size, GLuint radius, bool enabled = false, GLfloat scale = 5,
-         uint passes = 2, GLfloat brightnessModifier = 0.95f);
+    Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint radius, bool enabled = false,
+         GLfloat scale = 5, uint blurPasses = 2, GLfloat brightnessModifier = 0.95f);
     ~Blur();
 
     void Preprocess();

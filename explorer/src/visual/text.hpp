@@ -24,7 +24,7 @@ struct Character {
 
 class Text {
   public:
-    Text(const std::string font, const std::string vertexShader, const std::string fragmentShader);
+    Text(const std::string &font, const std::string vertexShader, const std::string fragmentShader);
     ~Text() {};
 
     void SetTransforms(const glm::mat4 view, const float time);

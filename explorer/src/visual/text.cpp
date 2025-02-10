@@ -2,7 +2,7 @@
 #include "shader.hpp"
 #include <stdexcept>
 
-Text::Text(const std::string fontPath, const std::string vertexShader, const std::string fragmentShader) {
+Text::Text(const std::string &fontPath, const std::string vertexShader, const std::string fragmentShader) {
     FT_Library ft;
     if (FT_Init_FreeType(&ft)) {
         throw std::runtime_error("ERROR::FREETYPE: Could not init FreeType Library");
@@ -47,7 +47,7 @@ Text::Text(const std::string fontPath, const std::string vertexShader, const std
     FT_Done_Face(m_face);
     FT_Done_FreeType(ft);
 
-    m_textShader = std::make_unique<Shader>(vertexShader.c_str(), fragmentShader.c_str());
+    m_textShader = std::make_unique<Shader>(vertexShader, fragmentShader, "");
 
     glGenVertexArrays(1, &m_VAO);
     glGenBuffers(1, &m_VBO);
@@ -68,17 +68,17 @@ Text::Text(const std::string fontPath, const std::string vertexShader, const std
 }
 
 void Text::SetTransforms(const glm::mat4 view, const float time) {
-    m_textShader->use();
-    m_textShader->setVec3("CameraUp_worldspace", view[0][1], view[1][1], view[2][1]);
-    m_textShader->setVec3("CameraRight_worldspace", view[0][0], view[1][0], view[2][0]);
-    m_textShader->setFloat("time", time);
+    m_textShader->Use();
+    m_textShader->SetVec3("CameraUp_worldspace", view[0][1], view[1][1], view[2][1]);
+    m_textShader->SetVec3("CameraRight_worldspace", view[0][0], view[1][0], view[2][0]);
+    m_textShader->SetFloat("time", time);
 }
 
 void Text::Render(const std::string text, glm::vec3 position, const float scale, const glm::vec3 color) {
-    m_textShader->use();
-    m_textShader->setVec3("textColor", color.x, color.y, color.z);
-    m_textShader->setVec3("BillboardPos", position);
-    m_textShader->setFloat("BillboardSize", scale);
+    m_textShader->Use();
+    m_textShader->SetVec3("textColor", color.x, color.y, color.z);
+    m_textShader->SetVec3("BillboardPos", position);
+    m_textShader->SetFloat("BillboardSize", scale);
 
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(m_VAO);
