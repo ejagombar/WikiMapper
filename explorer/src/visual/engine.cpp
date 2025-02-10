@@ -363,17 +363,17 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
 
 void Engine::processEngineInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        m_camera.ProcessKeyboard(FORWARD);
+        m_camera.ProcessKeyboard(CameraMovement::FORWARD);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        m_camera.ProcessKeyboard(BACKWARD);
+        m_camera.ProcessKeyboard(CameraMovement::BACKWARD);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        m_camera.ProcessKeyboard(LEFT);
+        m_camera.ProcessKeyboard(CameraMovement::LEFT);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        m_camera.ProcessKeyboard(RIGHT);
+        m_camera.ProcessKeyboard(CameraMovement::RIGHT);
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        m_camera.ProcessKeyboard(UP);
+        m_camera.ProcessKeyboard(CameraMovement::UP);
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        m_camera.ProcessKeyboard(DOWN);
+        m_camera.ProcessKeyboard(CameraMovement::DOWN);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        m_camera.ProcessKeyboard(SNEAK);
+        m_camera.ProcessKeyboard(CameraMovement::SNEAK);
 }

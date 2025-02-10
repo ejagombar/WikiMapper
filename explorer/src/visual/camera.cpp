@@ -2,29 +2,30 @@
 #include <glm/matrix.hpp>
 #include <glm/trigonometric.hpp>
 
-void Camera::SetPosition(const glm::vec3 position, const float yaw, const float pitch) {
+void Camera::SetPosition(const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), const float yaw = glm::pi<float>(),
+                         const float pitch = 0.0f) {
     m_position = position;
     m_yaw = yaw;
     m_pitch = pitch;
     updateCameraVectors();
 }
 
-CameraPositionData Camera::GetPositionData() const { return CameraPositionData{m_position, m_yaw, m_pitch}; }
+const CameraPositionData Camera::GetPositionData() const { return CameraPositionData{m_position, m_yaw, m_pitch}; }
 
-void Camera::ProcessKeyboard(const Camera_Movement movement) {
-    if (movement == FORWARD)
+void Camera::ProcessKeyboard(const CameraMovement movement) {
+    if (movement == CameraMovement::FORWARD)
         m_direction += m_front;
-    if (movement == BACKWARD)
+    if (movement == CameraMovement::BACKWARD)
         m_direction -= m_front;
-    if (movement == LEFT)
+    if (movement == CameraMovement::LEFT)
         m_direction -= m_right;
-    if (movement == RIGHT)
+    if (movement == CameraMovement::RIGHT)
         m_direction += m_right;
-    if (movement == UP)
+    if (movement == CameraMovement::UP)
         m_direction += m_worldUp;
-    if (movement == DOWN)
+    if (movement == CameraMovement::DOWN)
         m_direction -= m_worldUp;
-    if (movement == SNEAK)
+    if (movement == CameraMovement::SNEAK)
         m_accelerationReduce = 0.92f;
     else
         m_accelerationReduce = 0.97f;
