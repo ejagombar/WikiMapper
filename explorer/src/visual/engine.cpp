@@ -19,8 +19,8 @@
 #include <random>
 #include <vector>
 
-Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> &lines) {
-    m_nodes = nodes;
+Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> &lines)
+    : m_nodes(nodes), m_lines(lines) {
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -56,7 +56,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     m_lineShader = std::make_unique<Shader>("cylinder.vert", "cylinder.frag", "cylinder.geom");
 
     m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_scrWidth, m_scrHeight),
-                                            glm::ivec2(1000, 800), 100, true, 5.f, 15, 0.94f);
+                                            glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
 
     m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
     m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
@@ -75,13 +75,22 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     // -------------------- Texture -------------------------
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
 
-    // -----------------------------------------------------
     m_skybox = std::make_unique<Skybox>(*m_skyboxShader, cubemapTexture);
 
     glGenVertexArrays(count, m_VAOs);
     glGenBuffers(count, m_VBOs);
 
-    // Nodes -------------------------------------------------------------------
+    setupEdges();
+    setupNodes();
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_FRAMEBUFFER_SRGB);
+    glDepthFunc(GL_LESS);
+
+    m_text2d->UpdateScreenSize(static_cast<float>(m_scrWidth), static_cast<float>(m_scrHeight));
+}
+
+void Engine::setupNodes() {
     struct NodeData {
         GLubyte r;
         GLubyte g;
@@ -90,20 +99,20 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
         GLfloat position[3];
     };
 
-    m_nodeCount = nodes.size();
+    m_nodeCount = m_nodes.size();
     NodeData points[m_nodeCount];
 
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i < m_nodeCount; i++) {
-        points[i].r = nodes[i].rgb[0];
-        points[i].g = nodes[i].rgb[1];
-        points[i].b = nodes[i].rgb[2];
-        points[i].radius = static_cast<GLubyte>(nodes[i].size);
-        points[i].position[0] = nodes[i].pos.x;
-        points[i].position[1] = nodes[i].pos.y;
-        points[i].position[2] = nodes[i].pos.z;
+        points[i].r = m_nodes[i].rgb[0];
+        points[i].g = m_nodes[i].rgb[1];
+        points[i].b = m_nodes[i].rgb[2];
+        points[i].radius = static_cast<GLubyte>(m_nodes[i].size);
+        points[i].position[0] = m_nodes[i].pos.x;
+        points[i].position[1] = m_nodes[i].pos.y;
+        points[i].position[2] = m_nodes[i].pos.z;
     }
 
     glBindVertexArray(m_VAOs[1]);
@@ -118,8 +127,11 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     glEnableVertexAttribArray(aPosAttrib);
     glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(NodeData), (void *)(sizeof(float)));
 
-    // Lines -------------------------------------------------------------------
-    m_lineCount = lines.size();
+    glBindVertexArray(0);
+}
+
+void Engine::setupEdges() {
+    m_lineCount = m_lines.size();
 
     struct EdgeData {
         GLubyte r;
@@ -134,21 +146,21 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     for (unsigned int i = 0; i < m_lineCount; i++) {
         const int lineIdx = i * 2;
 
-        edgeData[lineIdx].r = lines[i].startRGB[0];
-        edgeData[lineIdx].g = lines[i].startRGB[1];
-        edgeData[lineIdx].b = lines[i].startRGB[2];
-        edgeData[lineIdx].radius = static_cast<GLubyte>(lines[i].size);
-        edgeData[lineIdx].position[0] = lines[i].start.x;
-        edgeData[lineIdx].position[1] = lines[i].start.y;
-        edgeData[lineIdx].position[2] = lines[i].start.z;
+        edgeData[lineIdx].r = m_lines[i].startRGB[0];
+        edgeData[lineIdx].g = m_lines[i].startRGB[1];
+        edgeData[lineIdx].b = m_lines[i].startRGB[2];
+        edgeData[lineIdx].radius = static_cast<GLubyte>(m_lines[i].size);
+        edgeData[lineIdx].position[0] = m_lines[i].start.x;
+        edgeData[lineIdx].position[1] = m_lines[i].start.y;
+        edgeData[lineIdx].position[2] = m_lines[i].start.z;
 
-        edgeData[lineIdx + 1].r = lines[i].endRGB[0];
-        edgeData[lineIdx + 1].g = lines[i].endRGB[1];
-        edgeData[lineIdx + 1].b = lines[i].endRGB[2];
-        edgeData[lineIdx + 1].radius = static_cast<GLubyte>(lines[i].size);
-        edgeData[lineIdx + 1].position[0] = lines[i].end.x;
-        edgeData[lineIdx + 1].position[1] = lines[i].end.y;
-        edgeData[lineIdx + 1].position[2] = lines[i].end.z;
+        edgeData[lineIdx + 1].r = m_lines[i].endRGB[0];
+        edgeData[lineIdx + 1].g = m_lines[i].endRGB[1];
+        edgeData[lineIdx + 1].b = m_lines[i].endRGB[2];
+        edgeData[lineIdx + 1].radius = static_cast<GLubyte>(m_lines[i].size);
+        edgeData[lineIdx + 1].position[0] = m_lines[i].end.x;
+        edgeData[lineIdx + 1].position[1] = m_lines[i].end.y;
+        edgeData[lineIdx + 1].position[2] = m_lines[i].end.z;
     }
 
     glBindVertexArray(m_VAOs[0]);
@@ -164,13 +176,6 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(EdgeData), (void *)(sizeof(float)));
 
     glBindVertexArray(0);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_FRAMEBUFFER_SRGB);
-    glDepthFunc(GL_LESS);
-
-    m_blur->SetEnabled(false);
-    m_text2d->UpdateScreenSize(static_cast<float>(m_scrWidth), static_cast<float>(m_scrHeight));
 }
 
 Engine::~Engine() {

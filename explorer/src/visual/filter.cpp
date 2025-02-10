@@ -101,6 +101,9 @@ void Blur::Display() {
     bool horizontal(true);
     for (uint i = 0; i < m_passes; i++) {
         horizontal = ((i ^ 1) == (i + 1));
+
+        m_blurShader.SetFloat("blurScale", m_scale * i);
+
         m_blurShader.SetBool("horizontal", horizontal);
         glBindFramebuffer(GL_FRAMEBUFFER, (i == (m_passes - 1)) ? 0 : m_blurFBO[horizontal ? 1 : 0]);
         glClear(GL_COLOR_BUFFER_BIT);

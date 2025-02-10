@@ -104,6 +104,9 @@ class Engine {
 
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
+    void setupNodes();
+    void setupEdges();
+
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;
 
@@ -147,7 +150,8 @@ class Engine {
     std::unique_ptr<UBOManager<CameraMatrices>> m_cameraMatricesUBO;
     std::unique_ptr<UBOManager<EnvironmentLighting>> m_environmentUBO;
 
-    std::vector<Node> m_nodes;
+    std::vector<Node> &m_nodes;
+    std::vector<Edge> &m_lines;
 
     GLuint m_maxNodes;
     GLuint m_node_buffer;
