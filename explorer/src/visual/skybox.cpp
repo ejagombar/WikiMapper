@@ -27,11 +27,11 @@ Skybox::~Skybox() {
     glDeleteTextures(1, &m_cubemapTexture);
 }
 
-void Skybox::Display(const glm::mat4 camera_direction) {
+void Skybox::Display(const glm::mat4 cameraDirection) {
     glDepthFunc(GL_LEQUAL);
 
     m_skyboxShader.Use();
-    m_skyboxShader.SetMat4("PV", camera_direction);
+    m_skyboxShader.SetMat4("PV", cameraDirection);
 
     glBindVertexArray(m_skyboxVAO);
     glActiveTexture(GL_TEXTURE0);

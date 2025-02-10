@@ -8,8 +8,8 @@
 
 #include "../../lib/std_image.h"
 
-unsigned int LoadCubemap(std::vector<std::string> faces);
+GLuint LoadCubemap(std::vector<std::string> faces);
 
-unsigned int LoadTexture(char const *path);
+GLuint LoadTexture(char const *path);
 
 #endif

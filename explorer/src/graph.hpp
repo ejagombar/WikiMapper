@@ -25,21 +25,21 @@ class Graph {
     std::unordered_map<uint32_t, std::vector<uint32_t>> adjList;
 
   public:
-    void addNode(uint32_t uid, const char *title);
+    void AddNode(uint32_t uid, const char *title);
 
-    void addEdge(uint32_t uid1, uint32_t uid2);
+    void AddEdge(uint32_t uid1, uint32_t uid2);
 
-    const Node *getNode(uint32_t uid) const;
+    const Node *GetNode(uint32_t uid) const;
 
     std::vector<Node> getAllNodes() const;
 
     std::vector<std::pair<uint32_t, uint32_t>> getAllLinks() const;
     std::vector<std::pair<uint32_t, uint32_t>> getAllUniqueLinks() const;
 
-    std::vector<uint32_t> getNeighborsUID(uint32_t uid) const;
-    std::vector<Node> getNeighbors(uint32_t uid) const;
+    std::vector<uint32_t> GetNeighborsUID(uint32_t uid) const;
+    std::vector<Node> GetNeighbors(uint32_t uid) const;
 
-    void printGraph() const;
+    void PrintGraph() const;
 };
 
 } // namespace GraphDB

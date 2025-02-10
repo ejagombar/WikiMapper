@@ -9,9 +9,9 @@
 using GraphDB::Graph;
 using GraphDB::Node;
 
-void Graph::addNode(uint32_t uid, const char *title) { nodes.emplace(uid, Node(uid, title)); }
+void Graph::AddNode(uint32_t uid, const char *title) { nodes.emplace(uid, Node(uid, title)); }
 
-void Graph::addEdge(uint32_t uid1, uint32_t uid2) {
+void Graph::AddEdge(uint32_t uid1, uint32_t uid2) {
     if (nodes.find(uid1) != nodes.end() && nodes.find(uid2) != nodes.end()) {
         adjList[uid1].push_back(uid2);
     } else {
@@ -19,7 +19,7 @@ void Graph::addEdge(uint32_t uid1, uint32_t uid2) {
     }
 }
 
-const Node *Graph::getNode(uint32_t uid) const {
+const Node *Graph::GetNode(uint32_t uid) const {
     auto it = nodes.find(uid);
     if (it != nodes.end()) {
         return &(it->second);
@@ -70,7 +70,7 @@ std::vector<std::pair<uint32_t, uint32_t>> Graph::getAllUniqueLinks() const {
 
 // Hash function for unordered_set of pairs
 
-std::vector<Node> Graph::getNeighbors(uint32_t uid) const {
+std::vector<Node> Graph::GetNeighbors(uint32_t uid) const {
     std::vector<uint32_t> UIDs;
     if (adjList.find(uid) != adjList.end()) {
         UIDs = adjList.at(uid);
@@ -84,14 +84,14 @@ std::vector<Node> Graph::getNeighbors(uint32_t uid) const {
     return out;
 }
 
-std::vector<uint32_t> Graph::getNeighborsUID(uint32_t uid) const {
+std::vector<uint32_t> Graph::GetNeighborsUID(uint32_t uid) const {
     if (adjList.find(uid) != adjList.end()) {
         return adjList.at(uid);
     }
     return {};
 }
 
-void Graph::printGraph() const {
+void Graph::PrintGraph() const {
     for (const auto &pair : nodes) {
         const Node &node = pair.second;
         std::cout << "Node UID: " << node.UID << ", Title: " << node.title << std::endl;
@@ -107,14 +107,14 @@ void Graph::printGraph() const {
 
 void generateFakeData(GraphDB::Graph &graph) {
 
-    graph.addNode(1, "Music");
-    graph.addNode(2, "Instruments");
-    graph.addNode(3, "Blues");
-    graph.addNode(4, "Jimmy Hendrix");
-    graph.addNode(5, "Black Dog");
-    graph.addNode(6, "Sheet Music");
-    graph.addNode(7, "Paper");
-    graph.addNode(8, "Time Signature");
+    graph.AddNode(1, "Music");
+    graph.AddNode(2, "Instruments");
+    graph.AddNode(3, "Blues");
+    graph.AddNode(4, "Jimmy Hendrix");
+    graph.AddNode(5, "Black Dog");
+    graph.AddNode(6, "Sheet Music");
+    graph.AddNode(7, "Paper");
+    graph.AddNode(8, "Time Signature");
 
     std::array<const char *, 25> instruments = {"Piano",       "Guitar",      "Violin",    "Drums",       "Flute",
                                                 "Saxophone",   "Trumpet",     "Cello",     "Clarinet",    "Harp",
@@ -124,9 +124,9 @@ void generateFakeData(GraphDB::Graph &graph) {
 
     int index = 9;
     for (auto instrument : instruments) {
-        graph.addNode(index, instrument);
-        graph.addEdge(2, index);
-        graph.addEdge(index, 2);
+        graph.AddNode(index, instrument);
+        graph.AddEdge(2, index);
+        graph.AddEdge(index, 2);
         index++;
     }
 
@@ -135,21 +135,21 @@ void generateFakeData(GraphDB::Graph &graph) {
 
     index = 9 + 25 + 1;
     for (auto musicWord : musicWords) {
-        graph.addNode(index, musicWord);
-        graph.addEdge(1, index);
-        graph.addEdge(index, 1);
+        graph.AddNode(index, musicWord);
+        graph.AddEdge(1, index);
+        graph.AddEdge(index, 1);
         index++;
     }
 
-    graph.addEdge(2, 1);
-    graph.addEdge(1, 2);
-    graph.addEdge(1, 3);
-    graph.addEdge(1, 6);
-    graph.addEdge(1, 8);
-    graph.addEdge(3, 4);
-    graph.addEdge(4, 5);
-    graph.addEdge(5, 4);
-    graph.addEdge(6, 7);
-    graph.addEdge(6, 8);
-    graph.addEdge(8, 6);
+    graph.AddEdge(2, 1);
+    graph.AddEdge(1, 2);
+    graph.AddEdge(1, 3);
+    graph.AddEdge(1, 6);
+    graph.AddEdge(1, 8);
+    graph.AddEdge(3, 4);
+    graph.AddEdge(4, 5);
+    graph.AddEdge(5, 4);
+    graph.AddEdge(6, 7);
+    graph.AddEdge(6, 8);
+    graph.AddEdge(8, 6);
 }

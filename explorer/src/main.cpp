@@ -22,7 +22,7 @@ uint32_t getTopNode(GraphDB::Graph &db, std::vector<GraphDB::Node> &nodes) {
     int maxLinkCount(0);
     uint32_t topNode(0);
     for (auto n : nodes) {
-        int linkCount = db.getNeighborsUID(n.UID).size();
+        int linkCount = db.GetNeighborsUID(n.UID).size();
         if (linkCount > maxLinkCount) {
             maxLinkCount = linkCount;
             topNode = n.UID;
@@ -54,12 +54,12 @@ void generateRealData(GraphDB::Graph &graph) {
     auto linkedPages = neo4jDB.GetLinkedPages("angus stone");
 
     int idx = 0;
-    graph.addNode(0, "DOPE LEMON");
+    graph.AddNode(0, "DOPE LEMON");
 
     for (const auto &page : linkedPages) {
         idx++;
-        graph.addNode(idx, page.title.c_str());
-        graph.addEdge(0, idx);
+        graph.AddNode(idx, page.title.c_str());
+        graph.AddEdge(0, idx);
     }
     std::cout << idx << std::endl;
 }
@@ -75,11 +75,11 @@ int main() {
 
     // Display base node -----------------
     uint32_t baseNodeUID = getTopNode(db, allNodes);
-    auto baseNode = db.getNode(baseNodeUID);
+    auto baseNode = db.GetNode(baseNodeUID);
 
     spaceMap.insert({baseNodeUID, {glm::vec3(0, 0, 0), packRGBToFloat(50, 10, 200)}});
 
-    auto neighboursUID = db.getNeighborsUID(baseNodeUID);
+    auto neighboursUID = db.GetNeighborsUID(baseNodeUID);
     auto out =
         spreadOrbit(spaceMap[baseNode->UID].first, neighboursUID.size(), 2 * sqrt(numOfElements), glm::vec3(0, 0, 0));
 
@@ -93,11 +93,11 @@ int main() {
     }
 
     // Display next node -----------------
-    auto neighbours = db.getNeighbors(baseNodeUID);
+    auto neighbours = db.GetNeighbors(baseNodeUID);
 
     uint32_t subNodeUID = getTopNode(db, neighbours);
 
-    auto subNeighboursUID = db.getNeighborsUID(subNodeUID);
+    auto subNeighboursUID = db.GetNeighborsUID(subNodeUID);
 
     glm::vec3 rotation = spaceMap[subNodeUID].first + glm::vec3(0, glm::pi<float>() * 0.5f, 0);
     auto subOut = spreadOrbitRand(spaceMap[subNodeUID].first, subNeighboursUID.size(),

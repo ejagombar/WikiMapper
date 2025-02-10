@@ -16,16 +16,16 @@
 #include <unordered_map>
 
 struct Character {
-    unsigned int TextureID; // ID handle of the glyph texture
-    glm::ivec2 Size;        // Size of glyph
-    glm::ivec2 Bearing;     // Offset from baseline to left/top of glyph
-    unsigned int Advance;   // Offset to advance to next glyph
+    uint TextureID;     // ID handle of the glyph texture
+    glm::ivec2 Size;    // Size of glyph
+    glm::ivec2 Bearing; // Offset from baseline to left/top of glyph
+    uint Advance;       // Offset to advance to next glyph
 };
 
 class Text {
   public:
     Text(const std::string &font, const std::string vertexShader, const std::string fragmentShader);
-    ~Text() {};
+    ~Text() = default;
 
     void SetTransforms(const glm::mat4 view, const float time);
     void Render(const std::string text, const glm::vec3 position, const float scale, const glm::vec3 color);
