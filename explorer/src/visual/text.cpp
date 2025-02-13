@@ -47,7 +47,7 @@ Text::Text(const std::string &fontPath, const std::string vertexShader, const st
     FT_Done_Face(m_face);
     FT_Done_FreeType(ft);
 
-    m_textShader = std::make_unique<Shader>(vertexShader, fragmentShader, "");
+    m_textShader = std::make_unique<Shader>(vertexShader, fragmentShader);
 
     glGenVertexArrays(1, &m_VAO);
     glGenBuffers(1, &m_VBO);
