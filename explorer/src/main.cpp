@@ -61,7 +61,6 @@ void generateRealData(GraphDB::Graph &graph) {
         graph.AddNode(idx, page.title.c_str());
         graph.AddEdge(0, idx);
     }
-    std::cout << idx << std::endl;
 }
 
 int main() {
@@ -115,7 +114,6 @@ int main() {
     std::vector<Edge> edges;
 
     for (int i = 0; i < numOfElements; i++) {
-        std::cout << i << std::endl;
         auto it = spaceMap.find(allNodes[i].UID);
 
         if (it != spaceMap.end()) {

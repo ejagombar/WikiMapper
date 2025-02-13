@@ -6,6 +6,7 @@
 
 #include "./camera.hpp"
 #include "./filter.hpp"
+#include "./label.hpp"
 #include "./skybox.hpp"
 #include "./text.hpp"
 #include "./uniformBufferObject.hpp"
@@ -106,6 +107,7 @@ class Engine {
 
     void setupNodes();
     void setupEdges();
+    void setupShaders();
 
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;
@@ -141,7 +143,7 @@ class Engine {
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<Filter::Blur> m_blur;
 
-    std::unique_ptr<Text> m_text;
+    std::unique_ptr<LabelEngine> m_text;
     std::unique_ptr<Text2d> m_text2d;
 
     const GLuint m_CAMERA_MATRICES_UBO_BINDING_POINT = 0;

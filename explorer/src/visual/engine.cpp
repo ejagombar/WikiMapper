@@ -50,32 +50,7 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
-    m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
-    m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
-    m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
-    m_lineShader = std::make_unique<Shader>("cylinder.vert", "cylinder.frag", "cylinder.geom");
-
-    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_scrWidth, m_scrHeight),
-                                            glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
-
-    m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
-    m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
-
-    m_cameraMatricesUBO = std::make_unique<UBOManager<CameraMatrices>>(m_CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_environmentUBO = std::make_unique<UBOManager<EnvironmentLighting>>(m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
-
-    m_sphereShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_lineShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_text2d->m_textShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_text->m_textShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
-
-    m_sphereShader->LinkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
-    m_lineShader->LinkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
-
-    // -------------------- Texture -------------------------
-    GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
-
-    m_skybox = std::make_unique<Skybox>(*m_skyboxShader, cubemapTexture);
+    setupShaders();
 
     glGenVertexArrays(count, m_VAOs);
     glGenBuffers(count, m_VBOs);
@@ -86,8 +61,40 @@ Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glDepthFunc(GL_LESS);
+}
 
-    m_text2d->UpdateScreenSize(static_cast<float>(m_scrWidth), static_cast<float>(m_scrHeight));
+void Engine::setupShaders() {
+    m_skyboxShader = std::make_unique<Shader>("skybox.vert", "skybox.frag");
+    m_screenShaderBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
+    m_sphereShader = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
+    m_lineShader = std::make_unique<Shader>("cylinder.vert", "cylinder.frag", "cylinder.geom");
+
+    m_blur = std::make_unique<Filter::Blur>(*m_screenShaderBlur, glm::ivec2(m_scrWidth, m_scrHeight),
+                                            glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
+
+    std::vector<Label> labels;
+    for (Node node : m_nodes) {
+        labels.emplace_back(Label{node.pos, node.text});
+    }
+
+    m_text = std::make_unique<LabelEngine>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "label.vert",
+                                           "label.frag", "label.geom", labels);
+
+    // m_text = std::make_unique<Text>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
+    // m_text2d = std::make_unique<Text2d>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "text.vert", "text.frag");
+
+    m_cameraMatricesUBO = std::make_unique<UBOManager<CameraMatrices>>(m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_environmentUBO = std::make_unique<UBOManager<EnvironmentLighting>>(m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+
+    // m_text2d->m_textShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_sphereShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_lineShader->LinkUBO("GlobalUniforms", m_CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_sphereShader->LinkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_lineShader->LinkUBO("EnvironmentUniforms", m_ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+
+    GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
+
+    m_skybox = std::make_unique<Skybox>(*m_skyboxShader, cubemapTexture);
 }
 
 void Engine::setupNodes() {
@@ -259,11 +266,7 @@ void Engine::loop() {
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_nodeCount);
 
-    m_text->SetTransforms(view, currentFrame);
-
-    for (Node node : m_nodes) {
-        m_text->Render(node.text, node.pos, 0.004f, glm::vec3(1.0, 1.0f, 1.0f));
-    }
+    m_text->RenderLabels(view, currentFrame);
 
     m_lineShader->Use();
     m_lineShader->SetMat3("normalMat", normal);
