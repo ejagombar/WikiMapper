@@ -1,17 +1,15 @@
 #version 330 core
-in vec2 TexCoords;
+in vec2 mapping;
+flat in float fTexIndex;
 out vec4 FragColor;
 
-uniform sampler2D tex;
+uniform sampler2DArray textAtlas;
 uniform vec3 textColor;
 
 void main()
 {
-    // float val = texture(tex, TexCoords).r;
-    // if (val < 0.5) {
-    //     discard;
-    // }
-    // vec4 sampled = vec4(1.0, 1.0, 1.0, val);
-    // FragColor = vec4(1.0,1.0,1.0, 1.0) ;
-    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    float alpha = texture(textAtlas, vec3(mapping, fTexIndex)).r;
+    if (alpha < 0.5)
+        discard;
+    FragColor = vec4(textColor, alpha);
 }
