@@ -48,13 +48,13 @@ class LabelEngine {
         GLfloat position[3];
     };
 
-    static const uint m_maxActiveLabels = 100;
+    static const uint m_maxActiveLabels = 1000;
 
     LabelData m_activeLabels[m_maxActiveLabels];
 
     FT_Face m_face;
-    GLuint m_VAO, m_VBO;
-    std::unordered_map<char, LabelCharacter> m_characters;
+    GLuint m_VAO[2], m_VBO[2];
+    std::vector<LabelCharacter> m_characters;
 };
 
 #endif
