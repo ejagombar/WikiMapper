@@ -27,7 +27,7 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
         character.size = glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
         character.bearing = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
         character.advance = static_cast<unsigned int>(face->glyph->advance.x);
-        // Save a copy of the glyph bitmap.
+
         int bmpSize = face->glyph->bitmap.width * face->glyph->bitmap.rows;
         character.bitmapBuffer.resize(bmpSize);
         if (bmpSize > 0)
@@ -50,13 +50,12 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     m_shader = std::make_unique<Shader>(vertexShader, fragmentShader, geometryShader);
     m_shader->LinkUBO("GlobalUniforms", 0);
 
-    glGenVertexArrays(2, m_VAO);
-    glGenBuffers(2, m_VBO);
+    glGenVertexArrays(1, &m_VAO);
+    glGenBuffers(1, &m_VBO);
 
-    glBindVertexArray(m_VAO[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, m_VBO[0]);
-    // (We will upload the LabelData later in PrepareLabels.)
-    // Layout: location 0 -> aCoord (vec3), location 1 -> aWidth (float), location 2 -> aTexIndex (float)
+    glBindVertexArray(m_VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(LabelData), (void *)offsetof(LabelData, position));
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(LabelData), (void *)offsetof(LabelData, width));
@@ -71,8 +70,8 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
 }
 
 LabelEngine::~LabelEngine() {
-    glDeleteBuffers(2, m_VBO);
-    glDeleteVertexArrays(2, m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+    glDeleteVertexArrays(1, &m_VAO);
     glDeleteTextures(1, &m_textAtlas);
     // (Optionally, delete individual glyph textures if you are not reusing them elsewhere.)
 }
@@ -88,12 +87,13 @@ void LabelEngine::RenderLabels(const glm::mat4 &view, const float time) {
     m_shader->SetInt("textAtlas", 0);
     m_shader->SetVec3("textColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
-    glBindVertexArray(m_VAO[0]);
+    glBindVertexArray(m_VAO);
     glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(m_activeLabels.size()));
     glBindVertexArray(0);
 }
 
 void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
+
     // First pass: determine each label’s width in pixels and the maximum width (for atlas layer size).
     int numLabels = static_cast<int>(labels.size());
     m_atlasLayerCount = numLabels;
@@ -127,16 +127,14 @@ void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // For each label, create an image (filled with 0) and “draw” the text into it.
     for (int i = 0; i < numLabels; i++) {
         const std::string &text = labels[i].text;
         int textWidth = labelWidths[i];
-        // Create a buffer (size = atlas layer dimensions) and clear to 0.
+
         std::vector<unsigned char> pixels(m_atlasWidth * m_atlasHeight, 0);
         int penX = (m_atlasWidth - textWidth) / 2;
-        // Use the common baseline for vertical alignment.
+
         int baseline = m_commonBaseline;
-        // For each character, copy its bitmap into the correct location.
         for (unsigned char c : text) {
             if (c >= 128)
                 continue;
@@ -151,13 +149,11 @@ void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
                     int y = ypos + row;
                     if (x < 0 || x >= m_atlasWidth || y < 0 || y >= m_atlasHeight)
                         continue;
-                    // Copy the pixel value from the glyph’s saved bitmap.
                     pixels[y * m_atlasWidth + x] = ch.bitmapBuffer[row * ch.size.x + col];
                 }
             }
             penX += ch.advance / 64;
         }
-        // Upload this image into layer 'i' of the texture array.
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, m_atlasWidth, m_atlasHeight, 1, GL_RED, GL_UNSIGNED_BYTE,
                         pixels.data());
     }
@@ -177,13 +173,12 @@ void LabelEngine::PrepareLabels(const std::vector<Label> &labels) {
             textWidth += m_characters[c].advance / 64;
         }
 
-        // m_activeLabels[i].width = (static_cast<float>(textWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
         m_activeLabels[i].width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
-        m_activeLabels[i].texIndex = static_cast<float>(i); // this layer in the atlas
+        m_activeLabels[i].texIndex = static_cast<float>(i);
     }
 
-    glBindVertexArray(m_VAO[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, m_VBO[0]);
+    glBindVertexArray(m_VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER, m_activeLabels.size() * sizeof(LabelData), m_activeLabels.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
