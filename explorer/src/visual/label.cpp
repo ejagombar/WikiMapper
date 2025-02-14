@@ -1,11 +1,10 @@
 // render_engine.cpp
 #include "label.hpp"
-#include <cstring> // for memcpy
+#include <cstring>
 
 LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexShader,
                          const std::string &fragmentShader, const std::string &geometryShader,
                          const std::vector<Label> &labels) {
-    // 1. Initialize FreeType and load the font face.
     FT_Library ft;
     if (FT_Init_FreeType(&ft))
         throw std::runtime_error("ERROR::FREETYPE: Could not init FreeType Library");
@@ -17,28 +16,14 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     // Set font pixel size. (Here we choose 128 so that glyph bitmaps are large enough.)
     FT_Set_Pixel_Sizes(face, 0, 128);
 
-    // Disable byte-alignment restriction.
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    // 2. Load first 128 ASCII glyphs.
     m_characters.resize(128);
     for (unsigned char c = 0; c < 128; c++) {
         if (FT_Load_Char(face, c, FT_LOAD_RENDER))
             throw std::runtime_error("ERROR::FREETYTPE: Failed to load Glyph");
 
-        // Generate texture for individual glyph (if you need it later).
-        GLuint texture;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, face->glyph->bitmap.width, face->glyph->bitmap.rows, 0, GL_RED,
-                     GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
         LabelCharacter character;
-        character.TextureID = texture;
         character.size = glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
         character.bearing = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
         character.advance = static_cast<unsigned int>(face->glyph->advance.x);
@@ -50,7 +35,6 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
         m_characters[c] = character;
     }
 
-    // Compute a common baseline and common height (so that every label texture has the same height).
     m_commonBaseline = 0;
     m_commonHeight = 0;
     for (auto &ch : m_characters) {
@@ -60,19 +44,15 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     if (m_commonHeight == 0)
         m_commonHeight = 128; // fallback
 
-    // Done with FreeType.
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
-    // 3. Create and compile the shader.
     m_shader = std::make_unique<Shader>(vertexShader, fragmentShader, geometryShader);
     m_shader->LinkUBO("GlobalUniforms", 0);
 
-    // 4. Generate two VAOs and VBOs.
     glGenVertexArrays(2, m_VAO);
     glGenBuffers(2, m_VBO);
 
-    // (a) VAO[0]: Label billboard vertex data.
     glBindVertexArray(m_VAO[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO[0]);
     // (We will upload the LabelData later in PrepareLabels.)
@@ -86,21 +66,7 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    // (b) VAO[1]: A simple quad for the geometry shader (unchanged from your original code).
-    glBindVertexArray(m_VAO[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, m_VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 5, NULL, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    // 5. Build the text atlas from the label strings.
     CreateTextAtlas(labels);
-
-    // 6. Prepare the billboard data (position, width, and texture layer index) for each label.
     PrepareLabels(labels);
 }
 
@@ -136,8 +102,8 @@ void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
     for (int i = 0; i < numLabels; i++) {
         const std::string &text = labels[i].text;
         int width = 0;
-        for (char c : text) {
-            if (c < 0 || c >= 128)
+        for (unsigned char c : text) {
+            if (c >= 128)
                 continue;
             // Note: advance.x is in 1/64 pixels.
             width += m_characters[c].advance / 64;
@@ -167,16 +133,17 @@ void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
         int textWidth = labelWidths[i];
         // Create a buffer (size = atlas layer dimensions) and clear to 0.
         std::vector<unsigned char> pixels(m_atlasWidth * m_atlasHeight, 0);
-        int penX = 0;
+        int penX = (m_atlasWidth - textWidth) / 2;
         // Use the common baseline for vertical alignment.
         int baseline = m_commonBaseline;
         // For each character, copy its bitmap into the correct location.
-        for (char c : text) {
-            if (c < 0 || c >= 128)
+        for (unsigned char c : text) {
+            if (c >= 128)
                 continue;
             const LabelCharacter &ch = m_characters[c];
             int xpos = penX + ch.bearing.x;
             int ypos = baseline - ch.bearing.y;
+
             // Loop over the glyph’s bitmap and copy pixels.
             for (int row = 0; row < ch.size.y; row++) {
                 for (int col = 0; col < ch.size.x; col++) {
@@ -203,20 +170,18 @@ void LabelEngine::PrepareLabels(const std::vector<Label> &labels) {
     for (int i = 0; i < numLabels; i++) {
         m_activeLabels[i].position = labels[i].position;
         int textWidth = 0;
-        for (char c : labels[i].text) {
-            if (c < 0 || c >= 128)
+        for (unsigned char c : labels[i].text) {
+            if (c >= 128) {
                 continue;
+            }
             textWidth += m_characters[c].advance / 64;
         }
-        // Compute “half‐width” (vWidth attribute) so that the full quad width is:
-        // 2 * vWidth * (scaled by distance) and preserves the text’s aspect ratio.
-        // Since the geometry shader uses a fixed vertical half‐size of vHeight (here 0.2),
-        // we set: vWidth = (textWidth / commonHeight) * 0.2.
-        m_activeLabels[i].width = (static_cast<float>(textWidth) / static_cast<float>(m_commonHeight)) * 0.2f;
+
+        // m_activeLabels[i].width = (static_cast<float>(textWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
+        m_activeLabels[i].width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
         m_activeLabels[i].texIndex = static_cast<float>(i); // this layer in the atlas
     }
 
-    // Upload the label billboard vertex data.
     glBindVertexArray(m_VAO[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO[0]);
     glBufferData(GL_ARRAY_BUFFER, m_activeLabels.size() * sizeof(LabelData), m_activeLabels.data(), GL_STATIC_DRAW);

@@ -16,7 +16,6 @@ struct Label {
 
 // This structure now also stores a copy of the glyph bitmap.
 struct LabelCharacter {
-    unsigned int TextureID;                  // (Unused in the atlas build)
     glm::ivec2 size;                         // dimensions of the glyph in pixels
     glm::ivec2 bearing;                      // offset from baseline to left/top of glyph
     unsigned int advance;                    // advance.x is in 1/64 pixels

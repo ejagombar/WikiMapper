@@ -8,7 +8,7 @@ uniform vec3 textColor;
 
 void main()
 {
-    float alpha = texture(textAtlas, vec3(mapping, fTexIndex)).r;
+    float alpha = texture(textAtlas, vec3(mapping.x, mapping.y, fTexIndex)).r;
     if (alpha < 0.5)
         discard;
     FragColor = vec4(textColor, alpha);
