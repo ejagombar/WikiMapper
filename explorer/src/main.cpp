@@ -1,8 +1,6 @@
-#include "store.hpp"
-#include <ostream>
-#include <tuple>
-#define STB_IMAGE_IMPLEMENTATION
+
 #include "./visual/engine.hpp"
+#include "store.hpp"
 
 #include "../lib/rgb_hsv.hpp"
 #include "graph.hpp"
@@ -12,11 +10,13 @@
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/scalar_constants.hpp>
-#include <iostream>
 #include <json/json.h>
 #include <random>
 #include <unordered_map>
 #include <vector>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "../lib/std_image.h"
 
 uint32_t getTopNode(GraphDB::Graph &db, std::vector<GraphDB::Node> &nodes) {
     int maxLinkCount(0);
@@ -51,10 +51,10 @@ void generateRealData(GraphDB::Graph &graph) {
     }
 
     auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = neo4jDB.GetLinkedPages("angus stone");
+    auto linkedPages = neo4jDB.GetLinkedPages("mathematics");
 
     int idx = 0;
-    graph.AddNode(0, "DOPE LEMON");
+    graph.AddNode(0, "Mathematics");
 
     for (const auto &page : linkedPages) {
         idx++;

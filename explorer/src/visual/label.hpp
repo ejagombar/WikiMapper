@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LABEL_H
+#define LABEL_H
 
 #include "shader.hpp"
 #include <ft2build.h>
@@ -53,3 +54,5 @@ class LabelEngine {
     std::vector<LabelCharacter> m_characters;
     std::vector<LabelData> m_activeLabels;
 };
+
+#endif // LABEL_H
