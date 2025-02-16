@@ -21,7 +21,7 @@
 #include <vector>
 
 Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> &lines)
-    : m_nodes(nodes), m_lines(lines) {
+    : m_nodes(nodes), m_edges(lines) {
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -99,33 +99,26 @@ void Engine::setupShaders() {
 }
 
 void Engine::setupNodes() {
-    struct NodeData {
-        GLubyte r;
-        GLubyte g;
-        GLubyte b;
-        GLubyte radius;
-        GLfloat position[3];
-    };
-
     m_nodeCount = m_nodes.size();
-    NodeData points[m_nodeCount];
+
+    m_nodeData.resize(m_nodeCount);
 
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i < m_nodeCount; i++) {
-        points[i].r = m_nodes[i].rgb[0];
-        points[i].g = m_nodes[i].rgb[1];
-        points[i].b = m_nodes[i].rgb[2];
-        points[i].radius = static_cast<GLubyte>(m_nodes[i].size);
-        points[i].position[0] = m_nodes[i].pos.x;
-        points[i].position[1] = m_nodes[i].pos.y;
-        points[i].position[2] = m_nodes[i].pos.z;
+        m_nodeData[i].r = m_nodes[i].rgb[0];
+        m_nodeData[i].g = m_nodes[i].rgb[1];
+        m_nodeData[i].b = m_nodes[i].rgb[2];
+        m_nodeData[i].radius = static_cast<GLubyte>(m_nodes[i].size);
+        m_nodeData[i].position[0] = m_nodes[i].pos.x;
+        m_nodeData[i].position[1] = m_nodes[i].pos.y;
+        m_nodeData[i].position[2] = m_nodes[i].pos.z;
     }
 
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_nodeData.size() * sizeof(NodeData), m_nodeData.data(), GL_DYNAMIC_DRAW);
 
     const GLint aColorAttrib = m_shader.sphere->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(aColorAttrib);
@@ -138,55 +131,45 @@ void Engine::setupNodes() {
     glBindVertexArray(0);
 }
 
-// void Engine::updateParticles(float deltaTime) {
-//     for (int i = 0; i < m_nodeCount; i++) {
-//         particles[i].position[0] += particles[i].velocity[0] * deltaTime;
-//         particles[i].position[1] += particles[i].velocity[1] * deltaTime;
-//         particles[i].position[2] += particles[i].velocity[2] * deltaTime;
-//     }
-//
-//     // Send updated data to GPU
-//     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
-//     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Particle) * m_nodeCount, particles.data());
-//     glBindBuffer(GL_ARRAY_BUFFER, 0);
-// }
+void Engine::updateParticles() {
+    for (int i = 0; i < m_nodeCount; i++) {
+        m_nodeData[i].position[0] += 0.01;
+        m_nodeData[i].position[1] += 0.01;
+        m_nodeData[i].position[2] += 0.01;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NodeData) * m_nodeData.size(), m_nodeData.data());
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
 void Engine::setupEdges() {
-    m_lineCount = m_lines.size();
+    m_edgeCount = m_edges.size();
 
-    struct EdgeData {
-        GLubyte r;
-        GLubyte g;
-        GLubyte b;
-        GLubyte radius;
-        GLfloat position[3];
-    };
-
-    EdgeData edgeData[m_lineCount * 2];
-
-    for (unsigned int i = 0; i < m_lineCount; i++) {
+    m_edgeData.resize(m_edgeCount * 2);
+    for (unsigned int i = 0; i < m_edgeCount; i++) {
         const int lineIdx = i * 2;
 
-        edgeData[lineIdx].r = m_lines[i].startRGB[0];
-        edgeData[lineIdx].g = m_lines[i].startRGB[1];
-        edgeData[lineIdx].b = m_lines[i].startRGB[2];
-        edgeData[lineIdx].radius = static_cast<GLubyte>(m_lines[i].size);
-        edgeData[lineIdx].position[0] = m_lines[i].start.x;
-        edgeData[lineIdx].position[1] = m_lines[i].start.y;
-        edgeData[lineIdx].position[2] = m_lines[i].start.z;
+        m_edgeData[lineIdx].r = m_edges[i].startRGB[0];
+        m_edgeData[lineIdx].g = m_edges[i].startRGB[1];
+        m_edgeData[lineIdx].b = m_edges[i].startRGB[2];
+        m_edgeData[lineIdx].radius = static_cast<GLubyte>(m_edges[i].size);
+        m_edgeData[lineIdx].position[0] = m_edges[i].start.x;
+        m_edgeData[lineIdx].position[1] = m_edges[i].start.y;
+        m_edgeData[lineIdx].position[2] = m_edges[i].start.z;
 
-        edgeData[lineIdx + 1].r = m_lines[i].endRGB[0];
-        edgeData[lineIdx + 1].g = m_lines[i].endRGB[1];
-        edgeData[lineIdx + 1].b = m_lines[i].endRGB[2];
-        edgeData[lineIdx + 1].radius = static_cast<GLubyte>(m_lines[i].size);
-        edgeData[lineIdx + 1].position[0] = m_lines[i].end.x;
-        edgeData[lineIdx + 1].position[1] = m_lines[i].end.y;
-        edgeData[lineIdx + 1].position[2] = m_lines[i].end.z;
+        m_edgeData[lineIdx + 1].r = m_edges[i].endRGB[0];
+        m_edgeData[lineIdx + 1].g = m_edges[i].endRGB[1];
+        m_edgeData[lineIdx + 1].b = m_edges[i].endRGB[2];
+        m_edgeData[lineIdx + 1].radius = static_cast<GLubyte>(m_edges[i].size);
+        m_edgeData[lineIdx + 1].position[0] = m_edges[i].end.x;
+        m_edgeData[lineIdx + 1].position[1] = m_edges[i].end.y;
+        m_edgeData[lineIdx + 1].position[2] = m_edges[i].end.z;
     }
 
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(edgeData), edgeData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data(), GL_DYNAMIC_DRAW);
 
     const GLint radiusAttrib = m_shader.cylinder->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(radiusAttrib);
@@ -212,14 +195,14 @@ int Engine::Run() {
     double lastTime = glfwGetTime();
     m_startTime = lastTime;
 
-    // glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();
 
         m_frameCount++;
         if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
-            printf("%f fps\n", double(m_frameCount));
+            printf("%f fps\n", double(1.f / m_frameCount));
             m_frameCount = 0;
             lastTime += 1.0;
         }
@@ -285,12 +268,14 @@ void Engine::loop() {
     m_shader.cylinder->SetMat3("normalMat", normal);
     m_shader.cylinder->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_LINES, 0, m_lineCount * 2);
+    glDrawArrays(GL_LINES, 0, m_edgeCount * 2);
 
     m_blur->Display();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    updateParticles();
 
     if (m_state == stop) {
         // m_text2d->Render2d(

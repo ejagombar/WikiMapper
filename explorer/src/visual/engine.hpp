@@ -42,6 +42,22 @@ class Engine {
     int Run();
 
   private:
+    struct NodeData {
+        GLubyte r;
+        GLubyte g;
+        GLubyte b;
+        GLubyte radius;
+        GLfloat position[3];
+    };
+
+    struct EdgeData {
+        GLubyte r;
+        GLubyte g;
+        GLubyte b;
+        GLubyte radius;
+        GLfloat position[3];
+    };
+
     struct CameraMatrices {
         glm::mat4 projection;
         glm::mat4 view;
@@ -91,6 +107,8 @@ class Engine {
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
+    void updateParticles();
+
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
     void setupNodes();
@@ -122,9 +140,12 @@ class Engine {
     std::unique_ptr<Skybox> m_skybox;
 
     std::vector<Node> &m_nodes;
-    std::vector<Edge> &m_lines;
+    std::vector<Edge> &m_edges;
 
-    GLuint m_lineCount;
+    std::vector<NodeData> m_nodeData;
+    std::vector<EdgeData> m_edgeData;
+
+    GLuint m_edgeCount;
     GLuint m_nodeCount;
 
     static const uint8_t count = 2;
