@@ -71,4 +71,17 @@ std::vector<uint32_t> Graph::GetNeighboursIdx(uint32_t idx) const {
     return out;
 }
 
+uint32_t Graph::GetTopNode() {
+    int maxLinkCount(0);
+    uint32_t topNode(0);
+    for (uint i = 0; i < m_nodes.size(); i++) {
+        int linkCount = GetNeighboursIdx(i).size();
+        if (linkCount > maxLinkCount) {
+            maxLinkCount = linkCount;
+            topNode = i;
+        }
+    }
+    return topNode;
+}
+
 } // namespace GraphDB

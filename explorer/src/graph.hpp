@@ -10,6 +10,7 @@ namespace GraphDB {
 
 struct Node {
     char title[64];
+    float colour;
     glm::vec3 pos;
     glm::vec3 vel;
     glm::vec3 force;
@@ -32,6 +33,8 @@ class Graph {
 
     std::vector<uint32_t> GetNeighboursIdx(uint32_t rootIdx) const;
     std::vector<Node> GetNeighbours(uint32_t rootIdx) const;
+
+    uint32_t GetTopNode();
 
     std::vector<Node> m_nodes;
     std::vector<Edge> m_edges;
