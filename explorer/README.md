@@ -5,12 +5,12 @@ Still very much under development.
 ## Todo
 
 ### Features
-- [ ] **Oscillating spheres.** Spheres slowly 'wobble' and drift in space to make the graph feel more reactive. Will require modifiying the geometry shader of the spheres and applying an offset over time.
+- [x] **Oscillating spheres.** Spheres slowly 'wobble' and drift in space to make the graph feel more reactive. Will require modifiying the geometry shader of the spheres and applying an offset over time.
 - [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness
 - [ ] **Menu.** A menu that give the user options to enable/disable features, change the font size etc.
 - [ ] **Search.** Allow a user to search for a page and the camera will jump to that node.
 - [ ] **External links.** Link each node to the original Wikipedia page.
-- [ ] **Lighting**. Add lighting to the spheres shading, and possibly the text and lines as well.
+- [x] **Lighting**. Add lighting to the spheres shading, and possibly the text and lines as well.
 - [ ] **Force Directed Graph Drawing.** Algorithm to spread points out in space. 
  
 
@@ -19,7 +19,7 @@ There are many potential optimisations with this project. At the moment, I am fo
 
 - [x] ~~Bake the sphere imposter depth maps into a texture, instead of calculating per sphere every frame.~~ This is barely more efficient than the current method it seems. (Source)[http://11235813tdd.blogspot.com/2013/04/raycasted-spheres-and-point-sprites-vs.html]
 - [x] Pack the data more tightly that is being sent to the GPU for the imposter spheres. Float values are not required for the positions of the sphere. This can be significantly reduced by having discreet positions in space that the spheres can be placed at which would allow variables smaller than floats to be used. Floats do also not need to be used for the sphere size of colour either. ** The size and colour has been compressed into a single float for the spheres.**
-- [ ] When rendering text, create a texture that contains the word or sentance that needs to be displayed, instead of having a separate draw call for every letter of every word.
+- [x] When rendering text, create a texture that contains the word or sentance that needs to be displayed, instead of having a separate draw call for every letter of every word.
 - [ ] Deferred shading.
 - [x] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once. Not all variables have been moved to this, just the very common ones.
 - [x] Simplify sphere imposter frag shader. Remove 4 * and / 2 calculation from quadratic equation. 
