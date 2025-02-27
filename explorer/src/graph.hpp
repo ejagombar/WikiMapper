@@ -3,47 +3,40 @@
 
 #include <cstdint>
 #include <cstring>
-#include <unordered_map>
+#include <glm/glm.hpp>
 #include <vector>
 
 namespace GraphDB {
 
 struct Node {
-    const uint32_t UID;
-    char title[256];
+    char title[64];
+    glm::vec3 pos;
+    glm::vec3 vel;
+    glm::vec3 force;
 
-    Node(uint32_t id, const char *t) : UID(id) {
+    Node(const char *t) {
         strncpy(title, t, sizeof(title) - 1);
         title[sizeof(title) - 1] = '\0'; // Ensure null-termination
     }
 };
 
+struct Edge {
+    uint32_t startIdx;
+    uint32_t endIdx;
+};
+
 class Graph {
-  private:
-    std::unordered_map<uint32_t, Node> nodes;
-
-    std::unordered_map<uint32_t, std::vector<uint32_t>> adjList;
-
   public:
-    void AddNode(uint32_t uid, const char *title);
+    uint32_t AddNode(const char *title);
+    void AddEdge(uint32_t idx1, uint32_t idx2);
 
-    void AddEdge(uint32_t uid1, uint32_t uid2);
+    std::vector<uint32_t> GetNeighboursIdx(uint32_t rootIdx) const;
+    std::vector<Node> GetNeighbours(uint32_t rootIdx) const;
 
-    const Node *GetNode(uint32_t uid) const;
-
-    std::vector<Node> getAllNodes() const;
-
-    std::vector<std::pair<uint32_t, uint32_t>> getAllLinks() const;
-    std::vector<std::pair<uint32_t, uint32_t>> getAllUniqueLinks() const;
-
-    std::vector<uint32_t> GetNeighborsUID(uint32_t uid) const;
-    std::vector<Node> GetNeighbors(uint32_t uid) const;
-
-    void PrintGraph() const;
+    std::vector<Node> m_nodes;
+    std::vector<Edge> m_edges;
 };
 
 } // namespace GraphDB
-
-void generateFakeData(GraphDB::Graph &graph);
 
 #endif
