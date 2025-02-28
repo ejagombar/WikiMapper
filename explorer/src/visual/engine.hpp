@@ -107,7 +107,7 @@ class Engine {
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
-    void updateParticles();
+    void updateParticles(const float currentFrame);
 
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 

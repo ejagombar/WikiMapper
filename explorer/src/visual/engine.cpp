@@ -131,15 +131,28 @@ void Engine::setupNodes() {
     glBindVertexArray(0);
 }
 
-void Engine::updateParticles() {
-    for (int i = 0; i < m_nodeCount; i++) {
-        m_nodeData[i].position[0] += 0.01;
-        m_nodeData[i].position[1] += 0.01;
-        m_nodeData[i].position[2] += 0.01;
+void Engine::updateParticles(const float currentFrame) {
+    for (unsigned int i = 0; i < m_nodeCount; i++) {
+        m_nodeData[i].position[0] = std::sin(currentFrame) * i;
+        // m_nodeData[i].position[1] = sin(i) * 10;
+        // m_nodeData[i].position[2] = 0;
+    }
+
+    for (unsigned int i = 0; i < m_edgeCount; i++) {
+        m_edgeData[i].position[0] = m_edges[i].start.x;
+        m_edgeData[i].position[1] = m_edges[i].start.y;
+        m_edgeData[i].position[2] = m_edges[i].start.z;
+
+        m_edgeData[i + 1].position[0] = m_edges[i].end.x;
+        m_edgeData[i + 1].position[1] = m_edges[i].end.y;
+        m_edgeData[+1].position[2] = m_edges[i].end.z;
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NodeData) * m_nodeData.size(), m_nodeData.data());
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -195,7 +208,7 @@ int Engine::Run() {
     double lastTime = glfwGetTime();
     m_startTime = lastTime;
 
-    glfwSwapInterval(0);
+    // glfwSwapInterval(0);
 
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();
@@ -275,7 +288,7 @@ void Engine::loop() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    updateParticles();
+    // updateParticles(currentFrame);
 
     if (m_state == stop) {
         // m_text2d->Render2d(
