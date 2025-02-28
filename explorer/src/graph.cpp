@@ -3,15 +3,15 @@
 #include <iostream>
 #include <vector>
 
-namespace GraphDB {
+namespace GS {
 
 uint32_t Graph::AddNode(const char *title) {
-    m_nodes.emplace_back(Node(title));
-    return m_nodes.size() - 1;
+    nodes.emplace_back(Node(title));
+    return nodes.size() - 1;
 }
 
 void Graph::AddEdge(uint32_t idx1, uint32_t idx2) {
-    if (idx1 >= m_nodes.size() || idx2 > m_nodes.size()) {
+    if (idx1 >= nodes.size() || idx2 > nodes.size()) {
         std::cerr << "Error: Idx out of range." << std::endl;
     }
 
@@ -28,26 +28,26 @@ void Graph::AddEdge(uint32_t idx1, uint32_t idx2) {
     }
 
     // Ensure the edge is not a duplicate
-    for (const Edge &e : m_edges) {
+    for (const Edge &e : edges) {
         if (e.startIdx == idx1 && e.endIdx == idx2) {
             return;
         }
     }
 
-    m_edges.emplace_back(Edge(idx1, idx2));
+    edges.emplace_back(Edge(idx1, idx2));
 }
 
 std::vector<Node> Graph::GetNeighbours(uint32_t idx) const {
     std::vector<Node> out;
 
-    for (const Edge &e : m_edges) {
+    for (const Edge &e : edges) {
         if (e.startIdx > idx)
             continue;
 
         if (e.startIdx == idx) {
-            out.emplace_back(m_nodes[e.endIdx]);
+            out.emplace_back(nodes[e.endIdx]);
         } else if (e.endIdx == idx) {
-            out.emplace_back(m_nodes[e.startIdx]);
+            out.emplace_back(nodes[e.startIdx]);
         }
     }
 
@@ -57,7 +57,7 @@ std::vector<Node> Graph::GetNeighbours(uint32_t idx) const {
 std::vector<uint32_t> Graph::GetNeighboursIdx(uint32_t idx) const {
     std::vector<uint32_t> out;
 
-    for (const Edge &e : m_edges) {
+    for (const Edge &e : edges) {
         if (e.startIdx > idx)
             continue;
 
@@ -74,7 +74,7 @@ std::vector<uint32_t> Graph::GetNeighboursIdx(uint32_t idx) const {
 uint32_t Graph::GetTopNode() {
     int maxLinkCount(0);
     uint32_t topNode(0);
-    for (uint i = 0; i < m_nodes.size(); i++) {
+    for (uint i = 0; i < nodes.size(); i++) {
         int linkCount = GetNeighboursIdx(i).size();
         if (linkCount > maxLinkCount) {
             maxLinkCount = linkCount;
@@ -84,4 +84,4 @@ uint32_t Graph::GetTopNode() {
     return topNode;
 }
 
-} // namespace GraphDB
+} // namespace GS

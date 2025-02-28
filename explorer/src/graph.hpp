@@ -6,14 +6,16 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace GraphDB {
+namespace GS {
 
 struct Node {
     char title[64];
-    float colour;
     glm::vec3 pos;
     glm::vec3 vel;
     glm::vec3 force;
+    unsigned char rgb[3];
+    unsigned char size;
+    unsigned char edgeSize;
 
     Node(const char *t) {
         strncpy(title, t, sizeof(title) - 1);
@@ -36,10 +38,12 @@ class Graph {
 
     uint32_t GetTopNode();
 
-    std::vector<Node> m_nodes;
-    std::vector<Edge> m_edges;
+    Node &EdgeStart(uint32_t idx) { return nodes.at(edges.at(idx).startIdx); }
+    Node &EdgeEnd(uint32_t idx) { return nodes.at(edges.at(idx).endIdx); }
+
+    std::vector<Node> nodes; // It feels weird to have the m_ here as they are public. Idk what is best.
+    std::vector<Edge> edges;
 };
 
-} // namespace GraphDB
-
+} // namespace GS
 #endif

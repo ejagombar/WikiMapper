@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
+#include "../graph.hpp"
 #include "./camera.hpp"
 #include "./filter.hpp"
 #include "./label.hpp"
@@ -12,36 +13,21 @@
 #include "./uniformBufferObject.hpp"
 #include <GL/gl.h> // This header isn't required as glad already provides it, however if it is not here, then the the language server automatically adds it when autocomplete is used on a OpenGL function
 #include <GLFW/glfw3.h>
-#include <math.h>
-#include <memory>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-struct Node {
-    glm::vec3 pos;
-    unsigned char rgb[3];
-    float size;
-    std::string text;
-};
-
-struct Edge {
-    glm::vec3 start, end;
-    unsigned char startRGB[3];
-    unsigned char endRGB[3];
-    float size;
-};
-
-enum State { play, stop };
+#include <math.h>
+#include <memory>
 
 class Engine {
   public:
-    Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> &lines);
+    Engine(GS::Graph &graph);
     ~Engine();
     int Run();
 
   private:
+    enum State { play, stop };
+
     struct NodeData {
         GLubyte r;
         GLubyte g;
@@ -139,8 +125,7 @@ class Engine {
     std::unique_ptr<Text2d> m_text2d;
     std::unique_ptr<Skybox> m_skybox;
 
-    std::vector<Node> &m_nodes;
-    std::vector<Edge> &m_edges;
+    GS::Graph &m_graph;
 
     std::vector<NodeData> m_nodeData;
     std::vector<EdgeData> m_edgeData;

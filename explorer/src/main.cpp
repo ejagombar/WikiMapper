@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/scalar_constants.hpp>
+#include <glm/fwd.hpp>
 #include <json/json.h>
 #include <random>
 #include <vector>
@@ -27,7 +28,7 @@ void unpackFloatToRGB(float packedFloat, unsigned char &r, unsigned char &g, uns
     b = packed & 0xFF;
 }
 
-void generateRealData(GraphDB::Graph &graph) {
+void generateRealData(GS::Graph &graph) {
     Neo4jInterface neo4jDB("http://127.0.0.1:7474");
     if (!neo4jDB.Authenticate("neo4j", "test1234")) {
         return;
@@ -45,74 +46,76 @@ void generateRealData(GraphDB::Graph &graph) {
 }
 
 int main() {
-    GraphDB::Graph db;
+    GS::Graph db;
     generateRealData(db);
 
-    const int numOfElements = db.m_nodes.size();
+    const int numOfElements = db.nodes.size();
 
     // Display base node -----------------
     uint32_t baseNodeIdx = db.GetTopNode();
-    auto baseNode = db.m_nodes[baseNodeIdx];
+    auto baseNode = db.nodes[baseNodeIdx];
     std::cout << baseNode.title;
 
     auto neighboursUID = db.GetNeighboursIdx(baseNodeIdx);
-    auto out =
-        spreadOrbit(db.m_nodes[baseNodeIdx].pos, neighboursUID.size(), 2 * sqrt(numOfElements), glm::vec3(0, 0, 0));
+    auto out = spreadOrbit(glm::vec3(0), neighboursUID.size(), 2 * sqrt(numOfElements), glm::vec3(0, 0, 0));
 
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i <= neighboursUID.size(); i++) {
         auto col = hsv2rgb(dist(gen), 0.8f, 1.0f);
-        auto colFloat = packRGBToFloat(col.r, col.g, col.b);
-        db.m_nodes[i].pos = out[i];
-        db.m_nodes[i].colour = colFloat;
+        db.nodes[i].pos = out[i];
+        db.nodes[i].rgb[0] = static_cast<char>(col.r);
+        db.nodes[i].rgb[1] = static_cast<char>(col.g);
+        db.nodes[i].rgb[2] = static_cast<char>(col.b);
+        db.nodes[i].size = 20;
+        db.nodes[i].edgeSize = 5;
     }
 
-    db.m_nodes[baseNodeIdx].pos = glm::vec3(0, 0, 0);
+    db.nodes[baseNodeIdx].pos = glm::vec3(0);
 
-    std::vector<Node> nodes(numOfElements);
-    std::vector<Edge> edges;
+    // std::vector<Node> nodes(numOfElements);
+    // std::vector<Edge> edges;
 
-    for (int i = 0; i < numOfElements; i++) {
-        unsigned char r, g, b;
+    // for (int i = 0; i < numOfElements; i++) {
+    //     unsigned char r, g, b;
+    //
+    //     unpackFloatToRGB(db.nodes[i].colour, r, g, b);
+    //
+    //     nodes[i].rgb[0] = r;
+    //     nodes[i].rgb[1] = g;
+    //     nodes[i].rgb[2] = b;
+    //
+    //     nodes[i].text = db.nodes[i].title;
+    //
+    //     nodes[i].pos = db.nodes[i].pos;
+    //     nodes[i].size = 20;
+    // }
 
-        unpackFloatToRGB(db.m_nodes[i].colour, r, g, b);
+    // for (const auto e : db.m_edges) {
+    //     GS::Edge edge;
+    //
+    //     const GraphDB::Node &startNode = db.nodes[e.startIdx];
+    //     const GraphDB::Node &endNode = db.nodes[e.endIdx];
+    //
+    //     edge.start = startNode.pos;
+    //     edge.end = endNode.pos;
+    //
+    //     unsigned char r, g, b;
+    //     unpackFloatToRGB(startNode.colour, r, g, b);
+    //     edge.startRGB[0] = r;
+    //     edge.startRGB[1] = g;
+    //     edge.startRGB[2] = b;
+    //
+    //     unpackFloatToRGB(endNode.colour, r, g, b);
+    //     edge.endRGB[0] = r;
+    //     edge.endRGB[1] = g;
+    //     edge.endRGB[2] = b;
+    //
+    //     edge.size = 5;
+    //     edges.push_back(edge);
+    // }
 
-        nodes[i].rgb[0] = r;
-        nodes[i].rgb[1] = g;
-        nodes[i].rgb[2] = b;
-
-        nodes[i].text = db.m_nodes[i].title;
-
-        nodes[i].pos = db.m_nodes[i].pos;
-        nodes[i].size = 20;
-    }
-
-    for (const auto e : db.m_edges) {
-        Edge edge;
-
-        const GraphDB::Node &startNode = db.m_nodes[e.startIdx];
-        const GraphDB::Node &endNode = db.m_nodes[e.endIdx];
-
-        edge.start = startNode.pos;
-        edge.end = endNode.pos;
-
-        unsigned char r, g, b;
-        unpackFloatToRGB(startNode.colour, r, g, b);
-        edge.startRGB[0] = r;
-        edge.startRGB[1] = g;
-        edge.startRGB[2] = b;
-
-        unpackFloatToRGB(endNode.colour, r, g, b);
-        edge.endRGB[0] = r;
-        edge.endRGB[1] = g;
-        edge.endRGB[2] = b;
-
-        edge.size = 5;
-        edges.push_back(edge);
-    }
-
-    Engine myGUI(numOfElements, nodes, edges);
+    Engine myGUI(db);
     myGUI.Run();
 }

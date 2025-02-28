@@ -20,9 +20,7 @@
 #include <random>
 #include <vector>
 
-Engine::Engine(const int &maxNodes, std::vector<Node> &nodes, std::vector<Edge> &lines)
-    : m_nodes(nodes), m_edges(lines) {
-
+Engine::Engine(GS::Graph &graph) : m_graph(graph) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -76,8 +74,8 @@ void Engine::setupShaders() {
                                             glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
 
     std::vector<Label> labels;
-    for (Node node : m_nodes) {
-        labels.emplace_back(Label{node.pos, node.text});
+    for (GS::Node node : m_graph.nodes) {
+        labels.emplace_back(Label{node.pos, node.title});
     }
 
     m_text = std::make_unique<LabelEngine>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "label.vert",
@@ -99,7 +97,7 @@ void Engine::setupShaders() {
 }
 
 void Engine::setupNodes() {
-    m_nodeCount = m_nodes.size();
+    m_nodeCount = m_graph.nodes.size();
 
     m_nodeData.resize(m_nodeCount);
 
@@ -107,13 +105,13 @@ void Engine::setupNodes() {
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
     for (int i = 0; i < m_nodeCount; i++) {
-        m_nodeData[i].r = m_nodes[i].rgb[0];
-        m_nodeData[i].g = m_nodes[i].rgb[1];
-        m_nodeData[i].b = m_nodes[i].rgb[2];
-        m_nodeData[i].radius = static_cast<GLubyte>(m_nodes[i].size);
-        m_nodeData[i].position[0] = m_nodes[i].pos.x;
-        m_nodeData[i].position[1] = m_nodes[i].pos.y;
-        m_nodeData[i].position[2] = m_nodes[i].pos.z;
+        m_nodeData[i].r = m_graph.nodes[i].rgb[0];
+        m_nodeData[i].g = m_graph.nodes[i].rgb[1];
+        m_nodeData[i].b = m_graph.nodes[i].rgb[2];
+        m_nodeData[i].radius = static_cast<GLubyte>(m_graph.nodes[i].size);
+        m_nodeData[i].position[0] = m_graph.nodes[i].pos.x;
+        m_nodeData[i].position[1] = m_graph.nodes[i].pos.y;
+        m_nodeData[i].position[2] = m_graph.nodes[i].pos.z;
     }
 
     glBindVertexArray(m_VAOs[1]);
@@ -139,13 +137,14 @@ void Engine::updateParticles(const float currentFrame) {
     }
 
     for (unsigned int i = 0; i < m_edgeCount; i++) {
-        m_edgeData[i].position[0] = m_edges[i].start.x;
-        m_edgeData[i].position[1] = m_edges[i].start.y;
-        m_edgeData[i].position[2] = m_edges[i].start.z;
+        const int lineIdx = i * 2;
+        m_edgeData[lineIdx].position[0] = m_graph.EdgeStart(i).pos.x;
+        m_edgeData[lineIdx].position[1] = m_graph.EdgeStart(i).pos.y;
+        m_edgeData[lineIdx].position[2] = m_graph.EdgeStart(i).pos.z;
 
-        m_edgeData[i + 1].position[0] = m_edges[i].end.x;
-        m_edgeData[i + 1].position[1] = m_edges[i].end.y;
-        m_edgeData[+1].position[2] = m_edges[i].end.z;
+        m_edgeData[lineIdx + 1].position[0] = m_graph.EdgeEnd(i).pos.x;
+        m_edgeData[lineIdx + 1].position[1] = m_graph.EdgeEnd(i).pos.y;
+        m_edgeData[lineIdx + 1].position[2] = m_graph.EdgeEnd(i).pos.z;
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
@@ -157,27 +156,27 @@ void Engine::updateParticles(const float currentFrame) {
 }
 
 void Engine::setupEdges() {
-    m_edgeCount = m_edges.size();
+    m_edgeCount = m_graph.edges.size();
 
     m_edgeData.resize(m_edgeCount * 2);
     for (unsigned int i = 0; i < m_edgeCount; i++) {
         const int lineIdx = i * 2;
 
-        m_edgeData[lineIdx].r = m_edges[i].startRGB[0];
-        m_edgeData[lineIdx].g = m_edges[i].startRGB[1];
-        m_edgeData[lineIdx].b = m_edges[i].startRGB[2];
-        m_edgeData[lineIdx].radius = static_cast<GLubyte>(m_edges[i].size);
-        m_edgeData[lineIdx].position[0] = m_edges[i].start.x;
-        m_edgeData[lineIdx].position[1] = m_edges[i].start.y;
-        m_edgeData[lineIdx].position[2] = m_edges[i].start.z;
+        m_edgeData[lineIdx].r = m_graph.EdgeStart(i).rgb[0];
+        m_edgeData[lineIdx].g = m_graph.EdgeStart(i).rgb[1];
+        m_edgeData[lineIdx].b = m_graph.EdgeStart(i).rgb[2];
+        m_edgeData[lineIdx].radius = m_graph.EdgeStart(i).edgeSize;
+        m_edgeData[lineIdx].position[0] = m_graph.EdgeStart(i).pos.x;
+        m_edgeData[lineIdx].position[1] = m_graph.EdgeStart(i).pos.y;
+        m_edgeData[lineIdx].position[2] = m_graph.EdgeStart(i).pos.z;
 
-        m_edgeData[lineIdx + 1].r = m_edges[i].endRGB[0];
-        m_edgeData[lineIdx + 1].g = m_edges[i].endRGB[1];
-        m_edgeData[lineIdx + 1].b = m_edges[i].endRGB[2];
-        m_edgeData[lineIdx + 1].radius = static_cast<GLubyte>(m_edges[i].size);
-        m_edgeData[lineIdx + 1].position[0] = m_edges[i].end.x;
-        m_edgeData[lineIdx + 1].position[1] = m_edges[i].end.y;
-        m_edgeData[lineIdx + 1].position[2] = m_edges[i].end.z;
+        m_edgeData[lineIdx + 1].r = m_graph.EdgeEnd(i).rgb[0];
+        m_edgeData[lineIdx + 1].g = m_graph.EdgeEnd(i).rgb[1];
+        m_edgeData[lineIdx + 1].b = m_graph.EdgeEnd(i).rgb[2];
+        m_edgeData[lineIdx + 1].radius = m_graph.EdgeEnd(i).edgeSize;
+        m_edgeData[lineIdx + 1].position[0] = m_graph.EdgeEnd(i).pos.x;
+        m_edgeData[lineIdx + 1].position[1] = m_graph.EdgeEnd(i).pos.y;
+        m_edgeData[lineIdx + 1].position[2] = m_graph.EdgeEnd(i).pos.z;
     }
 
     glBindVertexArray(m_VAOs[0]);
