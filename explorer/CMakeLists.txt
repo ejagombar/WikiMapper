@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 
 
+
 project(WikiMapperExplorer)
 
 # Allows clangd to find the library locations
@@ -15,6 +16,7 @@ find_package(glm REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
+# set(CMAKE_BUILD_TYPE RELEASE)
 
 file(GLOB_RECURSE Src_Sources "./src/**.cpp" "./src/*.hpp" "./lib/*.cpp" "./lib/*.hpp")
 

@@ -1,10 +1,10 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <glm/glm.hpp>
-#include <thread>
 #include <vector>
 
 namespace GS {
@@ -31,6 +31,9 @@ struct Edge {
 
 class Graph {
   public:
+    Graph() {};
+    ~Graph() {};
+
     uint32_t AddNode(const char *title);
     void AddEdge(uint32_t idx1, uint32_t idx2);
 
@@ -46,9 +49,24 @@ class Graph {
     std::vector<Edge> edges;
 };
 
-struct GraphBuffer {
-    Graph graph;
-    std::atomic<unsigned int> version{0};
+class GraphTripleBuf {
+  public:
+    GraphTripleBuf();
+    ~GraphTripleBuf();
+
+    Graph *GetCurrent();
+    Graph *GetWriteBuffer() { return m_buffers[m_write]; };
+    void Publish();
+    uint Version() { return m_version.load(std::memory_order_acquire); };
+
+  private:
+    static const uint BUFFERCOUNT = 3;
+
+    Graph *m_buffers[BUFFERCOUNT];
+    std::atomic<uint> m_version{0};
+    std::atomic<uint> m_current{0};
+    uint m_write = 1;
+    uint m_spare = 2;
 };
 
 } // namespace GS

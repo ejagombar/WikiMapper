@@ -16,8 +16,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../lib/std_image.h"
 
-GS::GraphBuffer buf1, buf2;
-std::atomic<GS::GraphBuffer *> activeBuffer{&buf1};
+GS::GraphTripleBuf graphBuf;
 
 float packRGBToFloat(unsigned char r, unsigned char g, unsigned char b) {
     uint32_t packed = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b));
@@ -49,26 +48,25 @@ void generateRealData(GS::Graph &graph) {
     }
 }
 
-void updateGraphPositions(GS::Graph &db) {
+void updateGraphPositions(GS::Graph &rG, GS::Graph &wG) {
     // for (GS::Node &n : db.nodes) {
     //     n.pos.x += 1;
     // }
-    for (int i = 0; i < db.nodes.size(); i++) {
-        db.nodes[i].pos.x += 0.1;
+    for (int i = 0; i < rG.nodes.size(); i++) {
+        wG.nodes[i].pos.x = rG.nodes[i].pos.x + 0.05;
     }
 }
 
 void graphPositionSimulation() {
-    const auto simulationInterval = std::chrono::milliseconds(1);
+    const auto simulationInterval = std::chrono::milliseconds(5);
     while (true) {
-        GS::GraphBuffer *current = activeBuffer.load(std::memory_order_acquire);
-        GS::GraphBuffer *inactive = (current == &buf1) ? &buf2 : &buf1;
-
-        // Update simulation in the inactive buffer:
-        updateGraphPositions(inactive->graph);
-
-        inactive->version.fetch_add(1, std::memory_order_release);
-        activeBuffer.store(inactive, std::memory_order_release);
+        GS::Graph *readGraph = graphBuf.GetCurrent();
+        GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
+        // GS::Graph *readGraph = graphBuf.GetCurrent();
+        // Update the graph (this may be a heavy update)
+        updateGraphPositions(*readGraph, *writeGraph);
+        // Publish the updated data
+        graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
     }
@@ -105,9 +103,18 @@ void setupGraph(GS::Graph &db) {
 void test(int c) { std::cout << c; }
 
 int main() {
-    setupGraph(buf1.graph);
 
-    Engine renderEngine(activeBuffer);
+    GS::Graph *graph = graphBuf.GetWriteBuffer();
+    setupGraph(*graph);
+    graphBuf.Publish();
+    graph = graphBuf.GetWriteBuffer();
+    setupGraph(*graph);
+    graphBuf.Publish();
+    graph = graphBuf.GetWriteBuffer();
+    setupGraph(*graph);
+    graphBuf.Publish();
+
+    Engine renderEngine(graphBuf);
 
     std::thread t{graphPositionSimulation};
 

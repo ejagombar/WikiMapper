@@ -21,11 +21,9 @@
 
 class Engine {
   public:
-    Engine(std::atomic<GS::GraphBuffer *> &graphBuf);
+    Engine(GS::GraphTripleBuf &graphBuf);
     ~Engine();
     int Run();
-
-    void UpdateParticles();
 
   private:
     enum State { play, stop };
@@ -97,9 +95,11 @@ class Engine {
 
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
-    void setupNodes();
-    void setupEdges();
-    void setupShaders();
+    void setupNodes(GS::Graph &graph);
+    void setupEdges(GS::Graph &graph);
+    void setupShaders(GS::Graph &graph);
+
+    void UpdateParticles(GS::Graph &graph);
 
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;
@@ -125,9 +125,9 @@ class Engine {
     std::unique_ptr<Text2d> m_text2d;
     std::unique_ptr<Skybox> m_skybox;
 
-    std::atomic<GS::GraphBuffer *> &m_graphBuf;
-    GS::Graph &m_graph;
-    unsigned int m_lastVersion = 0;
+    GS::GraphTripleBuf &m_graphBuf;
+    uint m_lastVersion = 0;
+    GS::Graph *m_graph;
 
     std::vector<NodeData> m_nodeData;
     std::vector<EdgeData> m_edgeData;

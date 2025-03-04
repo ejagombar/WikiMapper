@@ -1,4 +1,5 @@
 #include "graph.hpp"
+#include <atomic>
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -83,5 +84,31 @@ uint32_t Graph::GetTopNode() {
     }
     return topNode;
 }
+
+GraphTripleBuf::GraphTripleBuf() {
+    for (int i = 0; i < BUFFERCOUNT; i++) {
+        m_buffers[i] = new Graph();
+    }
+};
+
+GraphTripleBuf::~GraphTripleBuf() {
+    for (int i = 0; i < BUFFERCOUNT; i++) {
+        delete m_buffers[i];
+    }
+};
+
+void GraphTripleBuf::Publish() {
+    const uint oldCurrent = m_current.load(std::memory_order_relaxed);
+    m_current.store(m_write, std::memory_order_release);
+    const uint tmp = m_spare;
+    m_spare = oldCurrent;
+    m_write = tmp;
+    m_version.fetch_add(1, std::memory_order_release);
+};
+
+Graph *GraphTripleBuf::GetCurrent() {
+    const uint idx = m_current.load(std::memory_order_acquire);
+    return m_buffers[idx];
+};
 
 } // namespace GS
