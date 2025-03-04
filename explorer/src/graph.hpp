@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <glm/glm.hpp>
+#include <thread>
 #include <vector>
 
 namespace GS {
@@ -43,6 +44,11 @@ class Graph {
 
     std::vector<Node> nodes; // It feels weird to have the m_ here as they are public. Idk what is best.
     std::vector<Edge> edges;
+};
+
+struct GraphBuffer {
+    Graph graph;
+    std::atomic<unsigned int> version{0};
 };
 
 } // namespace GS

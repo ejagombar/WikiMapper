@@ -20,7 +20,8 @@
 #include <random>
 #include <vector>
 
-Engine::Engine(GS::Graph &graph) : m_graph(graph) {
+Engine::Engine(std::atomic<GS::GraphBuffer *> &graphBuf)
+    : m_graph(graphBuf.load(std::memory_order_acquire)->graph), m_graphBuf(graphBuf) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -97,14 +98,13 @@ void Engine::setupShaders() {
 }
 
 void Engine::setupNodes() {
-    m_nodeCount = m_graph.nodes.size();
-
-    m_nodeData.resize(m_nodeCount);
+    GLuint nodeCount = m_graph.nodes.size();
+    m_nodeData.resize(nodeCount);
 
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
-    for (int i = 0; i < m_nodeCount; i++) {
+    for (int i = 0; i < nodeCount; i++) {
         m_nodeData[i].r = m_graph.nodes[i].rgb[0];
         m_nodeData[i].g = m_graph.nodes[i].rgb[1];
         m_nodeData[i].b = m_graph.nodes[i].rgb[2];
@@ -129,37 +129,11 @@ void Engine::setupNodes() {
     glBindVertexArray(0);
 }
 
-void Engine::updateParticles(const float currentFrame) {
-    for (unsigned int i = 0; i < m_nodeCount; i++) {
-        m_nodeData[i].position[0] = std::sin(currentFrame) * i;
-        // m_nodeData[i].position[1] = sin(i) * 10;
-        // m_nodeData[i].position[2] = 0;
-    }
-
-    for (unsigned int i = 0; i < m_edgeCount; i++) {
-        const int lineIdx = i * 2;
-        m_edgeData[lineIdx].position[0] = m_graph.EdgeStart(i).pos.x;
-        m_edgeData[lineIdx].position[1] = m_graph.EdgeStart(i).pos.y;
-        m_edgeData[lineIdx].position[2] = m_graph.EdgeStart(i).pos.z;
-
-        m_edgeData[lineIdx + 1].position[0] = m_graph.EdgeEnd(i).pos.x;
-        m_edgeData[lineIdx + 1].position[1] = m_graph.EdgeEnd(i).pos.y;
-        m_edgeData[lineIdx + 1].position[2] = m_graph.EdgeEnd(i).pos.z;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NodeData) * m_nodeData.size(), m_nodeData.data());
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
 void Engine::setupEdges() {
-    m_edgeCount = m_graph.edges.size();
+    GLuint edgeCount = m_graph.edges.size();
 
-    m_edgeData.resize(m_edgeCount * 2);
-    for (unsigned int i = 0; i < m_edgeCount; i++) {
+    m_edgeData.resize(edgeCount * 2);
+    for (unsigned int i = 0; i < edgeCount; i++) {
         const int lineIdx = i * 2;
 
         m_edgeData[lineIdx].r = m_graph.EdgeStart(i).rgb[0];
@@ -194,6 +168,43 @@ void Engine::setupEdges() {
     glBindVertexArray(0);
 }
 
+void Engine::UpdateParticles() {
+    GS::GraphBuffer *snapshot = m_graphBuf.load(std::memory_order_acquire);
+    unsigned int currentVersion = snapshot->version.load(std::memory_order_acquire);
+
+    if (currentVersion == m_lastVersion) {
+        return;
+    }
+    m_lastVersion = currentVersion;
+
+    GS::Graph &graph = snapshot->graph;
+
+    for (unsigned int i = 0; i < graph.nodes.size(); i++) {
+        m_nodeData[i].position[0] = graph.nodes[i].pos.x;
+        m_nodeData[i].position[1] = graph.nodes[i].pos.y;
+        m_nodeData[i].position[2] = graph.nodes[i].pos.z;
+    }
+
+    for (unsigned int i = 0; i < graph.edges.size(); i++) {
+        const int lineIdx = i * 2;
+
+        m_edgeData[lineIdx].position[0] = graph.EdgeStart(i).pos.x;
+        m_edgeData[lineIdx].position[1] = graph.EdgeStart(i).pos.y;
+        m_edgeData[lineIdx].position[2] = graph.EdgeStart(i).pos.z;
+
+        m_edgeData[lineIdx + 1].position[0] = graph.EdgeEnd(i).pos.x;
+        m_edgeData[lineIdx + 1].position[1] = graph.EdgeEnd(i).pos.y;
+        m_edgeData[lineIdx + 1].position[2] = graph.EdgeEnd(i).pos.z;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NodeData) * m_nodeData.size(), m_nodeData.data());
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 Engine::~Engine() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
@@ -207,14 +218,14 @@ int Engine::Run() {
     double lastTime = glfwGetTime();
     m_startTime = lastTime;
 
-    // glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();
 
         m_frameCount++;
         if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
-            printf("%f fps\n", double(1.f / m_frameCount));
+            printf("%f fps\n", double(m_frameCount));
             m_frameCount = 0;
             lastTime += 1.0;
         }
@@ -272,7 +283,7 @@ void Engine::loop() {
     m_shader.sphere->Use();
     m_shader.sphere->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[1]);
-    glDrawArrays(GL_POINTS, 0, m_nodeCount);
+    glDrawArrays(GL_POINTS, 0, m_graph.nodes.size());
 
     m_text->RenderLabels(view, currentFrame);
 
@@ -280,14 +291,14 @@ void Engine::loop() {
     m_shader.cylinder->SetMat3("normalMat", normal);
     m_shader.cylinder->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_LINES, 0, m_edgeCount * 2);
+    glDrawArrays(GL_LINES, 0, m_graph.edges.size() * 2);
 
     m_blur->Display();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // updateParticles(currentFrame);
+    // UpdateParticles();
 
     if (m_state == stop) {
         // m_text2d->Render2d(

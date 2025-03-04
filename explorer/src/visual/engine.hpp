@@ -21,9 +21,11 @@
 
 class Engine {
   public:
-    Engine(GS::Graph &graph);
+    Engine(std::atomic<GS::GraphBuffer *> &graphBuf);
     ~Engine();
     int Run();
+
+    void UpdateParticles();
 
   private:
     enum State { play, stop };
@@ -93,8 +95,6 @@ class Engine {
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
-    void updateParticles(const float currentFrame);
-
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
     void setupNodes();
@@ -125,13 +125,12 @@ class Engine {
     std::unique_ptr<Text2d> m_text2d;
     std::unique_ptr<Skybox> m_skybox;
 
+    std::atomic<GS::GraphBuffer *> &m_graphBuf;
     GS::Graph &m_graph;
+    unsigned int m_lastVersion = 0;
 
     std::vector<NodeData> m_nodeData;
     std::vector<EdgeData> m_edgeData;
-
-    GLuint m_edgeCount;
-    GLuint m_nodeCount;
 
     static const uint8_t count = 2;
     unsigned int m_VAOs[count], m_VBOs[count];

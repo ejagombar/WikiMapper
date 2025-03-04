@@ -10,10 +10,14 @@
 #include <glm/fwd.hpp>
 #include <json/json.h>
 #include <random>
+#include <thread>
 #include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../lib/std_image.h"
+
+GS::GraphBuffer buf1, buf2;
+std::atomic<GS::GraphBuffer *> activeBuffer{&buf1};
 
 float packRGBToFloat(unsigned char r, unsigned char g, unsigned char b) {
     uint32_t packed = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b));
@@ -45,13 +49,36 @@ void generateRealData(GS::Graph &graph) {
     }
 }
 
-int main() {
-    GS::Graph db;
+void updateGraphPositions(GS::Graph &db) {
+    // for (GS::Node &n : db.nodes) {
+    //     n.pos.x += 1;
+    // }
+    for (int i = 0; i < db.nodes.size(); i++) {
+        db.nodes[i].pos.x += 0.1;
+    }
+}
+
+void graphPositionSimulation() {
+    const auto simulationInterval = std::chrono::milliseconds(1);
+    while (true) {
+        GS::GraphBuffer *current = activeBuffer.load(std::memory_order_acquire);
+        GS::GraphBuffer *inactive = (current == &buf1) ? &buf2 : &buf1;
+
+        // Update simulation in the inactive buffer:
+        updateGraphPositions(inactive->graph);
+
+        inactive->version.fetch_add(1, std::memory_order_release);
+        activeBuffer.store(inactive, std::memory_order_release);
+
+        std::this_thread::sleep_for(simulationInterval);
+    }
+}
+
+void setupGraph(GS::Graph &db) {
     generateRealData(db);
 
     const int numOfElements = db.nodes.size();
 
-    // Display base node -----------------
     uint32_t baseNodeIdx = db.GetTopNode();
     auto baseNode = db.nodes[baseNodeIdx];
     std::cout << baseNode.title;
@@ -73,49 +100,17 @@ int main() {
     }
 
     db.nodes[baseNodeIdx].pos = glm::vec3(0);
+}
 
-    // std::vector<Node> nodes(numOfElements);
-    // std::vector<Edge> edges;
+void test(int c) { std::cout << c; }
 
-    // for (int i = 0; i < numOfElements; i++) {
-    //     unsigned char r, g, b;
-    //
-    //     unpackFloatToRGB(db.nodes[i].colour, r, g, b);
-    //
-    //     nodes[i].rgb[0] = r;
-    //     nodes[i].rgb[1] = g;
-    //     nodes[i].rgb[2] = b;
-    //
-    //     nodes[i].text = db.nodes[i].title;
-    //
-    //     nodes[i].pos = db.nodes[i].pos;
-    //     nodes[i].size = 20;
-    // }
+int main() {
+    setupGraph(buf1.graph);
 
-    // for (const auto e : db.m_edges) {
-    //     GS::Edge edge;
-    //
-    //     const GraphDB::Node &startNode = db.nodes[e.startIdx];
-    //     const GraphDB::Node &endNode = db.nodes[e.endIdx];
-    //
-    //     edge.start = startNode.pos;
-    //     edge.end = endNode.pos;
-    //
-    //     unsigned char r, g, b;
-    //     unpackFloatToRGB(startNode.colour, r, g, b);
-    //     edge.startRGB[0] = r;
-    //     edge.startRGB[1] = g;
-    //     edge.startRGB[2] = b;
-    //
-    //     unpackFloatToRGB(endNode.colour, r, g, b);
-    //     edge.endRGB[0] = r;
-    //     edge.endRGB[1] = g;
-    //     edge.endRGB[2] = b;
-    //
-    //     edge.size = 5;
-    //     edges.push_back(edge);
-    // }
+    Engine renderEngine(activeBuffer);
 
-    Engine myGUI(db);
-    myGUI.Run();
+    std::thread t{graphPositionSimulation};
+
+    renderEngine.Run();
+    std::cout << "Ended" << std::endl;
 }
