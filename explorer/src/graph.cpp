@@ -85,6 +85,13 @@ uint32_t Graph::GetTopNode() {
     return topNode;
 }
 
+Graph &Graph::operator=(Graph &other) {
+    nodes = other.nodes;
+    edges = other.edges;
+
+    return other;
+}
+
 GraphTripleBuf::GraphTripleBuf() {
     for (int i = 0; i < BUFFERCOUNT; i++) {
         m_buffers[i] = new Graph();

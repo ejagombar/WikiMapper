@@ -48,24 +48,15 @@ void generateRealData(GS::Graph &graph) {
     }
 }
 
-void updateGraphPositions(GS::Graph &rG, GS::Graph &wG) {
-    // for (GS::Node &n : db.nodes) {
-    //     n.pos.x += 1;
-    // }
-    for (int i = 0; i < rG.nodes.size(); i++) {
-        wG.nodes[i].pos.x = rG.nodes[i].pos.x + 0.05;
-    }
-}
+void updateGraphPositions(GS::Graph &readG, GS::Graph &writeG) {}
 
 void graphPositionSimulation() {
-    const auto simulationInterval = std::chrono::milliseconds(5);
+    const auto simulationInterval = std::chrono::milliseconds(15);
     while (true) {
         GS::Graph *readGraph = graphBuf.GetCurrent();
         GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
-        // GS::Graph *readGraph = graphBuf.GetCurrent();
-        // Update the graph (this may be a heavy update)
+
         updateGraphPositions(*readGraph, *writeGraph);
-        // Publish the updated data
         graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
@@ -103,15 +94,20 @@ void setupGraph(GS::Graph &db) {
 void test(int c) { std::cout << c; }
 
 int main() {
+    GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
+    setupGraph(*writeGraph);
+    graphBuf.Publish();
 
-    GS::Graph *graph = graphBuf.GetWriteBuffer();
-    setupGraph(*graph);
+    GS::Graph *readgraph = graphBuf.GetCurrent();
+    writeGraph = graphBuf.GetWriteBuffer();
+
+    *writeGraph = *readgraph;
     graphBuf.Publish();
-    graph = graphBuf.GetWriteBuffer();
-    setupGraph(*graph);
-    graphBuf.Publish();
-    graph = graphBuf.GetWriteBuffer();
-    setupGraph(*graph);
+
+    readgraph = graphBuf.GetCurrent();
+    writeGraph = graphBuf.GetWriteBuffer();
+
+    *writeGraph = *readgraph;
     graphBuf.Publish();
 
     Engine renderEngine(graphBuf);

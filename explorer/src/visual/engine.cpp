@@ -209,7 +209,7 @@ int Engine::Run() {
     double lastTime = glfwGetTime();
     m_startTime = lastTime;
 
-    glfwSwapInterval(0);
+    // glfwSwapInterval(0);
 
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();

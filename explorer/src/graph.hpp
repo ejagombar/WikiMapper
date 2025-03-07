@@ -34,6 +34,8 @@ class Graph {
     Graph() {};
     ~Graph() {};
 
+    Graph &operator=(Graph &other);
+
     uint32_t AddNode(const char *title);
     void AddEdge(uint32_t idx1, uint32_t idx2);
 
