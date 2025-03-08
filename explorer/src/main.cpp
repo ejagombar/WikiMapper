@@ -6,8 +6,11 @@
 #include <cmath>
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
+#include <glm/ext/quaternion_common.hpp>
+#include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
 #include <json/json.h>
 #include <random>
 #include <thread>
@@ -48,15 +51,167 @@ void generateRealData(GS::Graph &graph) {
     }
 }
 
-void updateGraphPositions(GS::Graph &readG, GS::Graph &writeG) {}
+void updateGraphPositionsShit(GS::Graph &readG, GS::Graph &writeG) {
+    // Define the layout area and compute an ideal distance between nodes.
+    // In many algorithms, k is chosen as the square root of (area / number_of_nodes).
+    const float area = 10000.0f; // e.g., a 100x100 space.
+    const size_t nodeCount = readG.nodes.size();
+
+    const float k = std::sqrt(area / static_cast<float>(nodeCount));
+
+    // Temperature (max displacement per iteration) starts high and cools down gradually.
+    static float temperature = 0.9f;
+    const float coolingFactor = 0.98f; // Cooling multiplier per iteration.
+
+    // Initialize displacement for each node.
+    std::vector<glm::vec3> disp(nodeCount, glm::vec3(0.0f));
+
+    // --- Compute repulsive forces (displacements) between all pairs of nodes ---
+    // for (size_t i = 0; i < nodeCount; i++) {
+    //     for (size_t j = i + 1; j < nodeCount; j++) {
+    //         glm::vec3 delta = readG.nodes[i].pos - readG.nodes[j].pos;
+    //         float distance = glm::length(delta);
+    //         // Prevent division by zero and ensure a minimum distance.
+    //         if (distance < 0.01f)
+    //             distance = 0.01f;
+    //         glm::vec3 direction = delta / distance;
+    //         // Repulsive force magnitude: (k^2 / distance)
+    //         float repulsiveForce = ((k * k) / distance) / 100;
+    //         glm::vec3 forceVec = direction * repulsiveForce;
+    //         disp[i] += forceVec;
+    //         disp[j] -= forceVec;
+    //     }
+    // }
+
+    // --- Compute attractive forces (displacements) along edges ---
+    for (const GS::Edge &edge : readG.edges) {
+        uint32_t i = edge.startIdx;
+        uint32_t j = edge.endIdx;
+        glm::vec3 delta = readG.nodes[i].pos - readG.nodes[j].pos;
+        float distance = glm::length(delta);
+        if (distance < 0.01f)
+            distance = 0.01f;
+        glm::vec3 direction = delta / distance;
+        // Attractive force magnitude: (distance^2 / k)
+        float attractiveForce = (distance * distance) / k;
+        glm::vec3 forceVec = direction * attractiveForce;
+        disp[i] -= forceVec;
+        disp[j] += forceVec;
+    }
+
+    // --- Update positions by applying the computed displacements ---
+    for (size_t i = 0; i < nodeCount; i++) {
+        glm::vec3 displacement = disp[i];
+        float dispLength = glm::length(displacement);
+        if (dispLength < 0.01f)
+            dispLength = 0.01f;
+        // Limit the maximum displacement to the current temperature value.
+        glm::vec3 limitedDisp = (displacement / dispLength) * std::min(dispLength, temperature);
+        glm::vec3 newPos = readG.nodes[i].pos + limitedDisp;
+
+        // Update the output node. Here we copy the previous state and then adjust.
+        writeG.nodes[i] = readG.nodes[i];
+        writeG.nodes[i].pos = newPos;
+        // Optionally, set the new velocity as the displacement (for visualization or further use).
+        writeG.nodes[i].vel = limitedDisp;
+        // Store the net force (displacement) for debugging or visualization.
+        writeG.nodes[i].force = disp[i];
+    }
+    writeG.nodes[1].pos = readG.nodes[1].pos + glm::vec3(0, 0.01, 0);
+    writeG.nodes[100].pos = readG.nodes[100].pos + glm::vec3(0, -0.01, 0);
+
+    // --- Cool down the system ---
+    temperature *= coolingFactor;
+}
+
+void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt) {
+    const float qqMultiplier = 0.0001f;
+    const float gravityMultiplier = 1.f;
+    const float accelSizeMultiplier = 1.0f;
+
+    const float area = 10000.0f;
+
+    const int nodeCount = readG.nodes.size();
+
+    const float k = 1 / std::sqrt(area / static_cast<float>(nodeCount));
+
+    std::vector<glm::vec3> nodeForces;
+    nodeForces.resize(nodeCount);
+
+    // Apply gravity towards (0,0,0)
+    for (uint i = 0; i < nodeCount; i++) {
+        nodeForces[i] = readG.nodes[i].force;
+        std::cout << nodeForces[i].x + nodeForces[i].y + nodeForces[i].z << std::endl;
+        if (glm::length(readG.nodes[i].pos) != 0) [[likely]] {
+            nodeForces[i] -= glm::normalize(readG.nodes[i].pos) * gravityMultiplier;
+        }
+    }
+
+    // Apply node-node repulsion using coulomb's force
+    for (uint i = 0; i < nodeCount; i++) {
+        const GS::Node &node1 = readG.nodes[i];
+
+        glm::vec3 force = glm::vec3(0);
+        for (uint j = 0; j < nodeCount; j++) {
+            const GS::Node &node2 = readG.nodes[j];
+
+            if (node1.pos == node2.pos) { // Divide by zero bad
+                continue;
+            }
+
+            const float qq = node1.size * node2.size;
+            const float distance = glm::distance(node1.pos, node2.pos);
+
+            const float electrostaticForce = (qqMultiplier * qq) / (distance * distance);
+            force += glm::normalize(node1.pos - node2.pos) * electrostaticForce;
+        }
+        nodeForces[i] += force;
+    }
+
+    // for (const GS::Edge &edge : readG.edges) {
+    //     glm::vec3 delta = readG.nodes[edge.startIdx].pos - readG.nodes[edge.endIdx].pos;
+    //     float distance = glm::length(delta);
+    //
+    //     if (distance == 0) {
+    //         continue;
+    //     }
+    //
+    //     if (distance < 0.01f) {
+    //         distance = 0.01f;
+    //     }
+    //
+    //     const glm::vec3 direction = delta / distance;
+    //
+    //     const float attractiveForce = distance * distance * 0.01;
+    //     const glm::vec3 forceVec = direction * attractiveForce;
+    //
+    //     nodeForces[edge.endIdx] += forceVec;
+    //     // nodeForces[edge.startIdx] = forceVec;
+    // }
+
+    // Apply forces and update velocity, position
+    for (uint i = 0; i < nodeCount; i++) {
+
+        // if (glm::length(nodeForces[i]) < 0.2) {
+        //     nodeForces[i] = glm::vec3(0);
+        // }
+
+        const glm::vec3 acceleration = (nodeForces[i] * (1.0f / readG.nodes[i].size)) * accelSizeMultiplier;
+        const glm::vec3 vel = readG.nodes[i].vel + acceleration * dt;
+
+        writeG.nodes[i].force = nodeForces[i];
+        writeG.nodes[i].vel = vel;
+        writeG.nodes[i].pos = readG.nodes[i].pos + vel * dt;
+    }
+}
 
 void graphPositionSimulation() {
-    const auto simulationInterval = std::chrono::milliseconds(15);
+    const auto simulationInterval = std::chrono::milliseconds(10);
     while (true) {
         GS::Graph *readGraph = graphBuf.GetCurrent();
         GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
 
-        updateGraphPositions(*readGraph, *writeGraph);
+        updateGraphPositions(*readGraph, *writeGraph, 0.1);
         graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
@@ -110,10 +265,11 @@ int main() {
     *writeGraph = *readgraph;
     graphBuf.Publish();
 
-    Engine renderEngine(graphBuf);
-
+    // Engine renderEngine(graphBuf);
+    //
     std::thread t{graphPositionSimulation};
+    t.join();
 
-    renderEngine.Run();
+    // renderEngine.Run();
     std::cout << "Ended" << std::endl;
 }
