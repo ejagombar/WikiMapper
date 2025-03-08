@@ -16,6 +16,9 @@ find_package(Freetype REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
 
+set(CMAKE_BUILD_TYPE DEBUG)
+
+
 file(GLOB_RECURSE Src_Sources "./src/**.cpp" "./src/*.hpp" "./lib/*.cpp" "./lib/*.hpp")
 
 file(GLOB SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*")
@@ -36,6 +39,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glm::glm)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad::glad)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE httplib::httplib)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${FREETYPE_LIBRARIES})
+
+target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O0)
 
 # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Boost::asio Boost::system)
