@@ -41,9 +41,10 @@ void generateRealData(GS::Graph &graph) {
     }
 
     auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = neo4jDB.GetLinkedPages("mathematics");
+    auto linkedPages = neo4jDB.GetLinkedPages("motorola");
 
-    graph.AddNode("Mathematics");
+    std::cout << "Size: " << linkedPages.size() << std::endl;
+    graph.AddNode("motorola");
 
     for (const auto &page : linkedPages) {
         const uint32_t idx = graph.AddNode(page.title.c_str());
@@ -125,23 +126,16 @@ void updateGraphPositionsShit(GS::Graph &readG, GS::Graph &writeG) {
 }
 
 void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt) {
-    const float qqMultiplier = 0.0001f;
+    const float qqMultiplier = 0.05f;
     const float gravityMultiplier = 1.f;
     const float accelSizeMultiplier = 1.0f;
 
-    const float area = 10000.0f;
-
     const int nodeCount = readG.nodes.size();
 
-    const float k = 1 / std::sqrt(area / static_cast<float>(nodeCount));
-
-    std::vector<glm::vec3> nodeForces;
-    nodeForces.resize(nodeCount);
+    std::vector<glm::vec3> nodeForces(nodeCount, glm::vec3(0));
 
     // Apply gravity towards (0,0,0)
     for (uint i = 0; i < nodeCount; i++) {
-        nodeForces[i] = readG.nodes[i].force;
-        std::cout << nodeForces[i].x + nodeForces[i].y + nodeForces[i].z << std::endl;
         if (glm::length(readG.nodes[i].pos) != 0) [[likely]] {
             nodeForces[i] -= glm::normalize(readG.nodes[i].pos) * gravityMultiplier;
         }
@@ -168,41 +162,55 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         nodeForces[i] += force;
     }
 
-    // for (const GS::Edge &edge : readG.edges) {
-    //     glm::vec3 delta = readG.nodes[edge.startIdx].pos - readG.nodes[edge.endIdx].pos;
-    //     float distance = glm::length(delta);
-    //
-    //     if (distance == 0) {
-    //         continue;
-    //     }
-    //
-    //     if (distance < 0.01f) {
-    //         distance = 0.01f;
-    //     }
-    //
-    //     const glm::vec3 direction = delta / distance;
-    //
-    //     const float attractiveForce = distance * distance * 0.01;
-    //     const glm::vec3 forceVec = direction * attractiveForce;
-    //
-    //     nodeForces[edge.endIdx] += forceVec;
-    //     // nodeForces[edge.startIdx] = forceVec;
-    // }
+    const float targetDistance = 40;
+
+    for (const GS::Edge &edge : readG.edges) {
+        glm::vec3 delta = readG.nodes[edge.startIdx].pos - readG.nodes[edge.endIdx].pos;
+        float distance = glm::length(delta);
+
+        if (distance < 0.01f) {
+            distance = 0.01f;
+        }
+
+        const glm::vec3 direction = delta / distance;
+
+        const float distanceDelta = distance - targetDistance;
+
+        float attractiveForce = distanceDelta * distanceDelta * 0.01;
+
+        if (attractiveForce > 1000.f) {
+            attractiveForce = 1000.f;
+        }
+
+        if (attractiveForce < -1000.f) {
+            attractiveForce = -1000.f;
+        }
+
+        const glm::vec3 forceVec = direction * attractiveForce;
+
+        nodeForces[edge.endIdx] += forceVec;
+        nodeForces[edge.startIdx] -= forceVec;
+    }
 
     // Apply forces and update velocity, position
     for (uint i = 0; i < nodeCount; i++) {
 
-        // if (glm::length(nodeForces[i]) < 0.2) {
-        //     nodeForces[i] = glm::vec3(0);
-        // }
+        if (glm::length(nodeForces[i]) < 0.2) {
+            nodeForces[i] = glm::vec3(0);
+        }
+        if (i == 3) {
+            std::cout << nodeForces[i].x << " " << nodeForces[i].y << " " << nodeForces[i].z << std::endl;
+        }
 
         const glm::vec3 acceleration = (nodeForces[i] * (1.0f / readG.nodes[i].size)) * accelSizeMultiplier;
-        const glm::vec3 vel = readG.nodes[i].vel + acceleration * dt;
+        const glm::vec3 vel = acceleration * dt;
 
-        writeG.nodes[i].force = nodeForces[i];
-        writeG.nodes[i].vel = vel;
+        writeG.nodes[i].force = readG.nodes[i].force + nodeForces[i];
+        writeG.nodes[i].vel = readG.nodes[i].vel + vel;
         writeG.nodes[i].pos = readG.nodes[i].pos + vel * dt;
     }
+
+    writeG.nodes[0].pos = glm::vec3(0);
 }
 
 void graphPositionSimulation() {
@@ -265,11 +273,11 @@ int main() {
     *writeGraph = *readgraph;
     graphBuf.Publish();
 
-    // Engine renderEngine(graphBuf);
-    //
-    std::thread t{graphPositionSimulation};
-    t.join();
+    Engine renderEngine(graphBuf);
 
-    // renderEngine.Run();
+    std::thread t{graphPositionSimulation};
+    t.detach();
+
+    renderEngine.Run();
     std::cout << "Ended" << std::endl;
 }
