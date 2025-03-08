@@ -11,9 +11,9 @@ namespace GS {
 
 struct Node {
     char title[64];
-    glm::vec3 pos;
-    glm::vec3 vel;
-    glm::vec3 force;
+    glm::vec3 pos = glm::vec3(0, 0, 0);
+    glm::vec3 vel = glm::vec3(0, 0, 0);
+    glm::vec3 force = glm::vec3(0, 0, 0);
     unsigned char rgb[3];
     unsigned char size;
     unsigned char edgeSize;
