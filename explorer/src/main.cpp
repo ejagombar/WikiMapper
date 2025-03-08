@@ -162,19 +162,14 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         nodeForces[i] += force;
     }
 
-    const float targetDistance = 40;
+    const float targetDistance = 100;
 
     for (const GS::Edge &edge : readG.edges) {
         glm::vec3 delta = readG.nodes[edge.startIdx].pos - readG.nodes[edge.endIdx].pos;
         float distance = glm::length(delta);
 
-        if (distance < 0.01f) {
-            distance = 0.01f;
-        }
-
         const glm::vec3 direction = delta / distance;
-
-        const float distanceDelta = distance - targetDistance;
+        const float distanceDelta = targetDistance - distance;
 
         float attractiveForce = distanceDelta * distanceDelta * 0.01;
 
@@ -195,9 +190,10 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
     // Apply forces and update velocity, position
     for (uint i = 0; i < nodeCount; i++) {
 
-        if (glm::length(nodeForces[i]) < 0.2) {
+        if (glm::length(nodeForces[i]) < 0.4) {
             nodeForces[i] = glm::vec3(0);
         }
+
         if (i == 3) {
             std::cout << nodeForces[i].x << " " << nodeForces[i].y << " " << nodeForces[i].z << std::endl;
         }
