@@ -54,8 +54,8 @@ void generateRealData(GS::Graph &graph) {
 
 void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt) {
     const float qqMultiplier = 0.05f;
-    const float gravityMultiplier = 1.f;
-    const float accelSizeMultiplier = 1.0f;
+    const float gravityMultiplier = 30.f;
+    const float accelSizeMultiplier = 0.01f;
     const float targetDistance = 100;
 
     const int nodeCount = readG.nodes.size();
@@ -135,12 +135,19 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
 }
 
 void graphPositionSimulation() {
-    const auto simulationInterval = std::chrono::milliseconds(10);
+    const auto simulationInterval = std::chrono::milliseconds(1);
+
+    double lastTime = glfwGetTime();
+    auto start = std::chrono::system_clock::now();
+
     while (true) {
         GS::Graph *readGraph = graphBuf.GetCurrent();
         GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
 
-        updateGraphPositions(*readGraph, *writeGraph, 0.1);
+        auto end = std::chrono::system_clock::now();
+        float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        start = end;
+        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds);
         graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
