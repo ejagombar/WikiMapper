@@ -1,11 +1,19 @@
 {
-  "dependencies": [
-    "boost-asio",
-    "cpp-httplib",
-    "freetype",
-    "glad",
-    "glfw3",
-    "glm",
-    "jsoncpp"
-  ]
+    "dependencies": [
+        "boost-asio",
+        "cpp-httplib",
+        "freetype",
+        "glad",
+        "glfw3",
+        "glm",
+        "jsoncpp",
+        {
+            "name": "imgui",
+            "features": [
+                "opengl3-binding",
+                "glfw-binding",
+                "freetype"
+            ]
+        }
+    ]
 }

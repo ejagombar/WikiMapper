@@ -15,6 +15,7 @@ find_package(glm REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
+find_package(imgui REQUIRED)
 
 set(CMAKE_BUILD_TYPE DEBUG)
 
@@ -38,7 +39,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glm::glm)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad::glad)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE httplib::httplib)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui::imgui)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${FREETYPE_LIBRARIES})
+    
 
 target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O0)
 

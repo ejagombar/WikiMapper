@@ -3,6 +3,9 @@
 #include "../../lib/rgb_hsv.hpp"
 #include "./shader.hpp"
 #include "camera.hpp"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #include "texture.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -46,6 +49,17 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf) : m_graphBuf(graphBuf) {
     glfwSetScrollCallback(m_window, scroll_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
     glfwWindowHint(GLFW_SAMPLES, 4);
+
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+    ImGui_ImplOpenGL3_Init("#version 450");
 
     m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
@@ -202,6 +216,10 @@ Engine::~Engine() {
 
     std::cout << "Execution Time: " << glfwGetTime() - m_startTime << std::endl;
 
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     glfwTerminate();
 }
 
@@ -231,6 +249,11 @@ int Engine::Run() {
 }
 
 void Engine::loop() {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow();
+
     processEngineInput(m_window);
     const float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - m_lastFrame;
@@ -296,11 +319,12 @@ void Engine::loop() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    ImGui::Render();
     if (m_state == stop) {
         // m_text2d->Render2d(
         //     "WikiMapper",
         //     glm::vec3((static_cast<float>(m_scrWidth) * 0.5f), static_cast<float>(m_scrHeight) * 0.5f, 1.0f), 1.0f,
-        //     glm::vec3(0.3, 0.7f, 0.9f));
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 }
 
@@ -347,6 +371,10 @@ void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height
 }
 
 void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+    if (m_state == stop) {
+        return;
+    }
+
     if (m_firstMouse) {
         m_lastX = xpos;
         m_lastY = ypos;
@@ -367,7 +395,6 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
             m_state = stop;
             m_blur->SetEnabled(true);
 
-            glfwSetCursorPosCallback(m_window, NULL);
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         } else {
             m_state = play;
@@ -375,7 +402,6 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
 
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             m_firstMouse = true;
-            glfwSetCursorPosCallback(m_window, mouse_callback_static);
         }
     }
     if (key == GLFW_KEY_X && action == GLFW_PRESS) {
