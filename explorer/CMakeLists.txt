@@ -43,7 +43,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui::imgui)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${FREETYPE_LIBRARIES})
     
 
-target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O0)
+target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O0 -Wall -Wextra -pedantic)
 
 # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Boost::asio Boost::system)

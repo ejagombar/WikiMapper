@@ -7,6 +7,7 @@
 #include "../graph.hpp"
 #include "./camera.hpp"
 #include "./filter.hpp"
+#include "./gui.hpp"
 #include "./label.hpp"
 #include "./skybox.hpp"
 #include "./text.hpp"
@@ -113,6 +114,8 @@ class Engine {
     float m_deltaTime = 0.0f;
     float m_lastFrame = 0.0f;
 
+    const char *m_font = "/usr/share/fonts/open-sans/OpenSans-Regular.ttf";
+
     State m_state = play;
 
     ShaderData m_shader;
@@ -124,6 +127,7 @@ class Engine {
     std::unique_ptr<LabelEngine> m_text;
     std::unique_ptr<Text2d> m_text2d;
     std::unique_ptr<Skybox> m_skybox;
+    std::unique_ptr<GUI> m_gui;
 
     GS::GraphTripleBuf &m_graphBuf;
     uint m_lastVersion = 0;

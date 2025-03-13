@@ -58,7 +58,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
     const float accelSizeMultiplier = 0.01f;
     const float targetDistance = 100;
 
-    const int nodeCount = readG.nodes.size();
+    const uint nodeCount = readG.nodes.size();
 
     std::vector<glm::vec3> nodeForces(nodeCount, glm::vec3(0));
 
@@ -126,7 +126,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         const glm::vec3 acceleration = (nodeForces[i] * (1.0f / readG.nodes[i].size)) * accelSizeMultiplier;
         const glm::vec3 vel = acceleration * dt;
 
-        writeG.nodes[i].force = readG.nodes[i].force + nodeForces[i];
+        writeG.nodes[i].force = readG.nodes[i].force * 0.95f + nodeForces[i];
         writeG.nodes[i].vel = readG.nodes[i].vel + vel;
         writeG.nodes[i].pos = readG.nodes[i].pos + vel * dt;
     }
@@ -137,7 +137,6 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
 void graphPositionSimulation() {
     const auto simulationInterval = std::chrono::milliseconds(1);
 
-    double lastTime = glfwGetTime();
     auto start = std::chrono::system_clock::now();
 
     while (true) {
@@ -169,7 +168,7 @@ void setupGraph(GS::Graph &db) {
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
-    for (int i = 0; i <= neighboursUID.size(); i++) {
+    for (uint i = 0; i <= neighboursUID.size(); i++) {
         auto col = hsv2rgb(dist(gen), 0.8f, 1.0f);
         db.nodes[i].pos = out[i];
         db.nodes[i].rgb[0] = static_cast<char>(col.r);

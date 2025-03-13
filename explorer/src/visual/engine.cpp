@@ -3,9 +3,6 @@
 #include "../../lib/rgb_hsv.hpp"
 #include "./shader.hpp"
 #include "camera.hpp"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 #include "texture.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -50,19 +47,10 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf) : m_graphBuf(graphBuf) {
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
-    ImGui_ImplOpenGL3_Init("#version 450");
-
     m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
+
+    m_gui = std::make_unique<GUI>(m_window, m_font);
 
     GS::Graph *graph = m_graphBuf.GetCurrent();
 
@@ -94,8 +82,7 @@ void Engine::setupShaders(GS::Graph &graph) {
         labels.emplace_back(Label{node.pos, node.title});
     }
 
-    m_text = std::make_unique<LabelEngine>("/usr/share/fonts/open-sans/OpenSans-Regular.ttf", "label.vert",
-                                           "label.frag", "label.geom", labels);
+    m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom", labels);
 
     m_shader.cameraMatricesUBO =
         std::make_unique<UBOManager<CameraMatrices>>(m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
@@ -119,7 +106,7 @@ void Engine::setupNodes(GS::Graph &graph) {
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
-    for (int i = 0; i < nodeCount; i++) {
+    for (uint i = 0; i < nodeCount; i++) {
         m_nodeData[i].r = graph.nodes[i].rgb[0];
         m_nodeData[i].g = graph.nodes[i].rgb[1];
         m_nodeData[i].b = graph.nodes[i].rgb[2];
@@ -148,7 +135,7 @@ void Engine::setupEdges(GS::Graph &graph) {
     GLuint edgeCount = graph.edges.size();
 
     m_edgeData.resize(edgeCount * 2);
-    for (unsigned int i = 0; i < edgeCount; i++) {
+    for (uint i = 0; i < edgeCount; i++) {
         const int lineIdx = i * 2;
 
         m_edgeData[lineIdx].r = graph.EdgeStart(i).rgb[0];
@@ -216,10 +203,6 @@ Engine::~Engine() {
 
     std::cout << "Execution Time: " << glfwGetTime() - m_startTime << std::endl;
 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
     glfwTerminate();
 }
 
@@ -249,11 +232,7 @@ int Engine::Run() {
 }
 
 void Engine::loop() {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-    ImGui::ShowDemoWindow();
-
+    m_gui->BeginFrame();
     processEngineInput(m_window);
     const float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - m_lastFrame;
@@ -285,6 +264,7 @@ void Engine::loop() {
     glm::mat3 normal = m_camera.CalcNormalMatrix();
 
     const CameraMatrices cameraMatrices{projection, view, glm::vec4(cameraPosition, 1.0)};
+
     const glm::mat4 cameraDirection = cameraMatrices.projection * glm::mat4(glm::mat3(view));
 
     EnvironmentLighting uniforms = {};
@@ -319,13 +299,14 @@ void Engine::loop() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    ImGui::Render();
     if (m_state == stop) {
+        m_gui->RenderMenu();
         // m_text2d->Render2d(
         //     "WikiMapper",
         //     glm::vec3((static_cast<float>(m_scrWidth) * 0.5f), static_cast<float>(m_scrHeight) * 0.5f, 1.0f), 1.0f,
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
+
+    m_gui->EndFrame();
 }
 
 void Engine::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -405,7 +386,6 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
         }
     }
     if (key == GLFW_KEY_X && action == GLFW_PRESS) {
-        double time = glfwGetTime() - m_startTime;
         glfwSetWindowShouldClose(m_window, 1);
     }
 }
