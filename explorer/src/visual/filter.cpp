@@ -12,6 +12,7 @@ Blur::Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint ra
 
     // Two triangles that will cover the full screen when rendered in screen space.
     float quadVertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
+
                             -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f};
 
     assert(m_passes > 0);
@@ -106,8 +107,6 @@ void Blur::Display() {
     // Bind the original texture to texture unit 1 for non-blurred areas.
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, m_originalTexture);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
-                              m_rboDepth[0]); // Use the original depth buffer
     m_blurShader.SetInt("originalTexture", 1);
     m_blurShader.SetBool("lastPass", false);
 

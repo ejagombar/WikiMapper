@@ -5,8 +5,6 @@
 #include <string>
 
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 
 class GUI {
   public:
@@ -19,8 +17,12 @@ class GUI {
     void RenderOverlay();
 
   private:
+    void subtitle(const char *text);
+    void separator();
+
     ImFont *m_defaultFont;
     ImFont *m_titleFont;
+    ImFont *m_subTitleFont;
 };
 
 #endif // LABEL_H
