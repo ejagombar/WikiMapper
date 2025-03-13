@@ -94,9 +94,9 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         // Apply node-node repulsion using coulomb's force
         const GS::Node &node1 = readG.nodes[i];
 
-        if (i == 0) {
-            std::cout << "2" << nodeForces[i].x << " " << nodeForces[i].y << " " << nodeForces[i].z << std::endl;
-        }
+        // if (i == 0) {
+        //     std::cout << "2" << nodeForces[i].x << " " << nodeForces[i].y << " " << nodeForces[i].z << std::endl;
+        // }
 
         glm::vec3 force = glm::vec3(0);
         for (uint j = 0; j < nodeCount; j++) {
@@ -113,10 +113,6 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
             force += glm::normalize(node1.pos - node2.pos) * electrostaticForce;
         }
         nodeForces[i] += force;
-
-        if (i == 0) {
-            std::cout << "3" << nodeForces[i].x << " " << nodeForces[i].y << " " << nodeForces[i].z << std::endl;
-        }
 
         // Apply forces and update velocity, position
         if (glm::length(nodeForces[i]) < 0.4) {

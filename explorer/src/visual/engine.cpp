@@ -43,7 +43,7 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf) : m_graphBuf(graphBuf) {
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback_static);
     glfwSetKeyCallback(m_window, key_callback_static);
-    glfwSetScrollCallback(m_window, scroll_callback_static);
+    // glfwSetScrollCallback(m_window, scroll_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
@@ -301,9 +301,6 @@ void Engine::loop() {
 
     if (m_state == stop) {
         m_gui->RenderMenu();
-        // m_text2d->Render2d(
-        //     "WikiMapper",
-        //     glm::vec3((static_cast<float>(m_scrWidth) * 0.5f), static_cast<float>(m_scrHeight) * 0.5f, 1.0f), 1.0f,
     }
 
     m_gui->EndFrame();
