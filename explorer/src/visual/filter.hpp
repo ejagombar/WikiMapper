@@ -34,6 +34,7 @@ class Blur {
 
     GLuint m_blurFBO[2], m_blurTexture[2]; // Horizontal and Vertical blur
     GLuint m_rboDepth[2];
+    GLuint m_originalFBO, m_originalTexture; // New: Stores the original frame buffer before blur
 
     GLuint m_quadVAO;
     GLuint m_quadVBO;
@@ -44,8 +45,8 @@ class Blur {
 
     glm::ivec2 m_size;
     GLuint m_radius; // Blur rectangle corner radius
-    GLfloat m_scale; // Guassian blur step size
-    uint m_passes;   // Number of Guassian blur passes
+    GLfloat m_scale; // Gaussian blur step size
+    uint m_passes;   // Number of Gaussian blur passes
     GLfloat m_brightnessModifier;
 };
 } // namespace Filter
