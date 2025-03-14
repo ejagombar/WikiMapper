@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
+#include "../debugSim.hpp"
 #include "../graph.hpp"
 #include "./camera.hpp"
 #include "./filter.hpp"
@@ -22,7 +23,7 @@
 
 class Engine {
   public:
-    Engine(GS::GraphTripleBuf &graphBuf);
+    Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex &simDebugDataMutex);
     ~Engine();
     int Run();
 
@@ -119,6 +120,9 @@ class Engine {
     State m_state = play;
 
     ShaderData m_shader;
+
+    debugData &m_simDebugData;
+    std::mutex &m_simDebugDataMutex;
 
     Camera m_camera;
     GLFWwindow *m_window;

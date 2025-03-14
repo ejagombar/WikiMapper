@@ -1,8 +1,10 @@
 #include "../lib/rgb_hsv.hpp"
-#include "./visual/engine.hpp"
+#include "debugSim.hpp"
 #include "graph.hpp"
 #include "pointMaths.hpp"
+#include "simulation.hpp"
 #include "store.hpp"
+#include "visual/engine.hpp"
 #include <cmath>
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
@@ -12,6 +14,7 @@
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <json/json.h>
+#include <mutex>
 #include <random>
 #include <thread>
 #include <vector>
@@ -20,6 +23,9 @@
 #include "../lib/std_image.h"
 
 GS::GraphTripleBuf graphBuf;
+
+debugData simDebugData;
+std::mutex simDebugDataMutex;
 
 float packRGBToFloat(unsigned char r, unsigned char g, unsigned char b) {
     uint32_t packed = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b));
@@ -52,84 +58,6 @@ void generateRealData(GS::Graph &graph) {
     }
 }
 
-void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt) {
-    const float qqMultiplier = 0.05f;
-    const float gravityMultiplier = 30.f;
-    const float accelSizeMultiplier = 0.01f;
-    const float targetDistance = 100;
-
-    const uint nodeCount = readG.nodes.size();
-
-    std::vector<glm::vec3> nodeForces(nodeCount, glm::vec3(0));
-
-    for (const GS::Edge &edge : readG.edges) {
-        glm::vec3 delta = readG.nodes[edge.startIdx].pos - readG.nodes[edge.endIdx].pos;
-        float distance = glm::length(delta);
-
-        const glm::vec3 direction = delta / distance;
-        const float distanceDelta = distance - targetDistance;
-
-        float attractiveForce = distanceDelta * distanceDelta * 0.01;
-
-        if (attractiveForce > 1000.f) {
-            attractiveForce = 1000.f;
-        }
-
-        if (attractiveForce < -1000.f) {
-            attractiveForce = -1000.f;
-        }
-
-        const glm::vec3 forceVec = direction * attractiveForce;
-
-        nodeForces[edge.endIdx] += forceVec;
-        nodeForces[edge.startIdx] -= forceVec;
-    }
-
-    for (uint i = 0; i < nodeCount; i++) {
-        // Apply gravity towards (0,0,0)
-        if (glm::length(readG.nodes[i].pos) != 0) [[likely]] {
-            nodeForces[i] -= glm::normalize(readG.nodes[i].pos) * gravityMultiplier;
-        }
-
-        // Apply node-node repulsion using coulomb's force
-        const GS::Node &node1 = readG.nodes[i];
-
-        // if (i == 0) {
-        //     std::cout << "2" << nodeForces[i].x << " " << nodeForces[i].y << " " << nodeForces[i].z << std::endl;
-        // }
-
-        glm::vec3 force = glm::vec3(0);
-        for (uint j = 0; j < nodeCount; j++) {
-            const GS::Node &node2 = readG.nodes[j];
-
-            if (node1.pos == node2.pos) { // Divide by zero bad
-                continue;
-            }
-
-            const float qq = node1.size * node2.size;
-            const float distance = glm::distance(node1.pos, node2.pos);
-
-            const float electrostaticForce = (qqMultiplier * qq) / (distance * distance);
-            force += glm::normalize(node1.pos - node2.pos) * electrostaticForce;
-        }
-        nodeForces[i] += force;
-
-        // Apply forces and update velocity, position
-        if (glm::length(nodeForces[i]) < 0.4) {
-            nodeForces[i] = glm::vec3(0);
-        }
-
-        const glm::vec3 acceleration = (nodeForces[i] * (1.0f / readG.nodes[i].size)) * accelSizeMultiplier;
-        const glm::vec3 vel = acceleration * dt;
-
-        writeG.nodes[i].force = readG.nodes[i].force * 0.95f + nodeForces[i];
-        writeG.nodes[i].vel = readG.nodes[i].vel + vel;
-        writeG.nodes[i].pos = readG.nodes[i].pos + vel * dt;
-    }
-
-    // writeG.nodes[0].pos = glm::vec3(0);
-}
-
 void graphPositionSimulation() {
     const auto simulationInterval = std::chrono::milliseconds(1);
 
@@ -142,7 +70,12 @@ void graphPositionSimulation() {
         auto end = std::chrono::system_clock::now();
         float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         start = end;
-        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds);
+
+        simDebugDataMutex.lock();
+        const debugData dat(simDebugData);
+        simDebugDataMutex.unlock();
+
+        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
@@ -196,7 +129,7 @@ int main() {
     *writeGraph = *readgraph;
     graphBuf.Publish();
 
-    Engine renderEngine(graphBuf);
+    Engine renderEngine(graphBuf, simDebugData, simDebugDataMutex);
 
     std::thread t{graphPositionSimulation};
     t.detach();

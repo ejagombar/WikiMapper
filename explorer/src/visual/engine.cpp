@@ -3,6 +3,7 @@
 #include "../../lib/rgb_hsv.hpp"
 #include "./shader.hpp"
 #include "camera.hpp"
+#include "gui.hpp"
 #include "texture.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -20,7 +21,9 @@
 #include <random>
 #include <vector>
 
-Engine::Engine(GS::GraphTripleBuf &graphBuf) : m_graphBuf(graphBuf) {
+Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex &simDebugDataMutex)
+    : m_simDebugData(simDebugData), m_simDebugDataMutex(simDebugDataMutex), m_graphBuf(graphBuf) {
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -236,6 +239,15 @@ void Engine::loop() {
 
     m_camera.SetFov(m_gui->GUIValues().cameraFov);
     m_camera.SetMouseSensitivity(m_gui->GUIValues().mouseSensitivity);
+
+    if (m_simDebugDataMutex.try_lock()) {
+        GUISettings x = m_gui->GUIValues();
+        m_simDebugData.accelSizeMultiplier = x.accelSizeMultiplier;
+        m_simDebugData.gravityMultiplier = x.gravityMultiplier;
+        m_simDebugData.qqMultiplier = x.qqMultiplier;
+        m_simDebugData.targetDistance = x.targetDistance;
+        m_simDebugDataMutex.unlock();
+    }
 
     processEngineInput(m_window);
     const float currentFrame = static_cast<float>(glfwGetTime());

@@ -113,12 +113,14 @@ void GUI::EndFrame() {
 void GUI::RenderDebugMenu() {
     ImGui::Begin("Debug", nullptr);
 
-    ImGui::PushItemWidth(200.0f);
+    ImGui::PushItemWidth(500.0f);
 
-    ImGui::SliderFloat("Mouse Sensitivity", &m_settings.mouseSensitivity, 0.1f, 10.0f, "%.1f",
+    ImGui::SliderFloat("qqMultiplier", &m_settings.qqMultiplier, 0.001f, 1.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("gravityMultiplier", &m_settings.gravityMultiplier, 0.1f, 100.0f, "%.1f",
                        ImGuiSliderFlags_AlwaysClamp);
-
-    ImGui::SliderFloat("FOV", &m_settings.cameraFov, 30.0f, 120.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("accelSizeMultiplier", &m_settings.accelSizeMultiplier, 0.001f, 1.0f, "%.1f",
+                       ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("targetDistance", &m_settings.targetDistance, 1.f, 200.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::PopItemWidth();
 

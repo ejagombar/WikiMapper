@@ -93,13 +93,13 @@ Graph &Graph::operator=(Graph &other) {
 }
 
 GraphTripleBuf::GraphTripleBuf() {
-    for (int i = 0; i < BUFFERCOUNT; i++) {
+    for (uint i = 0; i < BUFFERCOUNT; i++) {
         m_buffers[i] = new Graph();
     }
 };
 
 GraphTripleBuf::~GraphTripleBuf() {
-    for (int i = 0; i < BUFFERCOUNT; i++) {
+    for (uint i = 0; i < BUFFERCOUNT; i++) {
         delete m_buffers[i];
     }
 };

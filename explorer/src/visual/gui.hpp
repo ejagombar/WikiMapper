@@ -12,6 +12,11 @@ struct GUISettings {
     bool vSync = true;
     float cameraFov = 45;
     float mouseSensitivity = 2.f;
+
+    float qqMultiplier = 0.05f;
+    float gravityMultiplier = 30.f;
+    float accelSizeMultiplier = 0.01f;
+    float targetDistance = 100;
 };
 
 class GUI {
