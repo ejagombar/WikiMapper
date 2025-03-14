@@ -233,6 +233,10 @@ int Engine::Run() {
 
 void Engine::loop() {
     m_gui->BeginFrame();
+
+    m_camera.SetFov(m_gui->GUIValues().cameraFov);
+    m_camera.SetMouseSensitivity(m_gui->GUIValues().mouseSensitivity);
+
     processEngineInput(m_window);
     const float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - m_lastFrame;
@@ -302,6 +306,9 @@ void Engine::loop() {
     if (m_state == stop) {
         m_gui->RenderMenu();
     }
+    if (m_gui->GUIValues().debugMode) {
+        m_gui->RenderDebugMenu();
+    }
 
     m_gui->EndFrame();
 }
@@ -327,16 +334,15 @@ void Engine::mouse_callback_static(GLFWwindow *window, double xpos, double ypos)
     }
 }
 
-void Engine::scroll_callback_static(GLFWwindow *window, double xoffset, double yoffset) {
-    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
-    if (instance) {
-        instance->scroll_callback(window, xoffset, yoffset);
-    }
-}
+// void Engine::scroll_callback_static(GLFWwindow *window, double xoffset, double yoffset) {
+//     Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
+//     if (instance) {
+//         instance->scroll_callback(window, xoffset, yoffset);
+//     }
+// }
 
-void Engine::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-    m_camera.ProcessMouseScroll(yoffset);
-}
+// void Engine::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+// }
 
 void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);

@@ -50,8 +50,8 @@ void Camera::ProcessMouseMovement(const double xoffsetIn, const double yoffsetIn
     updateCameraVectors();
 }
 
-void Camera::ProcessMouseScroll(const float yoffset) {
-    m_fov -= (float)yoffset * m_scrollSensitivity;
+void Camera::SetFov(const float fov) {
+    m_fov = fov;
     if (m_fov < 1.0f)
         m_fov = 1.0f;
     if (m_fov > 160.0f)

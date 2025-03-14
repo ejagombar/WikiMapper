@@ -57,7 +57,7 @@ void GUI::RenderMenu() {
                      ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar);
 
     float windowWidth = ImGui::GetWindowSize().x;
-    float margin = 50.0f; // Margin for separator and content
+    float margin = 50.0f;
 
     // Title
     ImGui::PushFont(m_titleFont);
@@ -66,15 +66,15 @@ void GUI::RenderMenu() {
     ImGui::Text("WikiMapper");
     ImGui::PopFont();
 
-    // Separator with Margins (Manually Drawn)
+    // Separator with margins drawn manualy
     ImVec2 separatorStart = ImVec2(ImGui::GetWindowPos().x + margin, ImGui::GetCursorScreenPos().y);
     ImVec2 separatorEnd = ImVec2(ImGui::GetWindowPos().x + windowWidth - margin, separatorStart.y);
     ImGui::GetWindowDrawList()->AddLine(separatorStart, separatorEnd, IM_COL32(255, 255, 255, 255), 1.5f);
-    ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Add spacing after separator
+    ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
     ImVec2 childSize = ImVec2(settingsSize.x - margin * 2, settingsSize.y - 150);
     ImGui::SetCursorPosX(margin);
-    ImGui::BeginChild("ScrollableArea", childSize, false, ImGuiWindowFlags_AlwaysVerticalScrollbar); // No border
+    ImGui::BeginChild("ScrollableArea", childSize, false); // No border
 
     // --------------------------------------------------
 
@@ -87,26 +87,19 @@ void GUI::RenderMenu() {
     separator();
     subtitle("Camera Settings");
     ImGui::PushItemWidth(300.0f);
-    static float mouseSensitivity = 5.0f;
-    ImGui::SliderFloat("Mouse Sensitivity", &mouseSensitivity, 0.1f, 10.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Mouse Sensitivity", &m_settings.mouseSensitivity, 0.1f, 10.0f, "%.1f",
+                       ImGuiSliderFlags_AlwaysClamp);
 
-    static float fov = 90.0f;
-    ImGui::SliderFloat("FOV", &fov, 60.0f, 120.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("FOV", &m_settings.cameraFov, 30.0f, 120.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::PopItemWidth();
 
     separator();
     subtitle("Options");
 
-    static bool debugMode = true;
-    static bool wireFrame = false;
-    static bool vSync = true;
-    ImGui::Checkbox("Debug Controls", &debugMode);
-    ImGui::Checkbox("Wire Frame", &wireFrame);
-    ImGui::Checkbox("V-Sync", &vSync);
-
-    separator();
-    subtitle("Help");
-    ImGui::TextWrapped("Visit the Github for more information.");
+    ImGui::Checkbox("Debug Controls", &m_settings.debugMode);
+    ImGui::Checkbox("Wire Frame", &m_settings.wireFrame);
+    ImGui::Checkbox("V-Sync", &m_settings.vSync);
+    ImGui::Button("Reset Simulation");
 
     ImGui::EndChild();
     ImGui::End();
@@ -117,4 +110,17 @@ void GUI::EndFrame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GUI::RenderOverlay() {};
+void GUI::RenderDebugMenu() {
+    ImGui::Begin("Debug", nullptr);
+
+    ImGui::PushItemWidth(200.0f);
+
+    ImGui::SliderFloat("Mouse Sensitivity", &m_settings.mouseSensitivity, 0.1f, 10.0f, "%.1f",
+                       ImGuiSliderFlags_AlwaysClamp);
+
+    ImGui::SliderFloat("FOV", &m_settings.cameraFov, 30.0f, 120.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+
+    ImGui::PopItemWidth();
+
+    ImGui::End();
+};

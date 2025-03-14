@@ -34,8 +34,10 @@ class Camera {
 
     void ProcessKeyboard(const CameraMovement direction);
     void ProcessMouseMovement(const double xoffsetIn, const double yoffsetIn);
-    void ProcessMouseScroll(const float yoffset);
+    void SetFov(const float yoffset);
     void ProcessPosition(const float deltaTime);
+
+    void SetMouseSensitivity(const GLfloat s) { m_mouseSensitivity = s * 0.001; };
 
   private:
     const glm::vec3 m_worldUp = glm::vec3(0.0f, 1.0f, 0.0);

@@ -6,6 +6,14 @@
 
 #include "imgui.h"
 
+struct GUISettings {
+    bool debugMode = true;
+    bool wireFrame = false;
+    bool vSync = true;
+    float cameraFov = 45;
+    float mouseSensitivity = 2.f;
+};
+
 class GUI {
   public:
     GUI(GLFWwindow *m_window, std::string font);
@@ -14,12 +22,15 @@ class GUI {
     void BeginFrame();
     void EndFrame();
     void RenderMenu();
-    void RenderOverlay();
+    void RenderDebugMenu();
+
+    const GUISettings &GUIValues() { return m_settings; };
 
   private:
     void subtitle(const char *text);
     void separator();
 
+    GUISettings m_settings;
     ImFont *m_defaultFont;
     ImFont *m_titleFont;
     ImFont *m_subTitleFont;
