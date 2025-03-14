@@ -115,12 +115,16 @@ void GUI::RenderDebugMenu() {
 
     ImGui::PushItemWidth(500.0f);
 
-    ImGui::SliderFloat("qqMultiplier", &m_settings.qqMultiplier, 0.001f, 1.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("gravityMultiplier", &m_settings.gravityMultiplier, 0.1f, 100.0f, "%.1f",
+    ImGui::SliderFloat("qqMultiplier", &m_settings.qqMultiplier, 0.001f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("gravityMultiplier", &m_settings.gravityMultiplier, 0.1f, 100.0f, "%.3f",
                        ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("accelSizeMultiplier", &m_settings.accelSizeMultiplier, 0.001f, 1.0f, "%.1f",
+    ImGui::SliderFloat("accelSizeMultiplier", &m_settings.accelSizeMultiplier, 0.001f, 1.0f, "%.3f",
                        ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("targetDistance", &m_settings.targetDistance, 1.f, 200.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("targetDistance", &m_settings.targetDistance, 1.f, 200.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+    if (ImGui::Button("Reset Sim")) {
+        m_settings.resetSimulation = true;
+    }
 
     ImGui::PopItemWidth();
 

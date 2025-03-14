@@ -58,30 +58,6 @@ void generateRealData(GS::Graph &graph) {
     }
 }
 
-void graphPositionSimulation() {
-    const auto simulationInterval = std::chrono::milliseconds(1);
-
-    auto start = std::chrono::system_clock::now();
-
-    while (true) {
-        GS::Graph *readGraph = graphBuf.GetCurrent();
-        GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
-
-        auto end = std::chrono::system_clock::now();
-        float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        start = end;
-
-        simDebugDataMutex.lock();
-        const debugData dat(simDebugData);
-        simDebugDataMutex.unlock();
-
-        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
-        graphBuf.Publish();
-
-        std::this_thread::sleep_for(simulationInterval);
-    }
-}
-
 void setupGraph(GS::Graph &db) {
     generateRealData(db);
 
@@ -108,6 +84,35 @@ void setupGraph(GS::Graph &db) {
     }
 
     db.nodes[baseNodeIdx].pos = glm::vec3(0);
+}
+
+void graphPositionSimulation() {
+    const auto simulationInterval = std::chrono::milliseconds(1);
+
+    auto start = std::chrono::system_clock::now();
+
+    while (true) {
+        GS::Graph *readGraph = graphBuf.GetCurrent();
+        GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
+
+        auto end = std::chrono::system_clock::now();
+        float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        start = end;
+
+        simDebugDataMutex.lock();
+        const debugData dat(simDebugData);
+        simDebugData.resetSimulation = false;
+        simDebugDataMutex.unlock();
+
+        if (dat.resetSimulation) {
+            setupGraph(*writeGraph);
+        }
+
+        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
+        graphBuf.Publish();
+
+        std::this_thread::sleep_for(simulationInterval);
+    }
 }
 
 void test(int c) { std::cout << c; }

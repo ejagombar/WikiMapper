@@ -246,6 +246,7 @@ void Engine::loop() {
         m_simDebugData.gravityMultiplier = x.gravityMultiplier;
         m_simDebugData.qqMultiplier = x.qqMultiplier;
         m_simDebugData.targetDistance = x.targetDistance;
+        m_simDebugData.resetSimulation = x.resetSimulation;
         m_simDebugDataMutex.unlock();
     }
 
