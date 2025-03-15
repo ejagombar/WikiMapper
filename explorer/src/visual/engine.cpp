@@ -42,11 +42,10 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex
 
     glViewport(0, 0, m_scrWidth, m_scrHeight);
 
-    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback_static);
     glfwSetKeyCallback(m_window, key_callback_static);
-    // glfwSetScrollCallback(m_window, scroll_callback_static);
+    glfwSetMouseButtonCallback(m_window, mouse_button_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
@@ -326,6 +325,8 @@ void Engine::loop() {
     m_gui->EndFrame();
 }
 
+// -------------------------------- Static Callbacks --------------------------------
+
 void Engine::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
     Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
     if (instance) {
@@ -347,15 +348,29 @@ void Engine::mouse_callback_static(GLFWwindow *window, double xpos, double ypos)
     }
 }
 
-// void Engine::scroll_callback_static(GLFWwindow *window, double xoffset, double yoffset) {
-//     Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
-//     if (instance) {
-//         instance->scroll_callback(window, xoffset, yoffset);
-//     }
-// }
+void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int action, int mods) {
+    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
+    if (instance) {
+        instance->mouse_button_callback(window, button, action, mods);
+    }
+}
 
-// void Engine::scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-// }
+// -------------------------------- Callbacks --------------------------------
+
+void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
+        if (m_state == play) {
+            m_state = stop;
+            m_blur->SetEnabled(true);
+        } else {
+            m_state = play;
+            m_blur->SetEnabled(false);
+        }
+    }
+    if (key == GLFW_KEY_X && action == GLFW_PRESS) {
+        glfwSetWindowShouldClose(m_window, 1);
+    }
+}
 
 void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -368,7 +383,7 @@ void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height
 }
 
 void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
-    if (m_state == stop) {
+    if (m_state == stop || !m_mouseActive) {
         return;
     }
 
@@ -386,24 +401,20 @@ void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-        if (m_state == play) {
-            m_state = stop;
-            m_blur->SetEnabled(true);
-
-            glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        } else {
-            m_state = play;
-            m_blur->SetEnabled(false);
-
-            glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            m_firstMouse = true;
-        }
+void Engine::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        m_firstMouse = true;
+        m_mouseActive = true;
     }
-    if (key == GLFW_KEY_X && action == GLFW_PRESS) {
-        glfwSetWindowShouldClose(m_window, 1);
+
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        m_mouseActive = false;
     }
+
+    // if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+    // }
 }
 
 void Engine::processEngineInput(GLFWwindow *window) {

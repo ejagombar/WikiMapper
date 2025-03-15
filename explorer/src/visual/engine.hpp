@@ -87,13 +87,13 @@ class Engine {
 
     static void framebuffer_size_callback_static(GLFWwindow *window, int width, int height);
     static void mouse_callback_static(GLFWwindow *window, double xpos, double ypos);
-    static void scroll_callback_static(GLFWwindow *window, double xoffset, double yoffset);
     static void key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods);
+    static void mouse_button_callback_static(GLFWwindow *window, int button, int action, int mods);
 
     void framebuffer_size_callback(GLFWwindow *window, int width, int height);
     void mouse_callback(GLFWwindow *window, double xpos, double ypos);
-    void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+    void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
 
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
@@ -118,6 +118,7 @@ class Engine {
     const char *m_font = "/usr/share/fonts/open-sans/OpenSans-Regular.ttf";
 
     State m_state = play;
+    bool m_mouseActive = false;
 
     ShaderData m_shader;
 
