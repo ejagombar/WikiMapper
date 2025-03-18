@@ -46,34 +46,38 @@ void generateRealData(GS::Graph &graph) {
         return;
     }
 
-    auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = neo4jDB.GetLinkedPages("motorola");
+    // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
+    auto linkedPages = neo4jDB.GetLinkedPages("winchester");
 
-    std::cout << "Size: " << linkedPages.size() << std::endl;
-    graph.AddNode("motorola");
+    // auto x = graph.AddNode("Nico Ditch");
+    // std::cout << "Size: " << linkedPages.size() << " Start IDX: " << x << std::endl;
 
     for (const auto &page : linkedPages) {
+        std::cout << page.title << std::endl;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(0, idx);
+        graph.nodes[0].size++;
     }
 }
 
-void setupGraph(GS::Graph &db) {
-    generateRealData(db);
+void setupGraph(GS::Graph &db, bool genData = true) {
+    if (genData) {
+        generateRealData(db);
+    }
 
-    const int numOfElements = db.nodes.size();
+    const uint numOfElements = db.nodes.size();
 
     uint32_t baseNodeIdx = db.GetTopNode();
     auto baseNode = db.nodes[baseNodeIdx];
     std::cout << baseNode.title;
 
     auto neighboursUID = db.GetNeighboursIdx(baseNodeIdx);
-    auto out = spreadOrbit(glm::vec3(0), neighboursUID.size(), 2 * sqrt(numOfElements), glm::vec3(0, 0, 0));
+    auto out = spreadRand(numOfElements, 50.0f);
 
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
-    for (uint i = 0; i <= neighboursUID.size(); i++) {
+    for (uint i = 0; i < numOfElements; i++) {
         auto col = hsv2rgb(dist(gen), 0.8f, 1.0f);
         db.nodes[i].pos = out[i];
         db.nodes[i].rgb[0] = static_cast<char>(col.r);
@@ -82,12 +86,10 @@ void setupGraph(GS::Graph &db) {
         db.nodes[i].size = 20;
         db.nodes[i].edgeSize = 5;
     }
-
-    db.nodes[baseNodeIdx].pos = glm::vec3(0);
 }
 
 void graphPositionSimulation() {
-    const auto simulationInterval = std::chrono::milliseconds(1);
+    const auto simulationInterval = std::chrono::milliseconds(10);
 
     auto start = std::chrono::system_clock::now();
 
@@ -100,14 +102,18 @@ void graphPositionSimulation() {
         start = end;
 
         simDebugDataMutex.lock();
-        const debugData dat(simDebugData);
-        simDebugData.resetSimulation = false;
+        const debugData dat = simDebugData;
+        if (dat.resetSimulation) {
+            simDebugData.doneReset = true;
+        }
         simDebugDataMutex.unlock();
 
         if (dat.resetSimulation) {
-            setupGraph(*writeGraph);
+            setupGraph(*writeGraph, false);
+            graphBuf.Publish();
+            readGraph = graphBuf.GetCurrent();
+            writeGraph = graphBuf.GetWriteBuffer();
         }
-
         updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
 

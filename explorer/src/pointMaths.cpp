@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 #include <json/json.h>
 #include <random>
 #include <stdlib.h>
@@ -23,7 +24,7 @@ std::vector<glm::vec3> spreadOrbit2d(const glm::vec3 center, const unsigned int 
     std::vector<glm::vec3> out(numPoints);
     const float angleDelta = ((range.y - range.x) / numPoints);
 
-    for (int i = 0; i < numPoints; ++i) {
+    for (uint i = 0; i < numPoints; i++) {
         float angle = range.x + angleDelta * i;
 
         glm::vec3 location(center.x + radius * cos(angle), center.y + radius * sin(angle), center.z);
@@ -39,6 +40,23 @@ std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoin
     glm::vec2 thetaRange(0.0f, glm::pi<float>());
     glm::vec2 phiRange(0.0f, 2.0f * glm::pi<float>());
     return spreadOrbitRand(center, numPoints, radius, thetaRange, phiRange, rotation);
+}
+
+std::vector<glm::vec3> spreadRand(const int numPoints, const float size) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> x(-0.5 * size, 0.5f * size);
+    std::uniform_real_distribution<float> y(-0.5 * size, 0.5f * size);
+    std::uniform_real_distribution<float> z(-0.5 * size, 0.5f * size);
+
+    std::vector<glm::vec3> points;
+    points.reserve(numPoints);
+
+    for (int i = 0; i < numPoints; ++i) {
+        points.emplace_back(glm::vec3(x(gen), y(gen), z(gen)));
+    }
+
+    return points;
 }
 
 std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const int numPoints, const float radius,

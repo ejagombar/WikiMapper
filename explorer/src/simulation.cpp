@@ -52,10 +52,10 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
     for (uint i = 0; i < nodeCount; i++) {
         // Apply gravity towards (0,0,0)
         // float distance = glm::length(readG.nodes[i].pos);
-        // glm::vec3 gravityForce = glm::normalize(readG.nodes[i].pos) * gravityMultiplier;
-        // if (checkValid(gravityForce)) {
-        //     nodeForces[i] -= gravityForce;
-        // }
+        glm::vec3 gravityForce = glm::normalize(readG.nodes[i].pos) * gravityMultiplier;
+        if (checkValid(gravityForce)) {
+            nodeForces[i] -= gravityForce;
+        }
 
         // Apply node-node repulsion using coulomb's force
         const GS::Node &node1 = readG.nodes[i];

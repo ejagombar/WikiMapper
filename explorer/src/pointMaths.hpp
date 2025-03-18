@@ -6,6 +6,8 @@
 
 glm::vec3 rotateVec(const glm::vec3 &input, const glm::vec3 &rotation);
 
+std::vector<glm::vec3> spreadRand(const int numPoints, const float size);
+
 std::vector<glm::vec3> spreadOrbit2d(const glm::vec3 center, const unsigned int numPoints, const float radius,
                                      const glm::vec2 range, const glm::vec3 rotation);
 
