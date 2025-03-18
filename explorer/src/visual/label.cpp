@@ -1,5 +1,6 @@
 // render_engine.cpp
 #include "label.hpp"
+#include "shader.hpp"
 #include <cstring>
 
 LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexShader,
@@ -179,7 +180,7 @@ void LabelEngine::PrepareLabels(const std::vector<Label> &labels) {
 
     glBindVertexArray(m_VAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-    glBufferData(GL_ARRAY_BUFFER, m_activeLabels.size() * sizeof(LabelData), m_activeLabels.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_activeLabels.size() * sizeof(LabelData), m_activeLabels.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }

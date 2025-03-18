@@ -179,6 +179,12 @@ void Engine::UpdateParticles(GS::Graph &graph) {
         m_nodeData[i].position[2] = graph.nodes[i].pos.z;
     }
 
+    std::vector<Label> labels;
+    for (GS::Node node : graph.nodes) {
+        labels.emplace_back(Label{node.pos, node.title});
+    }
+    m_text->PrepareLabels(labels);
+
     for (unsigned int i = 0; i < graph.edges.size(); i++) {
         const int lineIdx = i * 2;
 

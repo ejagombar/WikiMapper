@@ -36,9 +36,12 @@ class LabelEngine {
 
     void RenderLabels(const glm::mat4 &view, const float time);
 
+    std::vector<LabelData> m_activeLabels;
+
+    void PrepareLabels(const std::vector<Label> &labels);
+
   private:
     void CreateTextAtlas(const std::vector<Label> &labels);
-    void PrepareLabels(const std::vector<Label> &labels);
 
     std::unique_ptr<Shader> m_shader;
     GLuint m_VAO;
@@ -52,7 +55,6 @@ class LabelEngine {
     int m_commonHeight;
 
     std::vector<LabelCharacter> m_characters;
-    std::vector<LabelData> m_activeLabels;
 };
 
 #endif // LABEL_H
