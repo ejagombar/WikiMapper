@@ -29,6 +29,7 @@ class GUI {
     void EndFrame();
     void RenderMenu();
     void RenderDebugMenu();
+    void AckReset();
 
     const GUISettings &GUIValues() { return m_settings; };
 

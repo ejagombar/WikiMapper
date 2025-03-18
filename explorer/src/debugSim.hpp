@@ -7,6 +7,7 @@ struct debugData {
     float accelSizeMultiplier = 0.001f;
     float targetDistance = 67.f;
     bool resetSimulation = false;
+    bool doneReset = false;
 };
 
 #endif

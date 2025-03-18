@@ -245,6 +245,10 @@ void Engine::loop() {
         m_simDebugData.gravityMultiplier = x.gravityMultiplier;
         m_simDebugData.qqMultiplier = x.qqMultiplier;
         m_simDebugData.targetDistance = x.targetDistance;
+        if (m_simDebugData.doneReset) {
+            m_gui->AckReset();
+            m_simDebugData.doneReset = false;
+        }
         m_simDebugData.resetSimulation = x.resetSimulation;
         m_simDebugDataMutex.unlock();
     }
@@ -412,9 +416,6 @@ void Engine::mouse_button_callback(GLFWwindow *window, int button, int action, i
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         m_mouseActive = false;
     }
-
-    // if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-    // }
 }
 
 void Engine::processEngineInput(GLFWwindow *window) {

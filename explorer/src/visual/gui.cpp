@@ -110,6 +110,8 @@ void GUI::EndFrame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+void GUI::AckReset() { m_settings.resetSimulation = false; };
+
 void GUI::RenderDebugMenu() {
     ImGui::Begin("Debug", nullptr);
 
