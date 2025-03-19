@@ -4,6 +4,7 @@
 #include "shader.hpp"
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include "../graph.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -30,19 +31,18 @@ struct LabelData {
 class LabelEngine {
   public:
     LabelEngine(const std::string &fontPath, const std::string &vertexShader, const std::string &fragmentShader,
-                const std::string &geometryShader, const std::vector<Label> &labels);
+                const std::string &geometryShader);
 
     ~LabelEngine();
 
-    void RenderLabels(const glm::mat4 &view, const float time);
+    void RenderLabels(const float time);
 
     std::vector<LabelData> m_activeLabels;
 
-    void PrepareLabels(const std::vector<Label> &labels);
+    void SetupTextureAtlases(const std::vector<GS::Node> &nodes);
+    void UpdateLabelPositions(const std::vector<GS::Node> &nodes);
 
   private:
-    void CreateTextAtlas(const std::vector<Label> &labels);
-
     std::unique_ptr<Shader> m_shader;
     GLuint m_VAO;
     GLuint m_VBO;

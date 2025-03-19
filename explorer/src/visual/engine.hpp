@@ -99,7 +99,7 @@ class Engine {
 
     void setupNodes(GS::Graph &graph);
     void setupEdges(GS::Graph &graph);
-    void setupShaders(GS::Graph &graph);
+    void setupShaders();
 
     void UpdateParticles(GS::Graph &graph);
 

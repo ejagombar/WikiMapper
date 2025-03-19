@@ -4,8 +4,7 @@
 #include <cstring>
 
 LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexShader,
-                         const std::string &fragmentShader, const std::string &geometryShader,
-                         const std::vector<Label> &labels) {
+                         const std::string &fragmentShader, const std::string &geometryShader) {
     FT_Library ft;
     if (FT_Init_FreeType(&ft))
         throw std::runtime_error("ERROR::FREETYPE: Could not init FreeType Library");
@@ -66,18 +65,17 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    CreateTextAtlas(labels);
-    PrepareLabels(labels);
+    // CreateTextAtlas();
+    // UpdateLabelPositions();
 }
 
 LabelEngine::~LabelEngine() {
     glDeleteBuffers(1, &m_VBO);
     glDeleteVertexArrays(1, &m_VAO);
     glDeleteTextures(1, &m_textAtlas);
-    // (Optionally, delete individual glyph textures if you are not reusing them elsewhere.)
 }
 
-void LabelEngine::RenderLabels(const glm::mat4 &view, const float time) {
+void LabelEngine::RenderLabels(const float time) {
     m_shader->Use();
     m_shader->SetFloat("time", time);
     m_shader->SetFloat("vHeight", 0.2f); // The uniform vertical half-size
@@ -93,15 +91,14 @@ void LabelEngine::RenderLabels(const glm::mat4 &view, const float time) {
     glBindVertexArray(0);
 }
 
-void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
-
+void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
     // First pass: determine each label’s width in pixels and the maximum width (for atlas layer size).
-    int numLabels = static_cast<int>(labels.size());
+    int numLabels = static_cast<int>(nodes.size());
     m_atlasLayerCount = numLabels;
     std::vector<int> labelWidths(numLabels, 0);
     int maxWidth = 0;
     for (int i = 0; i < numLabels; i++) {
-        const std::string &text = labels[i].text;
+        const std::string &text = nodes[i].title;
         int width = 0;
         for (unsigned char c : text) {
             if (c >= 128)
@@ -129,7 +126,7 @@ void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     for (int i = 0; i < numLabels; i++) {
-        const std::string &text = labels[i].text;
+        const std::string &text = nodes[i].title;
         int textWidth = labelWidths[i];
 
         std::vector<unsigned char> pixels(m_atlasWidth * m_atlasHeight, 0);
@@ -161,19 +158,12 @@ void LabelEngine::CreateTextAtlas(const std::vector<Label> &labels) {
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
-void LabelEngine::PrepareLabels(const std::vector<Label> &labels) {
-    int numLabels = static_cast<int>(labels.size());
+void LabelEngine::UpdateLabelPositions(const std::vector<GS::Node> &nodes) {
+    int numLabels = static_cast<int>(nodes.size());
+
     m_activeLabels.resize(numLabels);
     for (int i = 0; i < numLabels; i++) {
-        m_activeLabels[i].position = labels[i].position;
-        int textWidth = 0;
-        for (unsigned char c : labels[i].text) {
-            if (c >= 128) {
-                continue;
-            }
-            textWidth += m_characters[c].advance / 64;
-        }
-
+        m_activeLabels[i].position = nodes[i].pos;
         m_activeLabels[i].width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
         m_activeLabels[i].texIndex = static_cast<float>(i);
     }

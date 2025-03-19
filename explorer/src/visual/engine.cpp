@@ -56,7 +56,7 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex
 
     GS::Graph *graph = m_graphBuf.GetCurrent();
 
-    setupShaders(*graph);
+    setupShaders();
 
     glGenVertexArrays(count, m_VAOs);
     glGenBuffers(count, m_VBOs);
@@ -64,13 +64,16 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex
     setupEdges(*graph);
     setupNodes(*graph);
 
+    m_text->SetupTextureAtlases(graph->nodes);
+    m_text->UpdateLabelPositions(graph->nodes);
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glEnable(GL_MULTISAMPLE);
     glDepthFunc(GL_LESS);
 }
 
-void Engine::setupShaders(GS::Graph &graph) {
+void Engine::setupShaders() {
     m_shader.skybox = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_shader.screenBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_shader.sphere = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
@@ -79,12 +82,7 @@ void Engine::setupShaders(GS::Graph &graph) {
     m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight),
                                             glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
 
-    std::vector<Label> labels;
-    for (GS::Node node : graph.nodes) {
-        labels.emplace_back(Label{node.pos, node.title});
-    }
-
-    m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom", labels);
+    m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom");
 
     m_shader.cameraMatricesUBO =
         std::make_unique<UBOManager<CameraMatrices>>(m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
@@ -179,11 +177,7 @@ void Engine::UpdateParticles(GS::Graph &graph) {
         m_nodeData[i].position[2] = graph.nodes[i].pos.z;
     }
 
-    std::vector<Label> labels;
-    for (GS::Node node : graph.nodes) {
-        labels.emplace_back(Label{node.pos, node.title});
-    }
-    m_text->PrepareLabels(labels);
+    m_text->UpdateLabelPositions(graph.nodes);
 
     for (unsigned int i = 0; i < graph.edges.size(); i++) {
         const int lineIdx = i * 2;
@@ -312,7 +306,7 @@ void Engine::loop() {
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_graph->nodes.size());
 
-    m_text->RenderLabels(view, currentFrame);
+    m_text->RenderLabels(currentFrame);
 
     m_shader.cylinder->Use();
     m_shader.cylinder->SetMat3("normalMat", normal);
@@ -367,7 +361,9 @@ void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int ac
 
 // -------------------------------- Callbacks --------------------------------
 
-void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
+                          [[maybe_unused]] int mods) {
+
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
             m_state = stop;
@@ -382,7 +378,7 @@ void Engine::key_callback(GLFWwindow *window, int key, int scancode, int action,
     }
 }
 
-void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
@@ -392,7 +388,7 @@ void Engine::framebuffer_size_callback(GLFWwindow *window, int width, int height
     m_scrHeight = height;
 }
 
-void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, double ypos) {
     if (m_state == stop || !m_mouseActive) {
         return;
     }
@@ -411,7 +407,8 @@ void Engine::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void Engine::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
+void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int button, int action,
+                                   [[maybe_unused]] int mods) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         m_firstMouse = true;
