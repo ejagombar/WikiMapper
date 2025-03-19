@@ -325,6 +325,7 @@ void Engine::loop() {
     if (m_gui->GUIValues().debugMode) {
         m_gui->RenderDebugMenu();
     }
+    m_gui->RenderSearchBar();
 
     m_gui->EndFrame();
 }

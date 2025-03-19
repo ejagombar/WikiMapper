@@ -30,6 +30,7 @@ class GUI {
     void RenderMenu();
     void RenderDebugMenu();
     void AckReset();
+    void RenderSearchBar();
 
     const GUISettings &GUIValues() { return m_settings; };
 

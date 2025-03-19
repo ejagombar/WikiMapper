@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include <cmath>
 #include <imgui.h>
 #include <string>
 
@@ -104,6 +105,46 @@ void GUI::RenderMenu() {
     ImGui::EndChild();
     ImGui::End();
 };
+
+void GUI::RenderSearchBar() {
+
+    static char searchBuffer[128] = "";
+    ImVec2 searchBarSize = ImVec2(500, 100);
+    ImVec2 searchBarPos = ImVec2(20, 20);
+    static bool isLoading = false;
+    static float timeElapsed = 0.0f;
+
+    ImVec4 searchBarColor = ImVec4(0.02f, 0.02f, 0.02f, 0.95f);
+    if (isLoading) {
+        float pulse = (sin(timeElapsed * 0.75f) * 0.5f + 0.5f) * 0.1f + 0.02f;
+        searchBarColor = ImVec4(pulse, pulse, pulse, 0.95f);
+        timeElapsed += ImGui::GetIO().DeltaTime * 4.0f;
+    }
+
+    ImGui::SetNextWindowPos(searchBarPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(searchBarSize);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 40.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12, 8));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, searchBarColor);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+    ImGui::Begin("##searchbar", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoSavedSettings);
+
+    if (ImGui::InputTextWithHint("##searchInput", "Search", searchBuffer, IM_ARRAYSIZE(searchBuffer),
+                                 ImGuiInputTextFlags_EnterReturnsTrue)) {
+        isLoading = true; // Start animation on Enter
+        timeElapsed = 0.0f;
+    }
+
+    ImGui::End();
+
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
+}
 
 void GUI::EndFrame() {
     ImGui::Render();
