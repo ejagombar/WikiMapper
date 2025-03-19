@@ -47,7 +47,7 @@ void generateRealData(GS::Graph &graph) {
     }
 
     // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = neo4jDB.GetLinkedPages("winchester");
+    auto linkedPages = neo4jDB.GetLinkedPages("physics");
 
     // auto x = graph.AddNode("Nico Ditch");
     // std::cout << "Size: " << linkedPages.size() << " Start IDX: " << x << std::endl;

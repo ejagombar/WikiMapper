@@ -99,18 +99,20 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
             writeG.nodes[i].pos = readG.nodes[i].pos + vel * dt;
         }
 
-        if (i == 2) {
-            std::cout << "Force: " << nodeForces[i].x << "," << nodeForces[i].y << "," << nodeForces[i].z << std::endl;
-            std::cout << "Acceleration: " << acceleration.x << "," << acceleration.y << "," << acceleration.z
-                      << std::endl;
-            std::cout << "Vel: " << vel.x << "," << vel.y << "," << vel.z << std::endl;
-
-            std::cout << "W Position: " << readG.nodes[i].pos.x << "," << readG.nodes[i].pos.y << ","
-                      << readG.nodes[i].pos.z << std::endl;
-            std::cout << "W Acceleration: " << readG.nodes[i].force.x << "," << readG.nodes[i].force.y << ","
-                      << readG.nodes[i].force.z << std::endl;
-            std::cout << "W Vel: " << readG.nodes[i].vel.x << "," << readG.nodes[i].vel.y << "," << readG.nodes[i].vel.z
-                      << std::endl;
-        }
+        // if (i == 2) {
+        //     std::cout << "Force: " << nodeForces[i].x << "," << nodeForces[i].y << "," << nodeForces[i].z <<
+        //     std::endl; std::cout << "Acceleration: " << acceleration.x << "," << acceleration.y << "," <<
+        //     acceleration.z
+        //               << std::endl;
+        //     std::cout << "Vel: " << vel.x << "," << vel.y << "," << vel.z << std::endl;
+        //
+        //     std::cout << "W Position: " << readG.nodes[i].pos.x << "," << readG.nodes[i].pos.y << ","
+        //               << readG.nodes[i].pos.z << std::endl;
+        //     std::cout << "W Acceleration: " << readG.nodes[i].force.x << "," << readG.nodes[i].force.y << ","
+        //               << readG.nodes[i].force.z << std::endl;
+        //     std::cout << "W Vel: " << readG.nodes[i].vel.x << "," << readG.nodes[i].vel.y << "," <<
+        //     readG.nodes[i].vel.z
+        //               << std::endl;
+        // }
     }
 }
