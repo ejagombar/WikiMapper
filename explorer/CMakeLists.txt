@@ -17,7 +17,7 @@ find_package(glad CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
 find_package(imgui REQUIRED)
 
-set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_BUILD_TYPE RELEASE)
 
 
 file(GLOB_RECURSE Src_Sources "./src/**.cpp" "./src/*.hpp" "./lib/*.cpp" "./lib/*.hpp")
@@ -43,7 +43,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui::imgui)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${FREETYPE_LIBRARIES})
     
 
-target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O0 -Wall -Wextra -pedantic)
+target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
 
 # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Boost::asio Boost::system)
