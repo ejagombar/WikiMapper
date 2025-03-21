@@ -27,19 +27,6 @@ GS::GraphTripleBuf graphBuf;
 debugData simDebugData;
 std::mutex simDebugDataMutex;
 
-float packRGBToFloat(unsigned char r, unsigned char g, unsigned char b) {
-    uint32_t packed = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b));
-    return *reinterpret_cast<float *>(&packed);
-}
-
-void unpackFloatToRGB(float packedFloat, unsigned char &r, unsigned char &g, unsigned char &b) {
-    uint32_t packed = *reinterpret_cast<uint32_t *>(&packedFloat);
-
-    r = (packed >> 16) & 0xFF;
-    g = (packed >> 8) & 0xFF;
-    b = packed & 0xFF;
-}
-
 void generateRealData(GS::Graph &graph) {
     Neo4jInterface neo4jDB("http://127.0.0.1:7474");
     if (!neo4jDB.Authenticate("neo4j", "test1234")) {
