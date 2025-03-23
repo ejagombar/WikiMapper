@@ -29,7 +29,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   glfw
   GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG        3.4
+  GIT_TAG        3.3
 )
 
 FetchContent_Declare(
@@ -54,7 +54,7 @@ FetchContent_MakeAvailable(imgui jsoncpp glm glfw glad cpp_httplib freetype)
 
 find_package(OpenGL REQUIRED)
 
-add_library(imgui_lib STATIC
+add_library(imgui_lib SHARED
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
   ${imgui_SOURCE_DIR}/imgui_draw.cpp
