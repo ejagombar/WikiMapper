@@ -1,5 +1,6 @@
 #include "./text.hpp"
 #include "shader.hpp"
+#include <cstdint>
 #include <stdexcept>
 
 Text::Text(const std::string &fontPath, const std::string vertexShader, const std::string fragmentShader) {
@@ -17,7 +18,7 @@ Text::Text(const std::string &fontPath, const std::string vertexShader, const st
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
     FT_GlyphSlot slot = m_face->glyph;
 
-    for (unsigned char c = 0; c < 128; c++) {
+    for (uint8_t c = 0; c < 128; c++) {
         // load character glyph
         if (FT_Load_Char(m_face, c, FT_LOAD_RENDER)) {
             throw std::runtime_error("ERROR::FREETYTPE: Failed to load Glyph");
@@ -26,7 +27,7 @@ Text::Text(const std::string &fontPath, const std::string vertexShader, const st
         FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
 
         // generate texture
-        unsigned int texture;
+        uint32_t texture;
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows, 0, GL_RED,
@@ -39,7 +40,7 @@ Text::Text(const std::string &fontPath, const std::string vertexShader, const st
         // now store character for later use
         Character character = {texture, glm::ivec2(m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows),
                                glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
-                               static_cast<uint>(m_face->glyph->advance.x)};
+                               static_cast<uint32_t>(m_face->glyph->advance.x)};
 
         m_characters.insert(std::pair<char, Character>(c, character));
     }

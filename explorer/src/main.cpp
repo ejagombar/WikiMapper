@@ -52,7 +52,7 @@ void setupGraph(GS::Graph &db, bool genData = true) {
         generateRealData(db);
     }
 
-    const uint numOfElements = db.nodes.size();
+    const uint32_t numOfElements = db.nodes.size();
 
     uint32_t baseNodeIdx = db.GetTopNode();
     auto baseNode = db.nodes[baseNodeIdx];
@@ -64,7 +64,7 @@ void setupGraph(GS::Graph &db, bool genData = true) {
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
-    for (uint i = 0; i < numOfElements; i++) {
+    for (uint32_t i = 0; i < numOfElements; i++) {
         auto col = hsv2rgb(dist(gen), 0.8f, 1.0f);
         db.nodes[i].pos = out[i];
         db.nodes[i].rgb[0] = static_cast<char>(col.r);
@@ -116,6 +116,7 @@ int main() {
     graphBuf.Publish();
 
     GS::Graph *readgraph = graphBuf.GetCurrent();
+
     writeGraph = graphBuf.GetWriteBuffer();
 
     *writeGraph = *readgraph;

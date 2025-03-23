@@ -1,5 +1,6 @@
 #include "store.hpp"
 #include "../lib/base64.hpp"
+#include <cstdint>
 #include <httplib.h>
 #include <memory>
 #include <string>
@@ -123,7 +124,7 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkingPages(const std::string &pageN
     }
 }
 
-std::vector<LinkedPage> Neo4jInterface::GetRandomPages(int count) {
+std::vector<LinkedPage> Neo4jInterface::GetRandomPages(uint32_t count) {
     const std::string cypher = "MATCH (p:PAGE) "
                                "WITH p, RAND() AS r "
                                "ORDER BY r "

@@ -1,6 +1,7 @@
 // render_engine.cpp
 #include "label.hpp"
 #include "shader.hpp"
+#include <cstdint>
 #include <cstring>
 
 LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexShader,
@@ -19,16 +20,16 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     m_characters.resize(128);
-    for (unsigned char c = 0; c < 128; c++) {
+    for (uint8_t c = 0; c < 128; c++) {
         if (FT_Load_Char(face, c, FT_LOAD_RENDER))
             throw std::runtime_error("ERROR::FREETYTPE: Failed to load Glyph");
 
         LabelCharacter character;
         character.size = glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
         character.bearing = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
-        character.advance = static_cast<unsigned int>(face->glyph->advance.x);
+        character.advance = static_cast<uint32_t>(face->glyph->advance.x);
 
-        int bmpSize = face->glyph->bitmap.width * face->glyph->bitmap.rows;
+        uint32_t bmpSize = face->glyph->bitmap.width * face->glyph->bitmap.rows;
         character.bitmapBuffer.resize(bmpSize);
         if (bmpSize > 0)
             std::memcpy(character.bitmapBuffer.data(), face->glyph->bitmap.buffer, bmpSize);
@@ -38,8 +39,8 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     m_commonBaseline = 0;
     m_commonHeight = 0;
     for (auto &ch : m_characters) {
-        m_commonBaseline = std::max(m_commonBaseline, ch.bearing.y);
-        m_commonHeight = std::max(m_commonHeight, ch.size.y);
+        m_commonBaseline = std::max(m_commonBaseline, static_cast<int32_t>(ch.bearing.y));
+        m_commonHeight = std::max(m_commonHeight, static_cast<int32_t>(ch.size.y));
     }
     if (m_commonHeight == 0)
         m_commonHeight = 128; // fallback
@@ -93,14 +94,14 @@ void LabelEngine::RenderLabels(const float time) {
 
 void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
     // First pass: determine each label’s width in pixels and the maximum width (for atlas layer size).
-    int numLabels = static_cast<int>(nodes.size());
+    uint32_t numLabels = static_cast<uint32_t>(nodes.size());
     m_atlasLayerCount = numLabels;
-    std::vector<int> labelWidths(numLabels, 0);
-    int maxWidth = 0;
-    for (int i = 0; i < numLabels; i++) {
+    std::vector<int32_t> labelWidths(numLabels, 0);
+    int32_t maxWidth = 0;
+    for (uint32_t i = 0; i < numLabels; i++) {
         const std::string &text = nodes[i].title;
-        int width = 0;
-        for (unsigned char c : text) {
+        int32_t width = 0;
+        for (uint8_t c : text) {
             if (c >= 128)
                 continue;
             // Note: advance.x is in 1/64 pixels.
@@ -125,26 +126,26 @@ void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    for (int i = 0; i < numLabels; i++) {
+    for (uint32_t i = 0; i < numLabels; i++) {
         const std::string &text = nodes[i].title;
-        int textWidth = labelWidths[i];
+        int32_t textWidth = labelWidths[i];
 
-        std::vector<unsigned char> pixels(m_atlasWidth * m_atlasHeight, 0);
-        int penX = (m_atlasWidth - textWidth) / 2;
+        std::vector<uint8_t> pixels(m_atlasWidth * m_atlasHeight, 0);
+        int32_t penX = (m_atlasWidth - textWidth) / 2;
 
-        int baseline = m_commonBaseline;
-        for (unsigned char c : text) {
+        int32_t baseline = m_commonBaseline;
+        for (uint8_t c : text) {
             if (c >= 128)
                 continue;
             const LabelCharacter &ch = m_characters[c];
-            int xpos = penX + ch.bearing.x;
-            int ypos = baseline - ch.bearing.y;
+            int32_t xpos = penX + ch.bearing.x;
+            int32_t ypos = baseline - ch.bearing.y;
 
             // Loop over the glyph’s bitmap and copy pixels.
-            for (int row = 0; row < ch.size.y; row++) {
-                for (int col = 0; col < ch.size.x; col++) {
-                    int x = xpos + col;
-                    int y = ypos + row;
+            for (uint32_t row = 0; row < static_cast<uint32_t>(ch.size.y); row++) {
+                for (uint32_t col = 0; col < static_cast<uint32_t>(ch.size.x); col++) {
+                    int32_t x = xpos + col;
+                    int32_t y = ypos + row;
                     if (x < 0 || x >= m_atlasWidth || y < 0 || y >= m_atlasHeight)
                         continue;
                     pixels[y * m_atlasWidth + x] = ch.bitmapBuffer[row * ch.size.x + col];
@@ -159,10 +160,10 @@ void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
 }
 
 void LabelEngine::UpdateLabelPositions(const std::vector<GS::Node> &nodes) {
-    int numLabels = static_cast<int>(nodes.size());
+    uint32_t numLabels = static_cast<uint32_t>(nodes.size());
 
     m_activeLabels.resize(numLabels);
-    for (int i = 0; i < numLabels; i++) {
+    for (uint32_t i = 0; i < numLabels; i++) {
         m_activeLabels[i].position = nodes[i].pos;
         m_activeLabels[i].width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
         m_activeLabels[i].texIndex = static_cast<float>(i);

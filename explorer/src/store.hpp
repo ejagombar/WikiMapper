@@ -32,7 +32,7 @@ class Neo4jInterface {
     std::vector<LinkedPage> GetLinkedPages(const std::string &pageName);
     std::vector<LinkedPage> GetLinkingPages(const std::string &pageName);
     std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage);
-    std::vector<LinkedPage> GetRandomPages(int count);
+    std::vector<LinkedPage> GetRandomPages(uint32_t count);
 
   private:
     json ExecuteCypherQuery(const std::string &cypher, const json &parameters);

@@ -1,17 +1,18 @@
 #include "./texture.hpp"
+#include <cstdint>
 #include <stdexcept>
 
 // This function loads textures to be used as a cube map. Up to 6 images can be passed to the function.
 GLuint LoadCubemap(std::vector<std::string> faces) {
-    const uint cubeFaceCount = 6;
+    const uint32_t cubeFaceCount = 6;
     GLuint textureID;
     int width, height, nrChannels;
 
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-    for (uint i = 0; i < cubeFaceCount; i++) {
-        uint idx = std::min(i, static_cast<uint>(faces.size() - 1));
+    for (uint32_t i = 0; i < cubeFaceCount; i++) {
+        uint32_t idx = std::min(i, static_cast<uint32_t>(faces.size() - 1));
         unsigned char *data = stbi_load(faces[idx].c_str(), &width, &height, &nrChannels, 0);
         if (data) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
@@ -45,6 +46,8 @@ GLuint LoadTexture(char const *path) {
             format = GL_RGB;
         else if (nrComponents == 4)
             format = GL_RGBA;
+        else
+            format = GL_RGB;
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);

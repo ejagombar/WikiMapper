@@ -6,7 +6,7 @@
 namespace Filter {
 
 Blur::Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint radius, bool enabled, GLfloat scale,
-           uint blurPasses, GLfloat brightnessModifier)
+           uint32_t blurPasses, GLfloat brightnessModifier)
     : m_blurShader(blurShader), m_screenSize(screenSize), m_enabled(enabled), m_size(size), m_radius(radius),
       m_scale(scale), m_passes(blurPasses), m_brightnessModifier(brightnessModifier) {
 
@@ -40,7 +40,7 @@ Blur::Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint ra
 }
 
 void Blur::initSizeDependantBuffers() {
-    for (GLuint i = 0; i < 2; i++) {
+    for (uint32_t i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO[i]);
 
         // Create the Texture attachment and initialise parameters and memory
@@ -111,7 +111,7 @@ void Blur::Display() {
     m_blurShader.SetBool("lastPass", false);
 
     bool horizontal = true;
-    for (uint i = 0; i < m_passes; i++) {
+    for (uint32_t i = 0; i < m_passes; i++) {
         horizontal = ((i ^ 1) == (i + 1));
         m_blurShader.SetFloat("blurScale", m_scale * float(i));
         m_blurShader.SetBool("horizontal", horizontal);

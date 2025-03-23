@@ -6,4 +6,4 @@ typedef struct RGBColor {
     char b;
 } RGBColor;
 
-RGBColor hsv2rgb(float h, float s, float v);
+RGBColor hsv2rgb(const float h, const float s, const float v);

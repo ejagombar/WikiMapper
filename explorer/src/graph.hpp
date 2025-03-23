@@ -59,16 +59,16 @@ class GraphTripleBuf {
     Graph *GetCurrent();
     Graph *GetWriteBuffer() { return m_buffers[m_write]; };
     void Publish();
-    uint Version() { return m_version.load(std::memory_order_acquire); };
+    uint32_t Version() { return m_version.load(std::memory_order_acquire); };
 
   private:
-    static const uint BUFFERCOUNT = 3;
+    static const uint32_t BUFFERCOUNT = 3;
 
     Graph *m_buffers[BUFFERCOUNT];
-    std::atomic<uint> m_version{0};
-    std::atomic<uint> m_current{0};
-    uint m_write = 1;
-    uint m_spare = 2;
+    std::atomic<uint32_t> m_version{0};
+    std::atomic<uint32_t> m_current{0};
+    uint32_t m_write = 1;
+    uint32_t m_spare = 2;
 };
 
 } // namespace GS

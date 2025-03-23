@@ -2,6 +2,7 @@
 #define LABEL_H
 
 #include "shader.hpp"
+#include <cstdint>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include "../graph.hpp"
@@ -16,10 +17,10 @@ struct Label {
 };
 
 struct LabelCharacter {
-    glm::ivec2 size;                         // dimensions of the glyph in pixels
-    glm::ivec2 bearing;                      // offset from baseline to left/top of glyph
-    unsigned int advance;                    // advance.x is in 1/64 pixels
-    std::vector<unsigned char> bitmapBuffer; // copied glyph bitmap (size = width*height)
+    glm::ivec2 size;                   // dimensions of the glyph in pixels
+    glm::ivec2 bearing;                // offset from baseline to left/top of glyph
+    uint32_t advance;                  // advance.x is in 1/64 pixels
+    std::vector<uint8_t> bitmapBuffer; // copied glyph bitmap (size = width*height)
 };
 
 struct LabelData {
@@ -48,11 +49,11 @@ class LabelEngine {
     GLuint m_VBO;
     GLuint m_textAtlas;
 
-    int m_atlasWidth, m_atlasHeight;
-    int m_atlasLayerCount;
+    int32_t m_atlasWidth, m_atlasHeight;
+    int32_t m_atlasLayerCount;
 
-    int m_commonBaseline;
-    int m_commonHeight;
+    int32_t m_commonBaseline;
+    int32_t m_commonHeight;
 
     std::vector<LabelCharacter> m_characters;
 };

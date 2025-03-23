@@ -2,7 +2,6 @@
 #include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
-#include <iostream>
 #include <json/json.h>
 #include <vector>
 
@@ -18,7 +17,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
     const float targetDistance = simDebug.targetDistance;
     const float edgeForceMultiplier = 0.01;
 
-    const uint nodeCount = readG.nodes.size();
+    const uint32_t nodeCount = readG.nodes.size();
 
     std::vector<glm::vec3> nodeForces(nodeCount, glm::vec3(0));
 
@@ -49,7 +48,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         nodeForces[edge.startIdx] -= forceVec;
     }
 
-    for (uint i = 0; i < nodeCount; i++) {
+    for (uint32_t i = 0; i < nodeCount; i++) {
         // Apply gravity towards (0,0,0)
         // float distance = glm::length(readG.nodes[i].pos);
         glm::vec3 gravityForce = glm::normalize(readG.nodes[i].pos) * gravityMultiplier;
@@ -61,7 +60,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         const GS::Node &node1 = readG.nodes[i];
 
         glm::vec3 force = glm::vec3(0);
-        for (uint j = 0; j < nodeCount; j++) {
+        for (uint32_t j = 0; j < nodeCount; j++) {
             const GS::Node &node2 = readG.nodes[j];
 
             const float qq = node1.size * node2.size;

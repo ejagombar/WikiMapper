@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/quaternion_common.hpp>
@@ -33,6 +34,7 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex
     if (m_window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
+        return;
     }
 
     glfwMakeContextCurrent(m_window);
@@ -100,13 +102,13 @@ void Engine::setupShaders() {
 }
 
 void Engine::setupNodes(GS::Graph &graph) {
-    GLuint nodeCount = graph.nodes.size();
+    uint32_t nodeCount = graph.nodes.size();
     m_nodeData.resize(nodeCount);
 
     std::random_device seed;
     std::mt19937 gen{seed()};
     std::uniform_real_distribution<> dist{0, 1};
-    for (uint i = 0; i < nodeCount; i++) {
+    for (uint32_t i = 0; i < nodeCount; i++) {
         m_nodeData[i].r = graph.nodes[i].rgb[0];
         m_nodeData[i].g = graph.nodes[i].rgb[1];
         m_nodeData[i].b = graph.nodes[i].rgb[2];
@@ -135,8 +137,8 @@ void Engine::setupEdges(GS::Graph &graph) {
     GLuint edgeCount = graph.edges.size();
 
     m_edgeData.resize(edgeCount * 2);
-    for (uint i = 0; i < edgeCount; i++) {
-        const int lineIdx = i * 2;
+    for (uint32_t i = 0; i < edgeCount; i++) {
+        const uint32_t lineIdx = i * 2;
 
         m_edgeData[lineIdx].r = graph.EdgeStart(i).rgb[0];
         m_edgeData[lineIdx].g = graph.EdgeStart(i).rgb[1];
@@ -171,7 +173,7 @@ void Engine::setupEdges(GS::Graph &graph) {
 }
 
 void Engine::UpdateParticles(GS::Graph &graph) {
-    for (unsigned int i = 0; i < graph.nodes.size(); i++) {
+    for (uint32_t i = 0; i < graph.nodes.size(); i++) {
         m_nodeData[i].position[0] = graph.nodes[i].pos.x;
         m_nodeData[i].position[1] = graph.nodes[i].pos.y;
         m_nodeData[i].position[2] = graph.nodes[i].pos.z;
@@ -179,8 +181,8 @@ void Engine::UpdateParticles(GS::Graph &graph) {
 
     m_text->UpdateLabelPositions(graph.nodes);
 
-    for (unsigned int i = 0; i < graph.edges.size(); i++) {
-        const int lineIdx = i * 2;
+    for (uint32_t i = 0; i < graph.edges.size(); i++) {
+        const uint32_t lineIdx = i * 2;
 
         m_edgeData[lineIdx].position[0] = graph.EdgeStart(i).pos.x;
         m_edgeData[lineIdx].position[1] = graph.EdgeStart(i).pos.y;
@@ -208,7 +210,7 @@ Engine::~Engine() {
     glfwTerminate();
 }
 
-int Engine::Run() {
+uint32_t Engine::Run() {
     double lastTime = glfwGetTime();
     m_startTime = lastTime;
 
@@ -261,7 +263,7 @@ void Engine::loop() {
     if (m_state == stop)
         deltaTime = 0;
 
-    uint currentVersion = m_graphBuf.Version();
+    uint32_t currentVersion = m_graphBuf.Version();
     if (currentVersion != m_lastVersion) {
         m_graph = m_graphBuf.GetCurrent();
         UpdateParticles(*m_graph);

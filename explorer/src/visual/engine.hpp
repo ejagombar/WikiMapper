@@ -1,6 +1,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include <cstdint>
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
@@ -25,7 +26,7 @@ class Engine {
   public:
     Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex &simDebugDataMutex);
     ~Engine();
-    int Run();
+    uint32_t Run();
 
   private:
     enum State { play, stop };
