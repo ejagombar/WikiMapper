@@ -1,7 +1,8 @@
 # WikiMapper
 3D graph software to visualise Wikipedia page links. This project is work in progress.
 
-![image](https://github.com/user-attachments/assets/895282f7-2a49-49f3-85d7-649fd888a2d4)
+![Screenshot From 2025-03-15 20-02-01](https://github.com/user-attachments/assets/9bc89248-0b21-43cc-9c07-c40a60f53d2a)
+
 
 ## Todo
 
