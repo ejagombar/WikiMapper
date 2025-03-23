@@ -1,17 +1,17 @@
-Still very much under development.
+# WikiMapper
+3D graph software to visualise Wikipedia page links. This project is work in progress.
+
 ![image](https://github.com/user-attachments/assets/895282f7-2a49-49f3-85d7-649fd888a2d4)
-![image](https://github.com/user-attachments/assets/f45e0dd2-7b4e-4827-b85f-1a0c4d992045)
 
 ## Todo
 
 ### Features
-- [x] **Oscillating spheres.** Spheres slowly 'wobble' and drift in space to make the graph feel more reactive. Will require modifiying the geometry shader of the spheres and applying an offset over time.
 - [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness
-- [ ] **Menu.** A menu that give the user options to enable/disable features, change the font size etc.
+- [x] **Menu.** A menu that give the user options to enable/disable features, change the font size etc.
 - [ ] **Search.** Allow a user to search for a page and the camera will jump to that node.
 - [ ] **External links.** Link each node to the original Wikipedia page.
 - [x] **Lighting**. Add lighting to the spheres shading, and possibly the text and lines as well.
-- [ ] **Force Directed Graph Drawing.** Algorithm to spread points out in space. 
+- [x] **Force Directed Graph Drawing.** Algorithm to spread points out in space. 
  
 
 ### Opportunities for Optimisation
