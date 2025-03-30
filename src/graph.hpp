@@ -9,6 +9,8 @@
 
 namespace GS {
 
+// The graph datastructure nodes are heavily linked to nodes that are displayed in the viewer. This allowed an
+// intemediary layer to be removed from the engine, decreasing the number of copies, at the cost of modularity.
 struct Node {
     char title[64];
     glm::vec3 pos = glm::vec3(0, 0, 0);
@@ -29,6 +31,10 @@ struct Edge {
     uint32_t endIdx;
 };
 
+// A graph storage class. Each Node is stored in an vectors, using the vector index as the indentifier. The edges store
+// two values which reference to the start and end indexes of the nodes. A vector was chosen to store the Nodes and
+// Edges over a Map as items will not regularly need to be deleted from the Graph.
+// TODO: Template the graph to allow for different Node datastructures.
 class Graph {
   public:
     Graph() {};
@@ -47,10 +53,16 @@ class Graph {
     Node &EdgeStart(uint32_t idx) { return nodes.at(edges.at(idx).startIdx); }
     Node &EdgeEnd(uint32_t idx) { return nodes.at(edges.at(idx).endIdx); }
 
-    std::vector<Node> nodes; // It feels weird to have the m_ here as they are public. Idk what is best.
+    std::vector<Node> nodes;
     std::vector<Edge> edges;
 };
 
+// A triple buffer system ensures that the node locations can be updated on the simulation thread, whilst also ensuring
+// that data is always available to read from on the engine thread. A triple buffer was selected over a double buffer as
+// the simulation thread needs to read from one graph copy and write to another. At the same time, the render engine can
+// read from the third graph copy. More information can be found here.
+// https://www.gamedev.net/forums/topic/403834-multithreading---sharing-data-triple-buffering/
+// TODO: Re-evaluate a double buffer and compare.
 class GraphTripleBuf {
   public:
     GraphTripleBuf();
@@ -59,7 +71,7 @@ class GraphTripleBuf {
     Graph *GetCurrent();
     Graph *GetWriteBuffer() { return m_buffers[m_write]; };
     void Publish();
-    uint32_t Version() { return m_version.load(std::memory_order_acquire); };
+    uint32_t Version();
 
   private:
     static const uint32_t BUFFERCOUNT = 3;

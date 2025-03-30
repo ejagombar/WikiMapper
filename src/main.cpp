@@ -13,6 +13,7 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
+#include <iostream>
 #include <json/json.h>
 #include <mutex>
 #include <random>

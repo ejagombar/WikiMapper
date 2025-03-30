@@ -82,6 +82,7 @@ glm::mat3 Camera::CalcNormalMatrix() const {
     return glm::transpose(submv);
 }
 
+// This must be called every time the camera direction is changed.
 void Camera::updateCameraVectors() {
     glm::vec3 direction(cos(m_yaw) * cos(m_pitch), sin(m_pitch), sin(m_yaw) * cos(m_pitch));
 

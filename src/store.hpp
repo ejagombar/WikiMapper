@@ -22,6 +22,7 @@ struct LinkedPage {
 
 using json = nlohmann::json;
 
+// A (limited) C++ wrapper for the Neo4j HTTP API
 class Neo4jInterface {
   public:
     Neo4jInterface(const std::string url);
@@ -41,7 +42,5 @@ class Neo4jInterface {
     std::string m_url;
     std::unique_ptr<httplib::Client> m_httpClient;
 };
-
-typedef std::vector<NodeStore> DB;
 
 #endif

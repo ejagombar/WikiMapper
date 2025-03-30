@@ -6,6 +6,8 @@
 
 namespace GS {
 
+// ------------------ Graph ------------------
+
 uint32_t Graph::AddNode(const char *title) {
     nodes.emplace_back(Node(title));
     return nodes.size() - 1;
@@ -92,6 +94,8 @@ Graph &Graph::operator=(Graph &other) {
     return other;
 }
 
+// ------------------ GraphTripleBuffer ------------------
+
 GraphTripleBuf::GraphTripleBuf() {
     for (uint32_t i = 0; i < BUFFERCOUNT; i++) {
         m_buffers[i] = new Graph();
@@ -104,6 +108,7 @@ GraphTripleBuf::~GraphTripleBuf() {
     }
 };
 
+// This method must be called to update the write buffer after it has been written to.
 void GraphTripleBuf::Publish() {
     const uint32_t oldCurrent = m_current.load(std::memory_order_relaxed);
     m_current.store(m_write, std::memory_order_release);
@@ -113,9 +118,14 @@ void GraphTripleBuf::Publish() {
     m_version.fetch_add(1, std::memory_order_release);
 };
 
+// Get the current buffer to read from.
 Graph *GraphTripleBuf::GetCurrent() {
     const uint32_t idx = m_current.load(std::memory_order_acquire);
     return m_buffers[idx];
 };
+
+// Get the current iteration of the graph. This can be used to check if the graph has been updated since it was last
+// checked without needing to read the graph data.
+uint32_t GraphTripleBuf::Version() { return m_version.load(std::memory_order_acquire); };
 
 } // namespace GS
