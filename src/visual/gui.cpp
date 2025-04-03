@@ -35,6 +35,11 @@ GUI::GUI(GLFWwindow *m_window, std::string font) {
     ImGui_ImplOpenGL3_Init("#version 450");
 }
 
+bool GUI::Active() {
+    ImGuiIO &io = ImGui::GetIO();
+    return io.WantCaptureMouse;
+}
+
 GUI::~GUI() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -106,19 +111,50 @@ void GUI::RenderMenu() {
     ImGui::End();
 };
 
-void GUI::RenderSearchBar() {
+void GUI::SearchCompleted(std::string resultTitle) { m_settings.searching = false; };
 
-    static char searchBuffer[128] = "";
+void GUI::RenderBottomLeftBox() {
+    ImVec2 boxSize = ImVec2(500, 110);
+    ImVec2 boxPos = ImVec2(20, ImGui::GetIO().DisplaySize.y - boxSize.y - 20);
+    ImVec4 boxColor = ImVec4(0.02f, 0.02f, 0.02f, 0.95f);
+
+    ImGui::SetNextWindowPos(boxPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(boxSize);
+
+    // Use WindowRounding for the outer window corners and no border
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 30.0f); // Increased rounding
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(60, 50));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f); // No border outline
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, boxColor);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+
+    ImGui::Begin("##bottomLeftBox", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoSavedSettings);
+
+    // Render the fixed, non-scrollable top text line using a larger bold font
+    ImGui::PushFont(m_subTitleFont);
+    ImGui::Text(" Root: ");
+    ImGui::PopFont();
+
+    ImGui::Text(" Hovering: ");
+
+    ImGui::End();
+
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
+}
+
+void GUI::RenderSearchBar() {
     ImVec2 searchBarSize = ImVec2(500, 100);
-    ImVec2 searchBarPos = ImVec2(20, 20);
-    static bool isLoading = false;
-    static float timeElapsed = 0.0f;
+    ImVec2 searchBarPos = ImVec2(20, 0);
 
     ImVec4 searchBarColor = ImVec4(0.02f, 0.02f, 0.02f, 0.95f);
-    if (isLoading) {
-        float pulse = (sin(timeElapsed * 0.75f) * 0.5f + 0.5f) * 0.1f + 0.02f;
+    if (m_settings.searching) {
+        float pulse = (sin(m_settings.searchTimeElapsed * 0.75f) * 0.5f + 0.5f) * 0.1f + 0.02f;
         searchBarColor = ImVec4(pulse, pulse, pulse, 0.95f);
-        timeElapsed += ImGui::GetIO().DeltaTime * 4.0f;
+        m_settings.searchTimeElapsed += ImGui::GetIO().DeltaTime * 4.0f;
     }
 
     ImGui::SetNextWindowPos(searchBarPos, ImGuiCond_Always);
@@ -134,12 +170,34 @@ void GUI::RenderSearchBar() {
                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoSavedSettings);
 
-    if (ImGui::InputTextWithHint("##searchInput", "Search", searchBuffer, IM_ARRAYSIZE(searchBuffer),
-                                 ImGuiInputTextFlags_EnterReturnsTrue)) {
-        isLoading = true; // Start animation on Enter
-        timeElapsed = 0.0f;
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10, 0));
+    ImGui::SetCursorPos(ImVec2(10, 35));
+    ImGui::PushItemWidth(350);
+
+    // TODO: Get InputText box working with std::string
+    static char searchBuffer[128] = "";
+    bool enterPressed = ImGui::InputTextWithHint("##searchInput", "Search", searchBuffer, IM_ARRAYSIZE(searchBuffer),
+                                                 ImGuiInputTextFlags_EnterReturnsTrue);
+    m_settings.searchString = std::string(searchBuffer);
+
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 30.0f);
+    ImGui::PushStyleColor(ImGuiCol_Button, searchBarColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                          ImVec4(searchBarColor.x + 0.1f, searchBarColor.y + 0.1f, searchBarColor.z + 0.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, searchBarColor);
+
+    if (enterPressed || ImGui::Button("Go", ImVec2(80, 50))) {
+        m_settings.searching = true;
+        m_settings.searchTimeElapsed = 0.0f;
     }
 
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar();
+
+    ImGui::PopStyleVar();
     ImGui::End();
 
     ImGui::PopStyleVar(2);

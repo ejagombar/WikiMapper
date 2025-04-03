@@ -22,6 +22,8 @@
 #include <math.h>
 #include <memory>
 
+// This Engine class encapsulates all the data and logic relating to creating a graphical window (with glfw), rendering
+// the 3d scene, and handling user input.
 class Engine {
   public:
     Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex &simDebugDataMutex);
@@ -116,6 +118,7 @@ class Engine {
     float m_deltaTime = 0.0f;
     float m_lastFrame = 0.0f;
 
+    // TODO: Change this to ensure it works on other plaforms. Maybe bundle a font?
     const char *m_font = "/usr/share/fonts/open-sans/OpenSans-Regular.ttf";
 
     State m_state = play;

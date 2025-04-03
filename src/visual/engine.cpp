@@ -22,6 +22,8 @@
 #include <random>
 #include <vector>
 
+// This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
+// and associated mutex is quite messy and a temporary solution. This shall be changed eventually.
 Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex &simDebugDataMutex)
     : m_simDebugData(simDebugData), m_simDebugDataMutex(simDebugDataMutex), m_graphBuf(graphBuf) {
 
@@ -75,6 +77,8 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex
     glDepthFunc(GL_LESS);
 }
 
+// Initialises all the shaders. Each shader is assigned its own shader class which would be inefficient if there were
+// many types of shaders, however as there are only a couple shaders, this does not have a big impact.
 void Engine::setupShaders() {
     m_shader.skybox = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_shader.screenBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
@@ -101,6 +105,7 @@ void Engine::setupShaders() {
     m_skybox = std::make_unique<Skybox>(*m_shader.skybox, cubemapTexture);
 }
 
+// Initialise buffer with node data on the GPU.
 void Engine::setupNodes(GS::Graph &graph) {
     uint32_t nodeCount = graph.nodes.size();
     m_nodeData.resize(nodeCount);
@@ -133,6 +138,7 @@ void Engine::setupNodes(GS::Graph &graph) {
     glBindVertexArray(0);
 }
 
+// Initialise buffer with edge data on the GPU.
 void Engine::setupEdges(GS::Graph &graph) {
     GLuint edgeCount = graph.edges.size();
 
@@ -172,6 +178,8 @@ void Engine::setupEdges(GS::Graph &graph) {
     glBindVertexArray(0);
 }
 
+// Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
+// together so it can be copied all at once as opposed to looping through each value.
 void Engine::UpdateParticles(GS::Graph &graph) {
     for (uint32_t i = 0; i < graph.nodes.size(); i++) {
         m_nodeData[i].position[0] = graph.nodes[i].pos.x;
@@ -235,6 +243,8 @@ uint32_t Engine::Run() {
     return 0;
 }
 
+// The engine main loop. This is called to render each frame. It also processes any user inputs, and updates node
+// positions if required (if a new graph position frame has been generated).
 void Engine::loop() {
     m_gui->BeginFrame();
 
@@ -328,11 +338,14 @@ void Engine::loop() {
         m_gui->RenderDebugMenu();
     }
     m_gui->RenderSearchBar();
+    m_gui->RenderBottomLeftBox();
 
     m_gui->EndFrame();
 }
 
 // -------------------------------- Static Callbacks --------------------------------
+// Static functions must be used for callbacks so these static functions wrap the functions used in the engine object,
+// so that the functions that are called are able to access engine member variables.
 
 void Engine::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
     Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
@@ -364,8 +377,12 @@ void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int ac
 
 // -------------------------------- Callbacks --------------------------------
 
+// TODO: Check if a GUI box is active for keyboard input and if so, disable this
 void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
                           [[maybe_unused]] int mods) {
+    if (m_gui->Active()) {
+        return;
+    }
 
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play) {
@@ -381,6 +398,7 @@ void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_
     }
 }
 
+// Called when the window size changes
 void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
@@ -391,6 +409,7 @@ void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int 
     m_scrHeight = height;
 }
 
+// Called when there is mouse movement
 void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, double ypos) {
     if (m_state == stop || !m_mouseActive) {
         return;
@@ -425,6 +444,10 @@ void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int butt
 }
 
 void Engine::processEngineInput(GLFWwindow *window) {
+    if (m_gui->Active()) {
+        return;
+    }
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_camera.ProcessKeyboard(CameraMovement::FORWARD);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
