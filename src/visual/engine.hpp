@@ -139,7 +139,7 @@ class Engine {
     std::unique_ptr<GUI> m_gui;
 
     GS::GraphTripleBuf &m_graphBuf;
-    uint m_lastVersion = 0;
+    uint32_t m_lastVersion = 0;
     GS::Graph *m_graph;
 
     std::vector<NodeData> m_nodeData;

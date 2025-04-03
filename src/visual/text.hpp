@@ -16,10 +16,10 @@
 #include <unordered_map>
 
 struct Character {
-    uint TextureID;     // ID handle of the glyph texture
+    uint32_t TextureID; // ID handle of the glyph texture
     glm::ivec2 Size;    // Size of glyph
     glm::ivec2 Bearing; // Offset from baseline to left/top of glyph
-    uint Advance;       // Offset to advance to next glyph
+    uint32_t Advance;   // Offset to advance to next glyph
 };
 
 class Text {
