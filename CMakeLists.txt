@@ -54,7 +54,7 @@ FetchContent_MakeAvailable(imgui jsoncpp glm glfw glad cpp_httplib freetype)
 
 find_package(OpenGL REQUIRED)
 
-add_library(imgui_lib SHARED
+add_library(imgui_lib STATIC
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
   ${imgui_SOURCE_DIR}/imgui_draw.cpp

@@ -32,3 +32,5 @@ I have not made an update for a long time however have still been developing the
 Furthermore, I have worked on adding lighting to both these shaders, with simple Phong shading tecniques. I have also implemented a very basic text drawing class, however it is currently horribly optimised as I have a separate draw call for every single letter. This is obviously the performance bottleneck at the moment so this will be worked on at some point, however it works for now. A full list of features can be seen in the Explorer readme or by looking at the commit logs.
 
 The next steps for the project is to integrate the Neo4j database into the explorer project so I can pull down some real data with real links. I do have some basic test data but it would be useful to have the actual data as I am soon to be working on the algorithm that will layout the graph in 3d space.
+
+## Graph 
