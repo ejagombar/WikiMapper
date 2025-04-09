@@ -5,6 +5,7 @@
 #include "simulation.hpp"
 #include "store.hpp"
 #include "visual/engine.hpp"
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
@@ -79,22 +80,29 @@ void setupGraph(GS::Graph &db, bool genData = true) {
 void graphPositionSimulation() {
     const auto simulationInterval = std::chrono::milliseconds(10);
 
-    auto start = std::chrono::system_clock::now();
+    auto simStart = std::chrono::system_clock::now();
+    auto frameStart = simStart;
 
     while (true) {
         GS::Graph *readGraph = graphBuf.GetCurrent();
         GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
 
-        auto end = std::chrono::system_clock::now();
-        float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        start = end;
+        auto frameEnd = std::chrono::system_clock::now();
+        float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
+        frameStart = frameEnd;
 
         simDebugDataMutex.lock();
-        const debugData dat = simDebugData;
+        debugData dat = simDebugData;
         if (dat.resetSimulation) {
             simDebugData.doneReset = true;
+            simStart = std::chrono::system_clock::now();
         }
         simDebugDataMutex.unlock();
+
+        dat.forceMultiplier = 1.f;
+        if (std::chrono::duration_cast<std::chrono::seconds>(frameEnd - simStart).count() > 4.) {
+            dat.forceMultiplier = 0.0f;
+        }
 
         if (dat.resetSimulation) {
             setupGraph(*writeGraph, false);

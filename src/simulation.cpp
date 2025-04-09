@@ -5,6 +5,7 @@
 #include <json/json.h>
 #include <vector>
 
+#include "debugSim.hpp"
 #include "simulation.hpp"
 
 bool checkValid(const float &f) { return !(std::isnan(f) || std::isinf(f)); }
@@ -81,6 +82,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         }
 
         nodeForces[i] += force;
+        nodeForces[i] *= simDebug.forceMultiplier;
 
         // Apply forces and update velocity, position
         // if (glm::length(nodeForces[i]) < 0.1) {

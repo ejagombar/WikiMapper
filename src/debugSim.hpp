@@ -2,12 +2,13 @@
 #define DEBUGSIM_H
 
 struct debugData {
-    float qqMultiplier = 0.2f;
-    float gravityMultiplier = 10.f;
-    float accelSizeMultiplier = 0.01f;
-    float targetDistance = 67.f;
-    bool resetSimulation = false;
-    bool doneReset = false;
+    float qqMultiplier;
+    float gravityMultiplier;
+    float accelSizeMultiplier;
+    float targetDistance;
+    float forceMultiplier;
+    bool resetSimulation;
+    bool doneReset;
 };
 
 #endif
