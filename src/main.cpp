@@ -1,5 +1,5 @@
 #include "../lib/rgb_hsv.hpp"
-#include "debugSim.hpp"
+#include "controlData.hpp"
 #include "graph.hpp"
 #include "pointMaths.hpp"
 #include "simulation.hpp"
@@ -26,8 +26,7 @@
 
 GS::GraphTripleBuf graphBuf;
 
-debugData simDebugData;
-std::mutex simDebugDataMutex;
+ControlData controlData;
 
 void generateRealData(GS::Graph &graph) {
     Neo4jInterface neo4jDB("http://127.0.0.1:7474");

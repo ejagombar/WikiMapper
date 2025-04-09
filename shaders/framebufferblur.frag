@@ -70,7 +70,7 @@ void main() {
         if (isInsideRoundedRectangle(gl_FragCoord.xy, screenSize / 2, width, height, radius)) {
             FragColor = vec4(blurResult, 1.0);
         } else {
-            FragColor = vec4(originalResult, 1.0);
+            FragColor = vec4(mix(originalResult, blurResult, 0.6), 1.0);
         }
     } else {
         FragColor = vec4(blurResult, 1.0);

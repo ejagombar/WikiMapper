@@ -5,7 +5,7 @@
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
-#include "../debugSim.hpp"
+#include "../controlData.hpp"
 #include "../graph.hpp"
 #include "./camera.hpp"
 #include "./filter.hpp"

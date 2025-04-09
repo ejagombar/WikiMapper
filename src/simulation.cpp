@@ -5,7 +5,7 @@
 #include <json/json.h>
 #include <vector>
 
-#include "debugSim.hpp"
+#include "controlData.hpp"
 #include "simulation.hpp"
 
 bool checkValid(const float &f) { return !(std::isnan(f) || std::isinf(f)); }

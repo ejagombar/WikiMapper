@@ -103,7 +103,6 @@ void GUI::RenderMenu() {
     subtitle("Options");
 
     ImGui::Checkbox("Debug Controls", &m_settings.debugMode);
-    ImGui::Checkbox("Wire Frame", &m_settings.wireFrame);
     ImGui::Checkbox("V-Sync", &m_settings.vSync);
     ImGui::Button("Reset Simulation");
 
@@ -219,7 +218,7 @@ void GUI::RenderDebugMenu() {
     ImGui::SliderFloat("qqMultiplier", &m_settings.qqMultiplier, 0.001f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::SliderFloat("gravityMultiplier", &m_settings.gravityMultiplier, 0.1f, 100.0f, "%.3f",
                        ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("accelSizeMultiplier", &m_settings.accelSizeMultiplier, 0.001f, 1.0f, "%.3f",
+    ImGui::SliderFloat("accelSizeMultiplier", &m_settings.accelSizeMultiplier, 0.001f, 1.0f, "%.4f",
                        ImGuiSliderFlags_AlwaysClamp);
     ImGui::SliderFloat("targetDistance", &m_settings.targetDistance, 1.f, 200.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 

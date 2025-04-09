@@ -253,10 +253,10 @@ void Engine::loop() {
 
     if (m_simDebugDataMutex.try_lock()) {
         GUISettings x = m_gui->GUIValues();
-        m_simDebugData.accelSizeMultiplier = x.accelSizeMultiplier;
-        m_simDebugData.gravityMultiplier = x.gravityMultiplier;
-        m_simDebugData.qqMultiplier = x.qqMultiplier;
-        m_simDebugData.targetDistance = x.targetDistance;
+        m_simDebugData.accelSizeMultiplier = x.debug.accelSizeMultiplier;
+        m_simDebugData.gravityMultiplier = x.debug.gravityMultiplier;
+        m_simDebugData.qqMultiplier = x.debug.qqMultiplier;
+        m_simDebugData.targetDistance = x.debug.targetDistance;
         if (m_simDebugData.doneReset) {
             m_gui->AckReset();
             m_simDebugData.doneReset = false;
@@ -326,19 +326,21 @@ void Engine::loop() {
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_LINES, 0, m_graph->edges.size() * 2);
 
-    m_blur->Display();
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    m_gui->RenderSearchBar();
+    m_gui->RenderBottomLeftBox();
+
+    if (m_gui->GUIValues().debugMode) {
+        m_gui->RenderDebugMenu();
+    }
+
+    m_blur->Display();
 
     if (m_state == stop) {
         m_gui->RenderMenu();
     }
-    if (m_gui->GUIValues().debugMode) {
-        m_gui->RenderDebugMenu();
-    }
-    m_gui->RenderSearchBar();
-    m_gui->RenderBottomLeftBox();
 
     m_gui->EndFrame();
 }
@@ -377,15 +379,15 @@ void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int ac
 
 // -------------------------------- Callbacks --------------------------------
 
-// TODO: Check if a GUI box is active for keyboard input and if so, disable this
+// A check if made to the GUI to see if it is active before processing the key strokes. If it is active, the function
+// will return early. The "q" key is an exception to this as this opens and closes the menu so this should work when the
+// menu is active or not. This leads to a very small bug when typing into the search box, if you press q and the menu is
+// open, it will close the menu, but this will not happen for any other letter.
 void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
                           [[maybe_unused]] int mods) {
-    if (m_gui->Active()) {
-        return;
-    }
 
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-        if (m_state == play) {
+        if (m_state == play && !m_gui->Active()) {
             m_state = stop;
             m_blur->SetEnabled(true);
         } else {
@@ -393,6 +395,11 @@ void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_
             m_blur->SetEnabled(false);
         }
     }
+
+    if (m_gui->Active()) {
+        return;
+    }
+
     if (key == GLFW_KEY_X && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(m_window, 1);
     }
