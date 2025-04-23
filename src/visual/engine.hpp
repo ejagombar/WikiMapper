@@ -26,7 +26,7 @@
 // the 3d scene, and handling user input.
 class Engine {
   public:
-    Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex &simDebugDataMutex);
+    Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData);
     ~Engine();
     uint32_t Run();
 
@@ -126,8 +126,7 @@ class Engine {
 
     ShaderData m_shader;
 
-    debugData &m_simDebugData;
-    std::mutex &m_simDebugDataMutex;
+    ControlData &m_controlData;
 
     Camera m_camera;
     GLFWwindow *m_window;

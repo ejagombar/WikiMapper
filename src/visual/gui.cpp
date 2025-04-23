@@ -2,6 +2,7 @@
 #include <cmath>
 #include <imgui.h>
 #include <string>
+#include <sys/ucontext.h>
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -19,7 +20,7 @@ void GUI::separator() {
     ImGui::Dummy(ImVec2(0.0f, 5.0f));
 }
 
-GUI::GUI(GLFWwindow *m_window, std::string font) {
+GUI::GUI(GLFWwindow *m_window, std::string font, ControlData &controlData) : m_controlData(controlData) {
     IMGUI_CHECKVERSION();
 
     ImGui::CreateContext();
@@ -93,24 +94,22 @@ void GUI::RenderMenu() {
     separator();
     subtitle("Camera Settings");
     ImGui::PushItemWidth(300.0f);
-    ImGui::SliderFloat("Mouse Sensitivity", &m_settings.mouseSensitivity, 0.1f, 10.0f, "%.1f",
+    ImGui::SliderFloat("Mouse Sensitivity", &m_controlData.engine.mouseSensitivity, 0.1f, 10.0f, "%.1f",
                        ImGuiSliderFlags_AlwaysClamp);
 
-    ImGui::SliderFloat("FOV", &m_settings.cameraFov, 30.0f, 120.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("FOV", &m_controlData.engine.cameraFov, 30.0f, 120.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::PopItemWidth();
 
     separator();
     subtitle("Options");
 
     ImGui::Checkbox("Debug Controls", &m_settings.debugMode);
-    ImGui::Checkbox("V-Sync", &m_settings.vSync);
+    ImGui::Checkbox("V-Sync", &m_controlData.engine.vSync);
     ImGui::Button("Reset Simulation");
 
     ImGui::EndChild();
     ImGui::End();
 };
-
-void GUI::SearchCompleted(std::string resultTitle) { m_settings.searching = false; };
 
 void GUI::RenderBottomLeftBox() {
     ImVec2 boxSize = ImVec2(500, 110);
@@ -150,7 +149,7 @@ void GUI::RenderSearchBar() {
     ImVec2 searchBarPos = ImVec2(20, 0);
 
     ImVec4 searchBarColor = ImVec4(0.02f, 0.02f, 0.02f, 0.95f);
-    if (m_settings.searching) {
+    if (m_controlData.graph.searching) {
         float pulse = (sin(m_settings.searchTimeElapsed * 0.75f) * 0.5f + 0.5f) * 0.1f + 0.02f;
         searchBarColor = ImVec4(pulse, pulse, pulse, 0.95f);
         m_settings.searchTimeElapsed += ImGui::GetIO().DeltaTime * 4.0f;
@@ -177,7 +176,7 @@ void GUI::RenderSearchBar() {
     static char searchBuffer[128] = "";
     bool enterPressed = ImGui::InputTextWithHint("##searchInput", "Search", searchBuffer, IM_ARRAYSIZE(searchBuffer),
                                                  ImGuiInputTextFlags_EnterReturnsTrue);
-    m_settings.searchString = std::string(searchBuffer);
+    m_controlData.graph.searchString = std::string(searchBuffer);
 
     ImGui::PopItemWidth();
     ImGui::SameLine();
@@ -189,7 +188,7 @@ void GUI::RenderSearchBar() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, searchBarColor);
 
     if (enterPressed || ImGui::Button("Go", ImVec2(80, 50))) {
-        m_settings.searching = true;
+        m_controlData.graph.searching = true;
         m_settings.searchTimeElapsed = 0.0f;
     }
 
@@ -208,23 +207,25 @@ void GUI::EndFrame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GUI::AckReset() { m_settings.resetSimulation = false; };
-
 void GUI::RenderDebugMenu() {
     ImGui::Begin("Debug", nullptr);
 
     ImGui::PushItemWidth(500.0f);
 
-    ImGui::SliderFloat("qqMultiplier", &m_settings.qqMultiplier, 0.001f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("gravityMultiplier", &m_settings.gravityMultiplier, 0.1f, 100.0f, "%.3f",
+    m_controlData.simMux.lock();
+    ImGui::SliderFloat("qqMultiplier", &m_controlData.sim.qqMultiplier, 0.001f, 1.0f, "%.3f",
                        ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("accelSizeMultiplier", &m_settings.accelSizeMultiplier, 0.001f, 1.0f, "%.4f",
+    ImGui::SliderFloat("gravityMultiplier", &m_controlData.sim.gravityMultiplier, 0.1f, 100.0f, "%.3f",
                        ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("targetDistance", &m_settings.targetDistance, 1.f, 200.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("accelSizeMultiplier", &m_controlData.sim.accelSizeMultiplier, 0.001f, 1.0f, "%.4f",
+                       ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("targetDistance", &m_controlData.sim.targetDistance, 1.f, 200.0f, "%.3f",
+                       ImGuiSliderFlags_AlwaysClamp);
+    m_controlData.simMux.unlock();
 
-    if (ImGui::Button("Reset Sim")) {
-        m_settings.resetSimulation = true;
-    }
+    // if (ImGui::Button("Reset Sim")) {
+    //     m_settings.resetSimulation = true;
+    // }
 
     ImGui::PopItemWidth();
 

@@ -1,7 +1,7 @@
 #ifndef DEBUGSIM_H
 #define DEBUGSIM_H
 
-#include "../lib/mutex_guarded.hpp"
+#include <mutex>
 #include <string>
 
 struct SimulationControlData {
@@ -21,14 +21,14 @@ struct GraphControlData {
 };
 
 struct EngineControlData {
-    bool wireFrame = false;
     bool vSync = true;
     float cameraFov = 45;
     float mouseSensitivity = 2.f;
 };
 
 struct ControlData {
-    mutex_guarded<SimulationControlData> sim;
+    SimulationControlData sim;
+    std::mutex simMux;
     GraphControlData graph;
     EngineControlData engine;
 };

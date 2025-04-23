@@ -16,7 +16,7 @@ struct GUISettings {
 // A wrapper of Dear ImGui to provide a graphical interface for Wikimapper.
 class GUI {
   public:
-    GUI(GLFWwindow *m_window, std::string font);
+    GUI(GLFWwindow *m_window, std::string font, ControlData &controlData);
     ~GUI();
 
     void BeginFrame();
@@ -37,6 +37,7 @@ class GUI {
     void subtitle(const char *text);
     void separator();
 
+    ControlData &m_controlData;
     GUISettings m_settings;
     ImFont *m_defaultFont;
     ImFont *m_titleFont;

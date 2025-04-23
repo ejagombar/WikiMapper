@@ -6,16 +6,18 @@
 #include <vector>
 
 #include "controlData.hpp"
+
 #include "simulation.hpp"
 
 bool checkValid(const float &f) { return !(std::isnan(f) || std::isinf(f)); }
 bool checkValid(const glm::vec3 &v) { return checkValid(v.x) && checkValid(v.y) && checkValid(v.z); }
 
-void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt, const debugData &simDebug) {
-    const float qqMultiplier = simDebug.qqMultiplier;
-    const float gravityMultiplier = simDebug.gravityMultiplier;
-    const float accelSizeMultiplier = simDebug.accelSizeMultiplier;
-    const float targetDistance = simDebug.targetDistance;
+void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt,
+                          const SimulationControlData &simControlData) {
+    const float qqMultiplier = simControlData.qqMultiplier;
+    const float gravityMultiplier = simControlData.gravityMultiplier;
+    const float accelSizeMultiplier = simControlData.accelSizeMultiplier;
+    const float targetDistance = simControlData.targetDistance;
     const float edgeForceMultiplier = 0.01;
 
     const uint32_t nodeCount = readG.nodes.size();
@@ -82,7 +84,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         }
 
         nodeForces[i] += force;
-        nodeForces[i] *= simDebug.forceMultiplier;
+        nodeForces[i] *= simControlData.forceMultiplier;
 
         // Apply forces and update velocity, position
         // if (glm::length(nodeForces[i]) < 0.1) {

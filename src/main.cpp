@@ -16,7 +16,6 @@
 #include <glm/geometric.hpp>
 #include <iostream>
 #include <json/json.h>
-#include <mutex>
 #include <random>
 #include <thread>
 #include <vector>
@@ -25,7 +24,6 @@
 #include "../lib/std_image.h"
 
 GS::GraphTripleBuf graphBuf;
-
 ControlData controlData;
 
 void generateRealData(GS::Graph &graph) {
@@ -90,13 +88,13 @@ void graphPositionSimulation() {
         float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
         frameStart = frameEnd;
 
-        simDebugDataMutex.lock();
-        debugData dat = simDebugData;
+        controlData.simMux.lock();
+        SimulationControlData dat = controlData.sim;
         if (dat.resetSimulation) {
-            simDebugData.doneReset = true;
             simStart = std::chrono::system_clock::now();
+            controlData.sim.resetSimulation = false;
         }
-        simDebugDataMutex.unlock();
+        controlData.simMux.unlock();
 
         dat.forceMultiplier = 1.f;
         if (std::chrono::duration_cast<std::chrono::seconds>(frameEnd - simStart).count() > 4.) {
@@ -136,7 +134,7 @@ int main() {
     *writeGraph = *readgraph;
     graphBuf.Publish();
 
-    Engine renderEngine(graphBuf, simDebugData, simDebugDataMutex);
+    Engine renderEngine(graphBuf, controlData);
 
     std::thread t{graphPositionSimulation};
     t.detach();

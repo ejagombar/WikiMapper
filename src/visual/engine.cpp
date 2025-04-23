@@ -24,8 +24,8 @@
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
 // and associated mutex is quite messy and a temporary solution. This shall be changed eventually.
-Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex &simDebugDataMutex)
-    : m_simDebugData(simDebugData), m_simDebugDataMutex(simDebugDataMutex), m_graphBuf(graphBuf) {
+Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
+    : m_controlData(controlData), m_graphBuf(graphBuf) {
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -56,7 +56,7 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, debugData &simDebugData, std::mutex
     m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
-    m_gui = std::make_unique<GUI>(m_window, m_font);
+    m_gui = std::make_unique<GUI>(m_window, m_font, m_controlData);
 
     GS::Graph *graph = m_graphBuf.GetCurrent();
 
@@ -248,22 +248,21 @@ uint32_t Engine::Run() {
 void Engine::loop() {
     m_gui->BeginFrame();
 
-    m_camera.SetFov(m_gui->GUIValues().cameraFov);
-    m_camera.SetMouseSensitivity(m_gui->GUIValues().mouseSensitivity);
+    m_camera.SetFov(m_controlData.engine.cameraFov);
+    m_camera.SetMouseSensitivity(m_controlData.engine.mouseSensitivity);
 
-    if (m_simDebugDataMutex.try_lock()) {
-        GUISettings x = m_gui->GUIValues();
-        m_simDebugData.accelSizeMultiplier = x.debug.accelSizeMultiplier;
-        m_simDebugData.gravityMultiplier = x.debug.gravityMultiplier;
-        m_simDebugData.qqMultiplier = x.debug.qqMultiplier;
-        m_simDebugData.targetDistance = x.debug.targetDistance;
-        if (m_simDebugData.doneReset) {
-            m_gui->AckReset();
-            m_simDebugData.doneReset = false;
-        }
-        m_simDebugData.resetSimulation = x.resetSimulation;
-        m_simDebugDataMutex.unlock();
-    }
+    // if (m_controlData.sim_mux.try_lock()) {
+    //     // GUISettings x = m_gui->GUIValues();
+    //     // m_controlData.sim.accelSizeMultiplier = x.debug.accelSizeMultiplier;
+    //     // m_controlData.sim.gravityMultiplier = x.debug.gravityMultiplier;
+    //     // m_controlData.sim.qqMultiplier = x.debug.qqMultiplier;
+    //     // m_controlData.sim.targetDistance = x.debug.targetDistance;
+    //     // if (m_controlData.sim.doneReset) {
+    //     //     m_gui->AckReset();
+    //     //     m_controlData.sim.doneReset = false;
+    //     // }
+    //     m_controlData.sim_mux.unlock();
+    // }
 
     processEngineInput(m_window);
     const float currentFrame = static_cast<float>(glfwGetTime());
