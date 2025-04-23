@@ -1,7 +1,7 @@
 #ifndef DEBUGSIM_H
 #define DEBUGSIM_H
 
-#include <mutex>
+#include <atomic>
 #include <string>
 
 struct SimulationControlData {
@@ -27,8 +27,7 @@ struct EngineControlData {
 };
 
 struct ControlData {
-    SimulationControlData sim;
-    std::mutex simMux;
+    std::atomic<SimulationControlData> sim;
     GraphControlData graph;
     EngineControlData engine;
 };

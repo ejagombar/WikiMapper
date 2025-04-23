@@ -5,6 +5,7 @@
 #include "simulation.hpp"
 #include "store.hpp"
 #include "visual/engine.hpp"
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -88,13 +89,10 @@ void graphPositionSimulation() {
         float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
         frameStart = frameEnd;
 
-        controlData.simMux.lock();
-        SimulationControlData dat = controlData.sim;
+        SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
         if (dat.resetSimulation) {
             simStart = std::chrono::system_clock::now();
-            controlData.sim.resetSimulation = false;
         }
-        controlData.simMux.unlock();
 
         dat.forceMultiplier = 1.f;
         if (std::chrono::duration_cast<std::chrono::seconds>(frameEnd - simStart).count() > 4.) {
@@ -106,7 +104,10 @@ void graphPositionSimulation() {
             graphBuf.Publish();
             readGraph = graphBuf.GetCurrent();
             writeGraph = graphBuf.GetWriteBuffer();
+            dat.resetSimulation = false;
+            controlData.sim.store(dat, std::memory_order_relaxed);
         }
+
         updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
 

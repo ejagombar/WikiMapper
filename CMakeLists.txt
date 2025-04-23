@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
+
 include(FetchContent)
 
 project(WikiMapperExplorer)
@@ -99,6 +100,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   jsoncpp_lib
   freetype
   OpenGL::GL
+  atomic
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)

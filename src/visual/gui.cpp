@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include <atomic>
 #include <cmath>
 #include <imgui.h>
 #include <string>
@@ -212,22 +213,21 @@ void GUI::RenderDebugMenu() {
 
     ImGui::PushItemWidth(500.0f);
 
-    m_controlData.simMux.lock();
-    ImGui::SliderFloat("qqMultiplier", &m_controlData.sim.qqMultiplier, 0.001f, 1.0f, "%.3f",
-                       ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("gravityMultiplier", &m_controlData.sim.gravityMultiplier, 0.1f, 100.0f, "%.3f",
-                       ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("accelSizeMultiplier", &m_controlData.sim.accelSizeMultiplier, 0.001f, 1.0f, "%.4f",
-                       ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("targetDistance", &m_controlData.sim.targetDistance, 1.f, 200.0f, "%.3f",
-                       ImGuiSliderFlags_AlwaysClamp);
-    m_controlData.simMux.unlock();
+    SimulationControlData localSim = m_controlData.sim.load(std::memory_order_relaxed);
 
-    // if (ImGui::Button("Reset Sim")) {
-    //     m_settings.resetSimulation = true;
-    // }
+    bool valUpdated[4];
+    valUpdated[0] =
+        ImGui::SliderFloat("qqMultiplier", &localSim.qqMultiplier, 0.001f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    valUpdated[1] = ImGui::SliderFloat("gravityMultiplier", &localSim.gravityMultiplier, 0.1f, 100.0f, "%.3f",
+                                       ImGuiSliderFlags_AlwaysClamp);
+    valUpdated[2] = ImGui::SliderFloat("accelSizeMultiplier", &localSim.accelSizeMultiplier, 0.001f, 1.0f, "%.4f",
+                                       ImGuiSliderFlags_AlwaysClamp);
+    valUpdated[3] = ImGui::SliderFloat("targetDistance", &localSim.targetDistance, 1.f, 200.0f, "%.3f",
+                                       ImGuiSliderFlags_AlwaysClamp);
+    if (valUpdated[0] || valUpdated[1] || valUpdated[2] || valUpdated[3]) {
+        m_controlData.sim.store(localSim, std::memory_order_relaxed);
+    }
 
     ImGui::PopItemWidth();
-
     ImGui::End();
 };
