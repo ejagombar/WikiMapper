@@ -94,6 +94,11 @@ Graph &Graph::operator=(Graph &other) {
     return other;
 }
 
+void Graph::Clear() {
+    nodes.clear();
+    edges.clear();
+};
+
 // ------------------ GraphTripleBuffer ------------------
 
 GraphTripleBuf::GraphTripleBuf() {
@@ -117,6 +122,22 @@ void GraphTripleBuf::Publish() {
     m_write = tmp;
     m_version.fetch_add(1, std::memory_order_release);
 };
+
+void GraphTripleBuf::PublishAll() {
+    Publish();
+
+    GS::Graph *readgraph = GetCurrent();
+    GS::Graph *writeGraph = GetWriteBuffer();
+
+    *writeGraph = *readgraph;
+    Publish();
+
+    readgraph = GetCurrent();
+    writeGraph = GetWriteBuffer();
+
+    *writeGraph = *readgraph;
+    Publish();
+}
 
 // Get the current buffer to read from.
 Graph *GraphTripleBuf::GetCurrent() {

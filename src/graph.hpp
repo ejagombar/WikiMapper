@@ -44,6 +44,7 @@ class Graph {
 
     uint32_t AddNode(const char *title);
     void AddEdge(uint32_t idx1, uint32_t idx2);
+    void Clear();
 
     std::vector<uint32_t> GetNeighboursIdx(uint32_t rootIdx) const;
     std::vector<Node> GetNeighbours(uint32_t rootIdx) const;
@@ -71,6 +72,11 @@ class GraphTripleBuf {
     Graph *GetCurrent();
     Graph *GetWriteBuffer() { return m_buffers[m_write]; };
     void Publish();
+
+    // Use this function instead of the usual Publish() function to write the graph data to all graph instances. This is
+    // a slower operation and should only be used to initialise the state of the graph.
+    void PublishAll();
+
     uint32_t Version();
 
   private:

@@ -17,10 +17,11 @@ struct SimulationControlData {
 
 struct GraphControlData {
     std::string searchString = "";
-    bool searching = false;
+    std::atomic<bool> searching = false;
 };
 
 struct EngineControlData {
+    std::atomic<bool> initGraphData = false;
     bool vSync = true;
     float cameraFov = 45;
     float mouseSensitivity = 2.f;

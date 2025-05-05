@@ -36,15 +36,38 @@ void generateRealData(GS::Graph &graph) {
     // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
     auto linkedPages = neo4jDB.GetLinkedPages("physics");
 
+    auto x = graph.AddNode("Physics");
+
+    for (const auto &page : linkedPages) {
+        // std::cout << page.title << std::endl;
+        const uint32_t idx = graph.AddNode(page.title.c_str());
+        graph.AddEdge(x, idx);
+        graph.nodes[x].size++;
+    }
+
+    std::cout << "Query: " << "Physics" << " Size: " << graph.nodes.size() << std::endl;
+}
+
+void search(GS::Graph &graph, std::string query) {
+    Neo4jInterface neo4jDB("http://127.0.0.1:7474");
+    if (!neo4jDB.Authenticate("neo4j", "test1234")) {
+        return;
+    }
+
+    // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
+    auto linkedPages = neo4jDB.GetLinkedPages(query);
+
     // auto x = graph.AddNode("Nico Ditch");
     // std::cout << "Size: " << linkedPages.size() << " Start IDX: " << x << std::endl;
 
     for (const auto &page : linkedPages) {
-        std::cout << page.title << std::endl;
+        // std::cout << page.title << std::endl;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(0, idx);
         graph.nodes[0].size++;
     }
+
+    std::cout << "Query: " << query << " Size: " << graph.nodes.size() << std::endl;
 }
 
 void setupGraph(GS::Graph &db, bool genData = true) {
@@ -56,7 +79,7 @@ void setupGraph(GS::Graph &db, bool genData = true) {
 
     uint32_t baseNodeIdx = db.GetTopNode();
     auto baseNode = db.nodes[baseNodeIdx];
-    std::cout << baseNode.title;
+    // std::cout << baseNode.title;
 
     auto neighboursUID = db.GetNeighboursIdx(baseNodeIdx);
     auto out = spreadRand(numOfElements, 50.0f);
@@ -76,7 +99,7 @@ void setupGraph(GS::Graph &db, bool genData = true) {
 }
 
 void graphPositionSimulation() {
-    const auto simulationInterval = std::chrono::milliseconds(10);
+    const auto simulationInterval = std::chrono::milliseconds(200);
 
     auto simStart = std::chrono::system_clock::now();
     auto frameStart = simStart;
@@ -90,6 +113,28 @@ void graphPositionSimulation() {
         frameStart = frameEnd;
 
         SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
+        // if (controlData.graph.searching.load(std::memory_order_relaxed)) {
+        //     std::cout << controlData.graph.searchString << std::endl;
+        //     controlData.graph.searching.store(false);
+        // }
+
+        if (controlData.graph.searching.load(std::memory_order_relaxed)) {
+            std::cout << "Loading data for " + controlData.graph.searchString + "." << std::endl;
+            writeGraph->Clear();
+            search(*writeGraph, controlData.graph.searchString);
+            setupGraph(*writeGraph, false);
+
+            graphBuf.PublishAll();
+            std::cout << "PUblished graph data" << std::endl;
+
+            readGraph = graphBuf.GetCurrent();
+            writeGraph = graphBuf.GetWriteBuffer();
+
+            controlData.graph.searching.store(false, std::memory_order_relaxed);
+            controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+            simStart = std::chrono::system_clock::now();
+        }
+
         if (dat.resetSimulation) {
             simStart = std::chrono::system_clock::now();
         }
@@ -108,32 +153,17 @@ void graphPositionSimulation() {
             controlData.sim.store(dat, std::memory_order_relaxed);
         }
 
-        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
+        // updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
     }
 }
 
-void test(int c) { std::cout << c; }
-
 int main() {
     GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
     setupGraph(*writeGraph);
-    graphBuf.Publish();
-
-    GS::Graph *readgraph = graphBuf.GetCurrent();
-
-    writeGraph = graphBuf.GetWriteBuffer();
-
-    *writeGraph = *readgraph;
-    graphBuf.Publish();
-
-    readgraph = graphBuf.GetCurrent();
-    writeGraph = graphBuf.GetWriteBuffer();
-
-    *writeGraph = *readgraph;
-    graphBuf.Publish();
+    graphBuf.PublishAll();
 
     Engine renderEngine(graphBuf, controlData);
 

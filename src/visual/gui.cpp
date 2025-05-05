@@ -150,7 +150,7 @@ void GUI::RenderSearchBar() {
     ImVec2 searchBarPos = ImVec2(20, 0);
 
     ImVec4 searchBarColor = ImVec4(0.02f, 0.02f, 0.02f, 0.95f);
-    if (m_controlData.graph.searching) {
+    if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
         float pulse = (sin(m_settings.searchTimeElapsed * 0.75f) * 0.5f + 0.5f) * 0.1f + 0.02f;
         searchBarColor = ImVec4(pulse, pulse, pulse, 0.95f);
         m_settings.searchTimeElapsed += ImGui::GetIO().DeltaTime * 4.0f;
@@ -189,7 +189,7 @@ void GUI::RenderSearchBar() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, searchBarColor);
 
     if (enterPressed || ImGui::Button("Go", ImVec2(80, 50))) {
-        m_controlData.graph.searching = true;
+        m_controlData.graph.searching.store(true);
         m_settings.searchTimeElapsed = 0.0f;
     }
 

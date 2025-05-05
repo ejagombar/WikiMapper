@@ -100,11 +100,16 @@ class Engine {
 
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
-    void setupNodes(GS::Graph &graph);
-    void setupEdges(GS::Graph &graph);
+    void initNodeBuffers();
+    void initEdgeBuffers();
+
+    void updateNodes(GS::Graph &graph);
+    void updateEdges(GS::Graph &graph);
+
     void setupShaders();
 
-    void UpdateParticles(GS::Graph &graph);
+    void updateParticles(GS::Graph &graph);
+    void updateGraphData();
 
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;

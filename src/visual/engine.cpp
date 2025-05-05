@@ -8,6 +8,8 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GLFW/glfw3.h>
+#include <atomic>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -19,7 +21,6 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <random>
 #include <vector>
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
@@ -58,23 +59,33 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
 
     m_gui = std::make_unique<GUI>(m_window, m_font, m_controlData);
 
-    GS::Graph *graph = m_graphBuf.GetCurrent();
-
     setupShaders();
 
     glGenVertexArrays(count, m_VAOs);
     glGenBuffers(count, m_VBOs);
 
-    setupEdges(*graph);
-    setupNodes(*graph);
+    initNodeBuffers();
+    initEdgeBuffers();
 
-    m_text->SetupTextureAtlases(graph->nodes);
-    m_text->UpdateLabelPositions(graph->nodes);
+    // m_nodeData.reserve(1000);
+    // m_edgeData.reserve(1000);
+
+    updateGraphData();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glEnable(GL_MULTISAMPLE);
     glDepthFunc(GL_LESS);
+}
+
+void Engine::updateGraphData() {
+    GS::Graph *graph = m_graphBuf.GetCurrent();
+
+    updateNodes(*graph);
+    updateEdges(*graph);
+
+    m_text->SetupTextureAtlases(graph->nodes);
+    m_text->UpdateLabelPositions(graph->nodes);
 }
 
 // Initialises all the shaders. Each shader is assigned its own shader class which would be inefficient if there were
@@ -105,92 +116,99 @@ void Engine::setupShaders() {
     m_skybox = std::make_unique<Skybox>(*m_shader.skybox, cubemapTexture);
 }
 
-// Initialise buffer with node data on the GPU.
-void Engine::setupNodes(GS::Graph &graph) {
-    uint32_t nodeCount = graph.nodes.size();
-    m_nodeData.resize(nodeCount);
-
-    std::random_device seed;
-    std::mt19937 gen{seed()};
-    std::uniform_real_distribution<> dist{0, 1};
-    for (uint32_t i = 0; i < nodeCount; i++) {
-        m_nodeData[i].r = graph.nodes[i].rgb[0];
-        m_nodeData[i].g = graph.nodes[i].rgb[1];
-        m_nodeData[i].b = graph.nodes[i].rgb[2];
-        m_nodeData[i].radius = static_cast<GLubyte>(graph.nodes[i].size);
-        m_nodeData[i].position[0] = graph.nodes[i].pos.x;
-        m_nodeData[i].position[1] = graph.nodes[i].pos.y;
-        m_nodeData[i].position[2] = graph.nodes[i].pos.z;
-    }
-
+void Engine::initNodeBuffers() {
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, m_nodeData.size() * sizeof(NodeData), m_nodeData.data(), GL_DYNAMIC_DRAW);
 
-    const GLint aColorAttrib = m_shader.sphere->GetAttribLocation("aRGBRadius");
-    glEnableVertexAttribArray(aColorAttrib);
-    glVertexAttribPointer(aColorAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData), (void *)0);
+    GLint colorRadiusAttr = m_shader.sphere->GetAttribLocation("aRGBRadius");
+    glEnableVertexAttribArray(colorRadiusAttr);
+    glVertexAttribPointer(colorRadiusAttr, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData),
+                          reinterpret_cast<void *>(offsetof(NodeData, r)));
 
-    const GLint aPosAttrib = m_shader.sphere->GetAttribLocation("aPos");
-    glEnableVertexAttribArray(aPosAttrib);
-    glVertexAttribPointer(aPosAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(NodeData), (void *)(sizeof(float)));
+    const size_t nodePosOffset = offsetof(NodeData, position);
+
+    GLint posAttr = m_shader.sphere->GetAttribLocation("aPos");
+    glEnableVertexAttribArray(posAttr);
+    glVertexAttribPointer(posAttr, 3, GL_FLOAT, GL_FALSE, sizeof(NodeData), reinterpret_cast<void *>(nodePosOffset));
 
     glBindVertexArray(0);
 }
 
-// Initialise buffer with edge data on the GPU.
-void Engine::setupEdges(GS::Graph &graph) {
-    GLuint edgeCount = graph.edges.size();
-
-    m_edgeData.resize(edgeCount * 2);
-    for (uint32_t i = 0; i < edgeCount; i++) {
-        const uint32_t lineIdx = i * 2;
-
-        m_edgeData[lineIdx].r = graph.EdgeStart(i).rgb[0];
-        m_edgeData[lineIdx].g = graph.EdgeStart(i).rgb[1];
-        m_edgeData[lineIdx].b = graph.EdgeStart(i).rgb[2];
-        m_edgeData[lineIdx].radius = graph.EdgeStart(i).edgeSize;
-        m_edgeData[lineIdx].position[0] = graph.EdgeStart(i).pos.x;
-        m_edgeData[lineIdx].position[1] = graph.EdgeStart(i).pos.y;
-        m_edgeData[lineIdx].position[2] = graph.EdgeStart(i).pos.z;
-
-        m_edgeData[lineIdx + 1].r = graph.EdgeEnd(i).rgb[0];
-        m_edgeData[lineIdx + 1].g = graph.EdgeEnd(i).rgb[1];
-        m_edgeData[lineIdx + 1].b = graph.EdgeEnd(i).rgb[2];
-        m_edgeData[lineIdx + 1].radius = graph.EdgeEnd(i).edgeSize;
-        m_edgeData[lineIdx + 1].position[0] = graph.EdgeEnd(i).pos.x;
-        m_edgeData[lineIdx + 1].position[1] = graph.EdgeEnd(i).pos.y;
-        m_edgeData[lineIdx + 1].position[2] = graph.EdgeEnd(i).pos.z;
-    }
-
+void Engine::initEdgeBuffers() {
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data(), GL_DYNAMIC_DRAW);
 
-    const GLint radiusAttrib = m_shader.cylinder->GetAttribLocation("aRGBRadius");
-    glEnableVertexAttribArray(radiusAttrib);
-    glVertexAttribPointer(radiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData), (void *)0);
+    GLint colorRadiusAttrib = m_shader.cylinder->GetAttribLocation("aRGBRadius");
+    glEnableVertexAttribArray(colorRadiusAttrib);
+    glVertexAttribPointer(colorRadiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData),
+                          reinterpret_cast<void *>(offsetof(EdgeData, r)));
 
-    const GLint startAttrib = m_shader.cylinder->GetAttribLocation("aPos");
-    glEnableVertexAttribArray(startAttrib);
-    glVertexAttribPointer(startAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(EdgeData), (void *)(sizeof(float)));
+    const size_t edgePosOffset = offsetof(EdgeData, position);
+
+    GLint posAttr = m_shader.cylinder->GetAttribLocation("aPos");
+    glEnableVertexAttribArray(posAttr);
+    glVertexAttribPointer(posAttr, 3, GL_FLOAT, GL_FALSE, sizeof(EdgeData), reinterpret_cast<void *>(edgePosOffset));
 
     glBindVertexArray(0);
+}
+
+// Initialise buffer with node data on the GPU
+void Engine::updateNodes(GS::Graph &graph) {
+    uint32_t nodeCount = uint32_t(graph.nodes.size());
+    m_nodeData.resize(nodeCount);
+
+    for (uint32_t i = 0; i < nodeCount; ++i) {
+        const auto &src = graph.nodes[i];
+        m_nodeData[i] = {src.rgb[0], src.rgb[1], src.rgb[2], GLubyte(src.size), {src.pos.x, src.pos.y, src.pos.z}};
+    }
+
+    // Orphan and then refill GPU buffer
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
+    glBufferData(GL_ARRAY_BUFFER, m_nodeData.size() * sizeof(NodeData), nullptr, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, m_nodeData.size() * sizeof(NodeData), m_nodeData.data());
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+// Initialise buffer with edge data on the GPU.
+void Engine::updateEdges(GS::Graph &graph) {
+    uint32_t edgeCount = uint32_t(graph.edges.size());
+    m_edgeData.resize(edgeCount * 2);
+
+    for (uint32_t i = 0; i < edgeCount; ++i) {
+        const auto &s = graph.EdgeStart(i);
+        const auto &e = graph.EdgeEnd(i);
+        m_edgeData[2 * i] = {s.rgb[0], s.rgb[1], s.rgb[2], GLubyte(s.edgeSize), {s.pos.x, s.pos.y, s.pos.z}};
+        m_edgeData[2 * i + 1] = {e.rgb[0], e.rgb[1], e.rgb[2], GLubyte(e.edgeSize), {e.pos.x, e.pos.y, e.pos.z}};
+    }
+
+    // Orphan and then refill GPU buffer
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
+    glBufferData(GL_ARRAY_BUFFER, m_edgeData.size() * sizeof(EdgeData), nullptr, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 // Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
 // together so it can be copied all at once as opposed to looping through each value.
-void Engine::UpdateParticles(GS::Graph &graph) {
-    for (uint32_t i = 0; i < graph.nodes.size(); i++) {
-        m_nodeData[i].position[0] = graph.nodes[i].pos.x;
-        m_nodeData[i].position[1] = graph.nodes[i].pos.y;
-        m_nodeData[i].position[2] = graph.nodes[i].pos.z;
+void Engine::updateParticles(GS::Graph &graph) {
+    for (uint32_t i = 0; i < m_nodeData.size(); i++) {
+        const auto &src = graph.nodes[i].pos;
+        auto &dst = m_nodeData[i].position;
+
+        assert(i < m_nodeData.size());
+
+        dst[0] = src.x;
+        dst[1] = src.y;
+        dst[2] = src.z;
     }
 
     m_text->UpdateLabelPositions(graph.nodes);
 
-    for (uint32_t i = 0; i < graph.edges.size(); i++) {
+    for (uint32_t i = 0; i < m_edgeData.size() / 2; i++) {
         const uint32_t lineIdx = i * 2;
+
+        assert(lineIdx + 1 < m_edgeData.size());
 
         m_edgeData[lineIdx].position[0] = graph.EdgeStart(i).pos.x;
         m_edgeData[lineIdx].position[1] = graph.EdgeStart(i).pos.y;
@@ -229,9 +247,14 @@ uint32_t Engine::Run() {
 
         m_frameCount++;
         if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
-            printf("%f fps\n", double(m_frameCount));
+            // printf("%f fps\n", double(m_frameCount));
             m_frameCount = 0;
             lastTime += 1.0;
+
+            if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {
+                m_controlData.engine.initGraphData.store(false, std::memory_order_relaxed);
+                updateGraphData();
+            }
         }
 
         loop();
@@ -251,19 +274,6 @@ void Engine::loop() {
     m_camera.SetFov(m_controlData.engine.cameraFov);
     m_camera.SetMouseSensitivity(m_controlData.engine.mouseSensitivity);
 
-    // if (m_controlData.sim_mux.try_lock()) {
-    //     // GUISettings x = m_gui->GUIValues();
-    //     // m_controlData.sim.accelSizeMultiplier = x.debug.accelSizeMultiplier;
-    //     // m_controlData.sim.gravityMultiplier = x.debug.gravityMultiplier;
-    //     // m_controlData.sim.qqMultiplier = x.debug.qqMultiplier;
-    //     // m_controlData.sim.targetDistance = x.debug.targetDistance;
-    //     // if (m_controlData.sim.doneReset) {
-    //     //     m_gui->AckReset();
-    //     //     m_controlData.sim.doneReset = false;
-    //     // }
-    //     m_controlData.sim_mux.unlock();
-    // }
-
     processEngineInput(m_window);
     const float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - m_lastFrame;
@@ -275,7 +285,7 @@ void Engine::loop() {
     uint32_t currentVersion = m_graphBuf.Version();
     if (currentVersion != m_lastVersion) {
         m_graph = m_graphBuf.GetCurrent();
-        UpdateParticles(*m_graph);
+        updateParticles(*m_graph);
         m_lastVersion = currentVersion;
     }
 
@@ -345,8 +355,8 @@ void Engine::loop() {
 }
 
 // -------------------------------- Static Callbacks --------------------------------
-// Static functions must be used for callbacks so these static functions wrap the functions used in the engine object,
-// so that the functions that are called are able to access engine member variables.
+// Static functions must be used for callbacks so these static functions wrap the functions used in the engine
+// object, so that the functions that are called are able to access engine member variables.
 
 void Engine::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
     Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
@@ -378,10 +388,10 @@ void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int ac
 
 // -------------------------------- Callbacks --------------------------------
 
-// A check if made to the GUI to see if it is active before processing the key strokes. If it is active, the function
-// will return early. The "q" key is an exception to this as this opens and closes the menu so this should work when the
-// menu is active or not. This leads to a very small bug when typing into the search box, if you press q and the menu is
-// open, it will close the menu, but this will not happen for any other letter.
+// A check if made to the GUI to see if it is active before processing the key strokes. If it is active, the
+// function will return early. The "q" key is an exception to this as this opens and closes the menu so this should
+// work when the menu is active or not. This leads to a very small bug when typing into the search box, if you press
+// q and the menu is open, it will close the menu, but this will not happen for any other letter.
 void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
                           [[maybe_unused]] int mods) {
 
