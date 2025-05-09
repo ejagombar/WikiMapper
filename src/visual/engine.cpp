@@ -8,6 +8,7 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cmath>
@@ -192,11 +193,10 @@ void Engine::updateEdges(GS::Graph &graph) {
 // Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
 // together so it can be copied all at once as opposed to looping through each value.
 void Engine::updateParticles(GS::Graph &graph) {
-    for (uint32_t i = 0; i < m_nodeData.size(); i++) {
-        const auto &src = graph.nodes[i].pos;
-        auto &dst = m_nodeData[i].position;
-
-        assert(i < m_nodeData.size());
+    uint32_t minNodeCount = std::min(m_nodeData.size(), graph.nodes.size());
+    for (uint32_t i = 0; i < minNodeCount; i++) {
+        const auto &src = graph.nodes.at(i).pos;
+        auto &dst = m_nodeData.at(i).position;
 
         dst[0] = src.x;
         dst[1] = src.y;
@@ -205,10 +205,9 @@ void Engine::updateParticles(GS::Graph &graph) {
 
     m_text->UpdateLabelPositions(graph.nodes);
 
-    for (uint32_t i = 0; i < m_edgeData.size() / 2; i++) {
+    uint32_t minEdgeCount = std::min(m_edgeData.size() / 2, graph.edges.size());
+    for (uint32_t i = 0; i < minEdgeCount; i++) {
         const uint32_t lineIdx = i * 2;
-
-        assert(lineIdx + 1 < m_edgeData.size());
 
         m_edgeData[lineIdx].position[0] = graph.EdgeStart(i).pos.x;
         m_edgeData[lineIdx].position[1] = graph.EdgeStart(i).pos.y;
@@ -247,7 +246,7 @@ uint32_t Engine::Run() {
 
         m_frameCount++;
         if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
-            // printf("%f fps\n", double(m_frameCount));
+            printf("%f fps\n", double(m_frameCount));
             m_frameCount = 0;
             lastTime += 1.0;
 
@@ -419,7 +418,7 @@ void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int 
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
-    // m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
+    m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
 
     m_scrWidth = width;
     m_scrHeight = height;
