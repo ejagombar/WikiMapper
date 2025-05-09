@@ -1,6 +1,7 @@
 #include "../lib/rgb_hsv.hpp"
 #include "controlData.hpp"
 #include "graph.hpp"
+#include "logger.hpp"
 #include "pointMaths.hpp"
 #include "simulation.hpp"
 #include "store.hpp"
@@ -15,7 +16,6 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
-#include <iostream>
 #include <json/json.h>
 #include <random>
 #include <thread>
@@ -23,6 +23,8 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../lib/std_image.h"
+
+std::shared_ptr<spdlog::logger> globalLogger = spdlog::basic_logger_mt("global", "wikimapper.log");
 
 GS::GraphTripleBuf graphBuf;
 ControlData controlData;
@@ -39,13 +41,10 @@ void generateRealData(GS::Graph &graph) {
     auto x = graph.AddNode("Physics");
 
     for (const auto &page : linkedPages) {
-        // std::cout << page.title << std::endl;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(x, idx);
         graph.nodes[x].size++;
     }
-
-    std::cout << "Query: " << "Physics" << " Size: " << graph.nodes.size() << std::endl;
 }
 
 void search(GS::Graph &graph, std::string query) {
@@ -54,20 +53,16 @@ void search(GS::Graph &graph, std::string query) {
         return;
     }
 
-    // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = neo4jDB.GetLinkedPages(query);
-
-    // auto x = graph.AddNode("Nico Ditch");
-    // std::cout << "Size: " << linkedPages.size() << " Start IDX: " << x << std::endl;
+    auto linkedPages = neo4jDB.GetLinkingPages(query);
+    auto x = graph.AddNode(query.c_str());
 
     for (const auto &page : linkedPages) {
-        // std::cout << page.title << std::endl;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(0, idx);
         graph.nodes[0].size++;
     }
 
-    std::cout << "Query: " << query << " Size: " << graph.nodes.size() << std::endl;
+    globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.size());
 }
 
 void setupGraph(GS::Graph &db, bool genData = true) {
@@ -79,7 +74,6 @@ void setupGraph(GS::Graph &db, bool genData = true) {
 
     uint32_t baseNodeIdx = db.GetTopNode();
     auto baseNode = db.nodes[baseNodeIdx];
-    // std::cout << baseNode.title;
 
     auto neighboursUID = db.GetNeighboursIdx(baseNodeIdx);
     auto out = spreadRand(numOfElements, 50.0f);
@@ -99,6 +93,8 @@ void setupGraph(GS::Graph &db, bool genData = true) {
 }
 
 void graphPositionSimulation() {
+    globalLogger->info("Physics thread starting");
+
     const auto simulationInterval = std::chrono::milliseconds(200);
 
     auto simStart = std::chrono::system_clock::now();
@@ -113,19 +109,15 @@ void graphPositionSimulation() {
         frameStart = frameEnd;
 
         SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
-        // if (controlData.graph.searching.load(std::memory_order_relaxed)) {
-        //     std::cout << controlData.graph.searchString << std::endl;
-        //     controlData.graph.searching.store(false);
-        // }
 
         if (controlData.graph.searching.load(std::memory_order_relaxed)) {
-            std::cout << "Loading data for " + controlData.graph.searchString + "." << std::endl;
+            globalLogger->info("Loading data for " + controlData.graph.searchString);
             writeGraph->Clear();
             search(*writeGraph, controlData.graph.searchString);
             setupGraph(*writeGraph, false);
 
             graphBuf.PublishAll();
-            std::cout << "PUblished graph data" << std::endl;
+            globalLogger->info("Published graph data");
 
             readGraph = graphBuf.GetCurrent();
             writeGraph = graphBuf.GetWriteBuffer();
@@ -151,6 +143,7 @@ void graphPositionSimulation() {
             writeGraph = graphBuf.GetWriteBuffer();
             dat.resetSimulation = false;
             controlData.sim.store(dat, std::memory_order_relaxed);
+            globalLogger->info("Reset simulation");
         }
 
         // updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
@@ -161,6 +154,8 @@ void graphPositionSimulation() {
 }
 
 int main() {
+    globalLogger->info("WikiMapper starting");
+
     GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
     setupGraph(*writeGraph);
     graphBuf.PublishAll();
@@ -171,5 +166,5 @@ int main() {
     t.detach();
 
     renderEngine.Run();
-    std::cout << "Ended" << std::endl;
+    globalLogger->info("WikiMapper exited.");
 }

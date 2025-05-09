@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.30)
 
-
 include(FetchContent)
 
 project(WikiMapperExplorer)
@@ -51,7 +50,13 @@ FetchContent_Declare(
   GIT_TAG        v1.91.9b
 )
 
-FetchContent_MakeAvailable(imgui jsoncpp glm glfw glad cpp_httplib freetype)
+FetchContent_Declare(
+  spdlog 
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG        v1.15.3
+)
+
+FetchContent_MakeAvailable(imgui jsoncpp glm glfw glad cpp_httplib freetype spdlog)
 
 find_package(OpenGL REQUIRED)
 
@@ -101,6 +106,13 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   freetype
   OpenGL::GL
   atomic
+  -static-libasan
+  -static-libstdc++
+  spdlog::spdlog
 )
 
-target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
+# target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
+target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -O0 -fsanitize=address)
+
+
+target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan)

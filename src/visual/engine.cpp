@@ -1,6 +1,6 @@
 #include "./engine.hpp"
-
 #include "../../lib/rgb_hsv.hpp"
+#include "../logger.hpp"
 #include "./shader.hpp"
 #include "camera.hpp"
 #include "gui.hpp"
@@ -29,21 +29,22 @@
 Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
     : m_controlData(controlData), m_graphBuf(graphBuf) {
 
+    globalLogger->info("Initialising Engine");
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
     m_window = glfwCreateWindow(m_scrWidth, m_scrHeight, "WikiMapper", NULL, NULL);
     if (m_window == NULL) {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        globalLogger->error("Failed to create GLFW window");
         glfwTerminate();
         return;
     }
 
     glfwMakeContextCurrent(m_window);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        globalLogger->error("Failed to initialize GLAD");
     }
 
     glViewport(0, 0, m_scrWidth, m_scrHeight);
@@ -92,6 +93,7 @@ void Engine::updateGraphData() {
 // Initialises all the shaders. Each shader is assigned its own shader class which would be inefficient if there were
 // many types of shaders, however as there are only a couple shaders, this does not have a big impact.
 void Engine::setupShaders() {
+    globalLogger->info("Setting up shaders");
     m_shader.skybox = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_shader.screenBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_shader.sphere = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
@@ -230,7 +232,7 @@ Engine::~Engine() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
 
-    std::cout << "Execution Time: " << glfwGetTime() - m_startTime << std::endl;
+    globalLogger->info("Execution Time: ", glfwGetTime() - m_startTime);
 
     glfwTerminate();
 }

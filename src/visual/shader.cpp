@@ -1,6 +1,7 @@
 // This shader class was originally sourced from https://learnopengl.com/
 
 #include "./shader.hpp"
+#include "../logger.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -46,7 +47,7 @@ Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath, c
             geometryCode = gShaderStream.str();
         }
     } catch (std::ifstream::failure &e) {
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+        globalLogger->error("ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: ", e.what());
     }
 
     const char *vShaderCode = vertexCode.c_str();
@@ -159,27 +160,27 @@ void Shader::checkCompileErrors(GLuint shader, std::string type) {
         glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
         if (!success) {
             if (type == "GEOMETRY")
-                std::cout << m_geometryPath << std::endl;
+                globalLogger->error(m_geometryPath);
             if (type == "FRAGMENT")
-                std::cout << m_fragmentPath << std::endl;
+                globalLogger->error(m_fragmentPath);
             if (type == "VERTEX")
-                std::cout << m_vertexPath << std::endl;
+                globalLogger->error(m_vertexPath);
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n"
-                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            globalLogger->error("ERROR::SHADER_COMPILATION_ERROR of type: ", type, "\n", infoLog,
+                                "\n -----------------------------------------------------------------------");
         }
     } else {
         glGetProgramiv(shader, GL_LINK_STATUS, &success);
         if (!success) {
             if (type == "GEOMETRY")
-                std::cout << m_geometryPath << std::endl;
+                globalLogger->error(m_geometryPath);
             if (type == "FRAGMENT")
-                std::cout << m_fragmentPath << std::endl;
+                globalLogger->error(m_fragmentPath);
             if (type == "VERTEX")
-                std::cout << m_vertexPath << std::endl;
+                globalLogger->error(m_vertexPath);
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n"
-                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            globalLogger->error("ERROR::PROGRAM_LINKING_ERROR", type, "\n", infoLog,
+                                "\n -----------------------------------------------------------------------");
         }
     }
 }
