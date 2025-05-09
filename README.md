@@ -6,10 +6,17 @@
 
 ## Todo
 
+### Quick TODO List
+- [ ] Fix the issue where the data loads twice upon searching
+- [ ] Fix the issue where it crashes when no results are found
+- [ ] Camera movement smoothness issues
+- [ ] UI inconsistencies
+- [ ] Add improved visuals - lighting, and glow
+
 ### Features
 - [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness
 - [x] **Menu.** A menu that give the user options to enable/disable features, change the font size etc.
-- [ ] **Search.** Allow a user to search for a page and the camera will jump to that node.
+- [x] **Search.** Allow a user to search for a page and the camera will jump to that node.
 - [ ] **External links.** Link each node to the original Wikipedia page.
 - [x] **Lighting**. Add lighting to the spheres shading, and possibly the text and lines as well.
 - [x] **Force Directed Graph Drawing.** Algorithm to spread points out in space. 
