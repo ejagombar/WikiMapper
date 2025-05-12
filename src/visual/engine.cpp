@@ -15,13 +15,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <future>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
 #include <iostream>
 #include <memory>
-#include <ostream>
+#include <thread>
 #include <vector>
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
@@ -69,18 +70,6 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
     initNodeBuffers();
     initEdgeBuffers();
 
-    // m_nodeData.reserve(1000);
-    // m_edgeData.reserve(1000);
-
-    updateGraphData();
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_FRAMEBUFFER_SRGB);
-    glEnable(GL_MULTISAMPLE);
-    glDepthFunc(GL_LESS);
-}
-
-void Engine::updateGraphData() {
     GS::Graph *graph = m_graphBuf.GetCurrent();
 
     updateNodes(*graph);
@@ -88,6 +77,11 @@ void Engine::updateGraphData() {
 
     m_text->SetupTextureAtlases(graph->nodes);
     m_text->UpdateLabelPositions(graph->nodes);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_FRAMEBUFFER_SRGB);
+    glEnable(GL_MULTISAMPLE);
+    glDepthFunc(GL_LESS);
 }
 
 // Initialises all the shaders. Each shader is assigned its own shader class which would be inefficient if there were
@@ -157,6 +151,7 @@ void Engine::initEdgeBuffers() {
 
 // Initialise buffer with node data on the GPU
 void Engine::updateNodes(GS::Graph &graph) {
+    globalLogger->info("Start updating nodes");
     uint32_t nodeCount = uint32_t(graph.nodes.size());
     m_nodeData.resize(nodeCount);
 
@@ -171,10 +166,12 @@ void Engine::updateNodes(GS::Graph &graph) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_nodeData.size() * sizeof(NodeData), m_nodeData.data());
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    globalLogger->info("Finish updating nodes");
 }
 
 // Initialise buffer with edge data on the GPU.
 void Engine::updateEdges(GS::Graph &graph) {
+    globalLogger->info("Start updating edges");
     uint32_t edgeCount = uint32_t(graph.edges.size());
     m_edgeData.resize(edgeCount * 2);
 
@@ -190,6 +187,7 @@ void Engine::updateEdges(GS::Graph &graph) {
     glBufferData(GL_ARRAY_BUFFER, m_edgeData.size() * sizeof(EdgeData), nullptr, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    globalLogger->info("Finish updating edges");
 }
 
 // Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
@@ -243,6 +241,9 @@ uint32_t Engine::Run() {
 
     // glfwSwapInterval(0);
 
+    bool textureGenTriggered = false;
+    std::future<void> fut;
+
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();
 
@@ -254,9 +255,16 @@ uint32_t Engine::Run() {
 
             if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {
                 m_controlData.engine.initGraphData.store(false, std::memory_order_relaxed);
-                updateGraphData();
+                GS::Graph *graph = m_graphBuf.GetCurrent();
+
+                updateNodes(*graph);
+                updateEdges(*graph);
+
+                m_text->SetupTextureAtlases(graph->nodes);
             }
         }
+
+        std::cout << "Loop" << std::endl;
 
         loop();
 

@@ -55,6 +55,8 @@ class LabelEngine {
     int32_t m_commonBaseline;
     int32_t m_commonHeight;
 
+    bool m_updatingBufs = false;
+
     std::vector<LabelCharacter> m_characters;
 };
 

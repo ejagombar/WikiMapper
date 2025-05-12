@@ -1,8 +1,10 @@
 // render_engine.cpp
 #include "label.hpp"
+#include "GLFW/glfw3.h"
 #include "shader.hpp"
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 
 LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexShader,
                          const std::string &fragmentShader, const std::string &geometryShader) {
@@ -77,6 +79,10 @@ LabelEngine::~LabelEngine() {
 }
 
 void LabelEngine::RenderLabels(const float time) {
+    if (m_updatingBufs) {
+        return;
+    }
+
     m_shader->Use();
     m_shader->SetFloat("time", time);
     m_shader->SetFloat("vHeight", 0.2f); // The uniform vertical half-size
@@ -93,6 +99,7 @@ void LabelEngine::RenderLabels(const float time) {
 }
 
 void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
+    m_updatingBufs = true;
     // First pass: determine each label’s width in pixels and the maximum width (for atlas layer size).
     uint32_t numLabels = static_cast<uint32_t>(nodes.size());
     m_atlasLayerCount = numLabels;
@@ -117,6 +124,7 @@ void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
     m_atlasHeight = m_commonHeight; // we use the same height for all layers
 
     // Create a texture array with (maxWidth x m_commonHeight) per layer.
+    glDeleteTextures(1, &m_textAtlas);
     glGenTextures(1, &m_textAtlas);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_textAtlas);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RED, m_atlasWidth, m_atlasHeight, numLabels, 0, GL_RED, GL_UNSIGNED_BYTE,
@@ -126,6 +134,7 @@ void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    std::cout << "Line: " << __LINE__ << std::endl;
     for (uint32_t i = 0; i < numLabels; i++) {
         const std::string &text = nodes[i].title;
         int32_t textWidth = labelWidths[i];
@@ -157,9 +166,14 @@ void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
                         pixels.data());
     }
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    m_updatingBufs = false;
 }
 
 void LabelEngine::UpdateLabelPositions(const std::vector<GS::Node> &nodes) {
+    if (m_updatingBufs) {
+        return;
+    }
+
     uint32_t numLabels = static_cast<uint32_t>(nodes.size());
 
     m_activeLabels.resize(numLabels);
