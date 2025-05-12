@@ -75,7 +75,10 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
     updateNodes(*graph);
     updateEdges(*graph);
 
-    m_text->SetupTextureAtlases(graph->nodes);
+    // m_text->SetupTextureAtlases(graph->nodes);
+    auto out = m_text->PrepareLabelAtlases(graph->nodes);
+    m_text->UploadLabelAtlasesToGPU(out);
+
     m_text->UpdateLabelPositions(graph->nodes);
 
     glEnable(GL_DEPTH_TEST);
@@ -242,7 +245,7 @@ uint32_t Engine::Run() {
     // glfwSwapInterval(0);
 
     bool textureGenTriggered = false;
-    std::future<void> fut;
+    std::future<LabelAtlasData> fut;
 
     while (!glfwWindowShouldClose(m_window)) {
         double currentTime = glfwGetTime();
@@ -252,16 +255,26 @@ uint32_t Engine::Run() {
             printf("%f fps\n", double(m_frameCount));
             m_frameCount = 0;
             lastTime += 1.0;
+        }
 
-            if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {
-                m_controlData.engine.initGraphData.store(false, std::memory_order_relaxed);
-                GS::Graph *graph = m_graphBuf.GetCurrent();
+        if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {
+            m_controlData.engine.initGraphData.store(false, std::memory_order_relaxed);
+            GS::Graph *graph = m_graphBuf.GetCurrent();
 
-                updateNodes(*graph);
-                updateEdges(*graph);
+            updateNodes(*graph);
+            updateEdges(*graph);
 
-                m_text->SetupTextureAtlases(graph->nodes);
-            }
+            fut = std::async(std::launch::async, [engine = m_text.get(), graph = graph->nodes]() {
+                return engine->PrepareLabelAtlases(graph);
+            });
+            textureGenTriggered = true;
+        }
+
+        // textureGenTriggered;
+        if (fut.valid() && fut.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            LabelAtlasData atlasData = fut.get();
+            m_text->UploadLabelAtlasesToGPU(atlasData);
+            textureGenTriggered = false;
         }
 
         std::cout << "Loop" << std::endl;

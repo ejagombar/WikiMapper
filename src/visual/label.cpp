@@ -1,6 +1,5 @@
 // render_engine.cpp
 #include "label.hpp"
-#include "GLFW/glfw3.h"
 #include "shader.hpp"
 #include <cstdint>
 #include <cstring>
@@ -79,10 +78,6 @@ LabelEngine::~LabelEngine() {
 }
 
 void LabelEngine::RenderLabels(const float time) {
-    if (m_updatingBufs) {
-        return;
-    }
-
     m_shader->Use();
     m_shader->SetFloat("time", time);
     m_shader->SetFloat("vHeight", 0.2f); // The uniform vertical half-size
@@ -98,16 +93,13 @@ void LabelEngine::RenderLabels(const float time) {
     glBindVertexArray(0);
 }
 
-void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
-    m_updatingBufs = true;
-    // First pass: determine each label’s width in pixels and the maximum width (for atlas layer size).
+LabelAtlasData LabelEngine::PrepareLabelAtlases(const std::vector<GS::Node> &nodes) {
     uint32_t numLabels = static_cast<uint32_t>(nodes.size());
-    m_atlasLayerCount = numLabels;
     std::vector<int32_t> labelWidths(numLabels, 0);
     int32_t maxWidth = 0;
-    for (uint32_t i = 0; i < numLabels; i++) {
-        const std::string &text = nodes[i].title;
+    for (uint32_t i = 0; i < numLabels; ++i) {
         int32_t width = 0;
+        const std::string &text = nodes[i].title;
         for (uint8_t c : text) {
             if (c >= 128)
                 continue;
@@ -120,29 +112,20 @@ void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
     if (maxWidth <= 0)
         maxWidth = 1;
 
-    m_atlasWidth = maxWidth;
-    m_atlasHeight = m_commonHeight; // we use the same height for all layers
+    int32_t atlasWidth = maxWidth;
+    int32_t atlasHeight = m_commonHeight;
+    std::vector<Pixels> atlases;
+    atlases.reserve(numLabels);
 
-    // Create a texture array with (maxWidth x m_commonHeight) per layer.
-    glDeleteTextures(1, &m_textAtlas);
-    glGenTextures(1, &m_textAtlas);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_textAtlas);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RED, m_atlasWidth, m_atlasHeight, numLabels, 0, GL_RED, GL_UNSIGNED_BYTE,
-                 NULL);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    std::cout << "Line: " << __LINE__ << std::endl;
-    for (uint32_t i = 0; i < numLabels; i++) {
-        const std::string &text = nodes[i].title;
+    for (uint32_t i = 0; i < numLabels; ++i) {
         int32_t textWidth = labelWidths[i];
 
-        std::vector<uint8_t> pixels(m_atlasWidth * m_atlasHeight, 0);
-        int32_t penX = (m_atlasWidth - textWidth) / 2;
+        Pixels layer;
+        layer.assign(atlasWidth * atlasHeight, 0);
 
+        int32_t penX = (atlasWidth - textWidth) / 2;
         int32_t baseline = m_commonBaseline;
+        const std::string &text = nodes[i].title;
         for (uint8_t c : text) {
             if (c >= 128)
                 continue;
@@ -150,30 +133,51 @@ void LabelEngine::SetupTextureAtlases(const std::vector<GS::Node> &nodes) {
             int32_t xpos = penX + ch.bearing.x;
             int32_t ypos = baseline - ch.bearing.y;
 
-            // Loop over the glyph’s bitmap and copy pixels.
             for (uint32_t row = 0; row < static_cast<uint32_t>(ch.size.y); row++) {
                 for (uint32_t col = 0; col < static_cast<uint32_t>(ch.size.x); col++) {
                     int32_t x = xpos + col;
                     int32_t y = ypos + row;
-                    if (x < 0 || x >= m_atlasWidth || y < 0 || y >= m_atlasHeight)
+                    if (x < 0 || x >= atlasWidth || y < 0 || y >= atlasHeight)
                         continue;
-                    pixels[y * m_atlasWidth + x] = ch.bitmapBuffer[row * ch.size.x + col];
+                    layer[y * atlasWidth + x] = ch.bitmapBuffer[row * ch.size.x + col];
                 }
             }
             penX += ch.advance / 64;
         }
+        atlases.emplace_back(std::move(layer));
+    }
+
+    std::cout << "atlasWidth: " << atlasWidth << std::endl;
+    std::cout << "atlasHeight: " << atlasHeight << std::endl;
+
+    return {atlasWidth, atlasHeight, std::move(atlases)};
+}
+
+void LabelEngine::UploadLabelAtlasesToGPU(const LabelAtlasData &data) {
+    uint32_t numLabels = static_cast<uint32_t>(data.atlases.size());
+    m_atlasWidth = data.atlasWidth;
+    m_atlasHeight = data.atlasHeight;
+    m_atlasLayerCount = numLabels;
+
+    glDeleteTextures(1, &m_textAtlas);
+    glGenTextures(1, &m_textAtlas);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_textAtlas);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RED, m_atlasWidth, m_atlasHeight, numLabels, 0, GL_RED, GL_UNSIGNED_BYTE,
+                 nullptr);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    for (uint32_t i = 0; i < numLabels; ++i) {
+        const auto &pixels = data.atlases[i];
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, m_atlasWidth, m_atlasHeight, 1, GL_RED, GL_UNSIGNED_BYTE,
                         pixels.data());
     }
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-    m_updatingBufs = false;
 }
 
 void LabelEngine::UpdateLabelPositions(const std::vector<GS::Node> &nodes) {
-    if (m_updatingBufs) {
-        return;
-    }
-
     uint32_t numLabels = static_cast<uint32_t>(nodes.size());
 
     m_activeLabels.resize(numLabels);

@@ -29,6 +29,14 @@ struct LabelData {
     float texIndex;
 };
 
+typedef std::vector<uint8_t> Pixels;
+
+struct LabelAtlasData {
+    int32_t atlasWidth;
+    int32_t atlasHeight;
+    std::vector<Pixels> atlases;
+};
+
 class LabelEngine {
   public:
     LabelEngine(const std::string &fontPath, const std::string &vertexShader, const std::string &fragmentShader,
@@ -43,6 +51,9 @@ class LabelEngine {
     void SetupTextureAtlases(const std::vector<GS::Node> &nodes);
     void UpdateLabelPositions(const std::vector<GS::Node> &nodes);
 
+    LabelAtlasData PrepareLabelAtlases(const std::vector<GS::Node> &nodes);
+    void UploadLabelAtlasesToGPU(const LabelAtlasData &data);
+
   private:
     std::unique_ptr<Shader> m_shader;
     GLuint m_VAO;
@@ -54,8 +65,6 @@ class LabelEngine {
 
     int32_t m_commonBaseline;
     int32_t m_commonHeight;
-
-    bool m_updatingBufs = false;
 
     std::vector<LabelCharacter> m_characters;
 };
