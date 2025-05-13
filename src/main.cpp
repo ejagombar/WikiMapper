@@ -53,7 +53,7 @@ void search(GS::Graph &graph, std::string query) {
         return;
     }
 
-    auto linkedPages = neo4jDB.GetLinkingPages(query);
+    auto linkedPages = neo4jDB.GetLinkedPages(query);
     auto x = graph.AddNode(query.c_str());
 
     for (const auto &page : linkedPages) {

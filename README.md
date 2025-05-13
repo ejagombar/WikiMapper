@@ -7,11 +7,11 @@
 ## Todo
 
 ### Quick TODO List
-- [ ] Fix the issue where the data loads twice upon searching
-- [ ] Fix the issue where it crashes when no results are found
-- [ ] Camera movement smoothness issues
-- [ ] UI inconsistencies
+- [x] Fix the issue where the data loads twice upon searching
+- [x] Fix the issue where it crashes when no results are found
 - [ ] Add improved visuals - lighting, and glow
+- [ ] UI inconsistencies
+- [ ] Camera movement smoothness issues
 
 ### Features
 - [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness

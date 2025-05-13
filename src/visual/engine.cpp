@@ -277,8 +277,6 @@ uint32_t Engine::Run() {
             textureGenTriggered = false;
         }
 
-        std::cout << "Loop" << std::endl;
-
         loop();
 
         glfwSwapBuffers(m_window);
