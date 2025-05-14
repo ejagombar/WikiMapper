@@ -95,7 +95,7 @@ void setupGraph(GS::Graph &db, bool genData = true) {
 void graphPositionSimulation() {
     globalLogger->info("Physics thread starting");
 
-    const auto simulationInterval = std::chrono::milliseconds(200);
+    const auto simulationInterval = std::chrono::milliseconds(20);
 
     auto simStart = std::chrono::system_clock::now();
     auto frameStart = simStart;
@@ -127,10 +127,6 @@ void graphPositionSimulation() {
             simStart = std::chrono::system_clock::now();
         }
 
-        if (dat.resetSimulation) {
-            simStart = std::chrono::system_clock::now();
-        }
-
         dat.forceMultiplier = 1.f;
         if (std::chrono::duration_cast<std::chrono::seconds>(frameEnd - simStart).count() > 4.) {
             dat.forceMultiplier = 0.0f;
@@ -144,6 +140,7 @@ void graphPositionSimulation() {
             dat.resetSimulation = false;
             controlData.sim.store(dat, std::memory_order_relaxed);
             globalLogger->info("Reset simulation");
+            simStart = std::chrono::system_clock::now();
         }
 
         // updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);

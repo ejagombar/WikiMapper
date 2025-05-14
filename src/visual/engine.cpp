@@ -20,9 +20,7 @@
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
-#include <iostream>
 #include <memory>
-#include <thread>
 #include <vector>
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
@@ -333,7 +331,7 @@ void Engine::loop() {
     uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
     uniforms.pointLightCount = 2;
 
-    uniforms.pointLight[0] = {cameraPosition, glm::vec3(0.5f, 0.5f, 0.5f), 1.0f, 0.09f, 0.032f};
+    uniforms.pointLight[0] = {cameraPosition, glm::vec3(0.7f, 0.7f, 0.5f), 1.0f, 0.09f, 0.032f};
     uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
 
     m_shader.environmentUBO->Update(uniforms);
