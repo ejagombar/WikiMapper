@@ -87,17 +87,43 @@ uint32_t Graph::GetTopNode() {
     return topNode;
 }
 
-Graph &Graph::operator=(Graph &other) {
-    nodes = other.nodes;
-    edges = other.edges;
-
-    return other;
+Graph &Graph::operator=(const Graph &other) {
+    if (this != &other) {
+        nodes = other.nodes;
+        edges = other.edges;
+    }
+    return *this;
 }
 
 void Graph::Clear() {
     nodes.clear();
     edges.clear();
 };
+
+float Graph::GetRadius() const {
+    if (nodes.empty())
+        return 0.0f;
+
+    glm::vec3 center = GetCenter();
+    float maxDistSq = 0.0f;
+
+    for (const auto &node : nodes) {
+        float distSq = glm::dot(node.pos - center, node.pos - center);
+        maxDistSq = std::max(maxDistSq, distSq);
+    }
+
+    return std::sqrt(maxDistSq);
+}
+glm::vec3 Graph::GetCenter() const {
+    if (nodes.empty())
+        return glm::vec3(0, 0, 0);
+
+    glm::vec3 sum(0, 0, 0);
+    for (const auto &node : nodes) {
+        sum += node.pos;
+    }
+    return sum / static_cast<float>(nodes.size());
+}
 
 // ------------------ GraphTripleBuffer ------------------
 

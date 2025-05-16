@@ -28,6 +28,13 @@ GUI::GUI(GLFWwindow *m_window, std::string font, ControlData &controlData) : m_c
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+    ImGuiStyle &style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        style.WindowRounding = 2.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
 
     m_defaultFont = io.Fonts->AddFontFromFileTTF(font.c_str(), 35.0f);
     m_titleFont = io.Fonts->AddFontFromFileTTF(font.c_str(), 100.0f);
@@ -206,6 +213,14 @@ void GUI::RenderSearchBar() {
 void GUI::EndFrame() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    ImGuiIO &io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        GLFWwindow *backup_current_context = glfwGetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(backup_current_context);
+    }
 }
 
 void GUI::RenderDebugMenu() {
@@ -215,18 +230,33 @@ void GUI::RenderDebugMenu() {
 
     SimulationControlData localSim = m_controlData.sim.load(std::memory_order_relaxed);
 
-    bool valUpdated[4];
-    valUpdated[0] =
-        ImGui::SliderFloat("qqMultiplier", &localSim.qqMultiplier, 0.001f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-    valUpdated[1] = ImGui::SliderFloat("gravityMultiplier", &localSim.gravityMultiplier, 0.1f, 100.0f, "%.3f",
+    bool valUpdated[10];
+    valUpdated[0] = ImGui::SliderFloat("Repulsion Strength", &localSim.repulsionStrength, 1.0f, 1000.f, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
-    valUpdated[2] = ImGui::SliderFloat("accelSizeMultiplier", &localSim.accelSizeMultiplier, 0.001f, 1.0f, "%.4f",
+    valUpdated[1] = ImGui::SliderFloat("Attraction Strength", &localSim.attractionStrength, 0.02f, 20, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
-    valUpdated[3] = ImGui::SliderFloat("targetDistance", &localSim.targetDistance, 1.f, 200.0f, "%.3f",
+    valUpdated[2] = ImGui::SliderFloat("Centering Force", &localSim.centeringForce, 10.0f, 10000.0f, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
-    if (valUpdated[0] || valUpdated[1] || valUpdated[2] || valUpdated[3]) {
+    valUpdated[3] =
+        ImGui::SliderFloat("Time Step", &localSim.timeStep, .01f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    valUpdated[4] = ImGui::SliderFloat("Force Multiplier", &localSim.forceMultiplier, 0.1f, 10.0f, "%.3f",
+                                       ImGuiSliderFlags_AlwaysClamp);
+    valUpdated[5] =
+        ImGui::SliderFloat("Max Force", &localSim.maxForce, 0.1f, 20.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    valUpdated[6] = ImGui::SliderFloat("Target Distance", &localSim.targetDistance, .01f, 10.0f, "%.3f",
+                                       ImGuiSliderFlags_AlwaysClamp);
+
+    if (valUpdated[0] | valUpdated[1] | valUpdated[2] | valUpdated[3] | valUpdated[4] | valUpdated[5] | valUpdated[6]) {
         m_controlData.sim.store(localSim, std::memory_order_relaxed);
     }
+
+    auto &colors = m_controlData.engine.customColors;
+
+    ImGui::SliderFloat("Color 1", &colors[0], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Color 2", &colors[1], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Color 3", &colors[2], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Color 4", &colors[3], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Color 5", &colors[4], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::PopItemWidth();
     ImGui::End();

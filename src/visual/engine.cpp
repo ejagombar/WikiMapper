@@ -326,13 +326,19 @@ void Engine::loop() {
 
     const glm::mat4 cameraDirection = cameraMatrices.projection * glm::mat4(glm::mat3(view));
 
+    auto &colors = m_controlData.engine.customColors;
+
     EnvironmentLighting uniforms = {};
     uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
     uniforms.pointLightCount = 2;
 
-    uniforms.pointLight[0] = {cameraPosition, glm::vec3(0.7f, 0.7f, 0.5f), 1.0f, 0.09f, 0.032f};
+    uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
     uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
+
+    // uniforms.pointLight[0] = {cameraPosition, glm::vec3(colors[0], colors[0], colors[0]), colors[1], colors[2],
+    //                           colors[3]};
+    // uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
 
     m_shader.environmentUBO->Update(uniforms);
 
