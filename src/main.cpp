@@ -28,6 +28,7 @@ std::shared_ptr<spdlog::logger> globalLogger = spdlog::basic_logger_mt("global",
 
 GS::GraphTripleBuf graphBuf;
 ControlData controlData;
+std::atomic<bool> shouldTerminate(false);
 
 void generateRealData(GS::Graph &graph) {
     Neo4jInterface neo4jDB("http://127.0.0.1:7474");
@@ -40,11 +41,48 @@ void generateRealData(GS::Graph &graph) {
 
     auto x = graph.AddNode("Physics");
 
+    int i = 0;
     for (const auto &page : linkedPages) {
+        i++;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(x, idx);
         graph.nodes[x].size++;
+        if (i > 30) {
+            break;
+        }
     }
+
+    linkedPages = neo4jDB.GetLinkedPages("winchester");
+
+    i = 0;
+    for (const auto &page : linkedPages) {
+        i++;
+        const uint32_t idx = graph.AddNode(page.title.c_str());
+        graph.AddEdge(5, idx);
+        graph.nodes[5].size++;
+
+        if (i > 20) {
+            break;
+        }
+    }
+
+    i = 0;
+
+    linkedPages = neo4jDB.GetLinkedPages("cake");
+    for (const auto &page : linkedPages) {
+        i++;
+        const uint32_t idx = graph.AddNode(page.title.c_str());
+        graph.AddEdge(11, idx);
+        graph.nodes[11].size++;
+
+        if (i > 20) {
+            break;
+        }
+    }
+
+    graph.AddEdge(3, 14);
+    graph.AddEdge(7, 3);
+    graph.AddEdge(8, 11);
 }
 
 void search(GS::Graph &graph, std::string query) {
@@ -95,12 +133,12 @@ void setupGraph(GS::Graph &db, bool genData = true) {
 void graphPositionSimulation() {
     globalLogger->info("Physics thread starting");
 
-    const auto simulationInterval = std::chrono::milliseconds(20);
+    const auto simulationInterval = std::chrono::milliseconds(0);
 
     auto simStart = std::chrono::system_clock::now();
     auto frameStart = simStart;
 
-    while (true) {
+    while (!shouldTerminate) {
         GS::Graph *readGraph = graphBuf.GetCurrent();
         GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
 
@@ -127,11 +165,6 @@ void graphPositionSimulation() {
             simStart = std::chrono::system_clock::now();
         }
 
-        dat.forceMultiplier = 1.f;
-        if (std::chrono::duration_cast<std::chrono::seconds>(frameEnd - simStart).count() > 4.) {
-            dat.forceMultiplier = 0.0f;
-        }
-
         if (dat.resetSimulation) {
             setupGraph(*writeGraph, false);
             graphBuf.Publish();
@@ -143,7 +176,7 @@ void graphPositionSimulation() {
             simStart = std::chrono::system_clock::now();
         }
 
-        // updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
+        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
@@ -160,8 +193,11 @@ int main() {
     Engine renderEngine(graphBuf, controlData);
 
     std::thread t{graphPositionSimulation};
-    t.detach();
 
     renderEngine.Run();
+    shouldTerminate = true;
+
+    t.join();
+
     globalLogger->info("WikiMapper exited.");
 }
