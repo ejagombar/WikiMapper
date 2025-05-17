@@ -2,12 +2,15 @@
 #include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
+#include <iostream>
 #include <json/json.h>
 #include <vector>
 
 #include "controlData.hpp"
 
 #include "simulation.hpp"
+
+#define DEBUG_FORCES
 
 void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt,
                           const SimulationControlData &simControlData) {
@@ -45,7 +48,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
 #endif
 
     static float coolingFactor = 1.0f;
-    coolingFactor = std::max(0.1f, coolingFactor * 0.99f);
+    // coolingFactor = std::max(0.1f, coolingFactor * 0.99f);
 
     // Determine simulation scale based on node count to prevent explosion with large graphs
     float nodeCountScaling = 1.0f / (1.0f + std::log10(std::max(1.0f, float(writeG.nodes.size()))));
@@ -67,7 +70,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
             if (movementDot < 0) {
                 float reversalStrength = -movementDot / (currentMagnitude * prevMagnitude + 0.0001f);
 
-                nodeDamping[i] = std::min(0.95f, nodeDamping[i] + reversalStrength * 0.2f);
+                nodeDamping[i] = std::min(0.95f, nodeDamping[i] + reversalStrength * 0);
 
                 // For severe oscillations, apply position smoothing
                 if (reversalStrength > 0.7f && currentMagnitude > 0.5f) {
@@ -100,14 +103,14 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
             glm::vec3 delta = writeG.nodes[i].pos - writeG.nodes[j].pos;
             float distSq = glm::dot(delta, delta);
 
-            const float safeMinDistance = 5.0f; // Much larger minimum distance
+            const float safeMinDistance = 0.1f;
             if (distSq < safeMinDistance * safeMinDistance) {
                 distSq = safeMinDistance * safeMinDistance;
             }
 
             float repulsionForce = effectiveRepulsionStrength * writeG.nodes[i].size * writeG.nodes[j].size / distSq;
 
-            repulsionForce = std::min(repulsionForce, 1.0f);
+            // repulsionForce = std::min(repulsionForce, 1.0f);
 
             if (glm::dot(delta, delta) > 1e-10f) {
                 writeG.nodes[i].force += glm::normalize(delta) * repulsionForce;
@@ -128,7 +131,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
             float attractionForce =
                 effectiveAttractionStrength * connectionFactor * (distance - simControlData.targetDistance);
 
-            attractionForce = std::max(-1.0f, std::min(1.0f, attractionForce));
+            // attractionForce = std::max(-1.0f, std::min(1.0f, attractionForce));
 
             if (distance > 1e-10f) {
                 glm::vec3 attractForce = glm::normalize(delta) * attractionForce;

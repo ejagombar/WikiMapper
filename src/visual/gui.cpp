@@ -231,19 +231,19 @@ void GUI::RenderDebugMenu() {
     SimulationControlData localSim = m_controlData.sim.load(std::memory_order_relaxed);
 
     bool valUpdated[10];
-    valUpdated[0] = ImGui::SliderFloat("Repulsion Strength", &localSim.repulsionStrength, 1.0f, 1000.f, "%.3f",
+    valUpdated[0] = ImGui::SliderFloat("Repulsion Strength", &localSim.repulsionStrength, 0.01f, 100.f, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
-    valUpdated[1] = ImGui::SliderFloat("Attraction Strength", &localSim.attractionStrength, 0.02f, 20, "%.3f",
+    valUpdated[1] = ImGui::SliderFloat("Attraction Strength", &localSim.attractionStrength, 0.01f, 100.0f, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
-    valUpdated[2] = ImGui::SliderFloat("Centering Force", &localSim.centeringForce, 10.0f, 10000.0f, "%.3f",
+    valUpdated[2] = ImGui::SliderFloat("Centering Force", &localSim.centeringForce, 0.1f, 50.0f, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
     valUpdated[3] =
         ImGui::SliderFloat("Time Step", &localSim.timeStep, .01f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
     valUpdated[4] = ImGui::SliderFloat("Force Multiplier", &localSim.forceMultiplier, 0.1f, 10.0f, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
     valUpdated[5] =
-        ImGui::SliderFloat("Max Force", &localSim.maxForce, 0.1f, 20.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-    valUpdated[6] = ImGui::SliderFloat("Target Distance", &localSim.targetDistance, .01f, 10.0f, "%.3f",
+        ImGui::SliderFloat("Max Force", &localSim.maxForce, 0.1f, 200.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    valUpdated[6] = ImGui::SliderFloat("Target Distance", &localSim.targetDistance, .01f, 100.0f, "%.3f",
                                        ImGuiSliderFlags_AlwaysClamp);
 
     if (valUpdated[0] | valUpdated[1] | valUpdated[2] | valUpdated[3] | valUpdated[4] | valUpdated[5] | valUpdated[6]) {
