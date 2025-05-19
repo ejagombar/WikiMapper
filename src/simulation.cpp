@@ -10,7 +10,7 @@
 
 #include "simulation.hpp"
 
-#define DEBUG_FORCES
+// #define DEBUG_FORCES
 
 void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt,
                           const SimulationControlData &simControlData) {

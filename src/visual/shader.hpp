@@ -16,6 +16,7 @@ class Shader {
 
     void SetBool(const std::string &name, bool value) const;
     void SetInt(const std::string &name, GLint value) const;
+    void SetUInt(const std::string &name, GLuint value) const;
     void SetFloat(const std::string &name, GLfloat value) const;
 
     void SetVec2(const std::string &name, const glm::vec2 &value) const;

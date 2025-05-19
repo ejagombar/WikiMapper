@@ -125,8 +125,8 @@ void setupGraph(GS::Graph &db, bool genData = true) {
         db.nodes[i].rgb[0] = static_cast<char>(col.r);
         db.nodes[i].rgb[1] = static_cast<char>(col.g);
         db.nodes[i].rgb[2] = static_cast<char>(col.b);
-        db.nodes[i].size = 20;
-        db.nodes[i].edgeSize = 5;
+        db.nodes[i].size = std::sqrt(db.nodes[i].size) * 5;
+        db.nodes[i].edgeSize = db.nodes[i].size * 0.7f;
     }
 }
 

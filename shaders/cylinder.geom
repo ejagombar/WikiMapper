@@ -33,7 +33,7 @@ void main()
     vec3 startPos = gl_in[0].gl_Position.xyz + vec3(sin(time + gl_in[0].gl_Position.z * offsetSpeed) * 0.04, sin(time + gl_in[0].gl_Position.y * offsetSpeed) * 0.055, sin(time + gl_in[0].gl_Position.x * offsetSpeed) * 0.07);
     vec3 endPos = gl_in[1].gl_Position.xyz + vec3(sin(time + gl_in[1].gl_Position.z * offsetSpeed) * 0.04, sin(time + gl_in[1].gl_Position.y * offsetSpeed) * 0.055, sin(time + gl_in[1].gl_Position.x * offsetSpeed) * 0.07);
 
-    gRadius = vRadius[0];
+    gRadius = min(vRadius[0], vRadius[1]);
 
     vec3 dir = normalize(startPos - endPos);
 

@@ -25,6 +25,7 @@ in vec3 fColor; // Interpolated color from the geometry shader
 in vec3 fPos; // World position of the sphere
 in float fSize;
 in vec2 mapping; // Mapping coordinates for normal calculation
+flat in uint fNodeID;
 
 out vec4 FragColor;
 
@@ -98,5 +99,9 @@ void main()
     // Combine all contributions
     vec3 lighting = ambient + globalLighting + pointLighting;
 
+    // if (selectedID == int(fNodeID)) {
+    //     FragColor = vec4(lighting * fColor * vec3(1.1), 1.0);
+    // } else {
+    // }
     FragColor = vec4(lighting * fColor, 1.0);
 }

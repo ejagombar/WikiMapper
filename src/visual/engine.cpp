@@ -20,6 +20,7 @@
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -59,6 +60,7 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
     m_gui = std::make_unique<GUI>(m_window, m_font, m_controlData);
+    m_picking = std::make_unique<SelectorSystem>(m_scrWidth, m_scrHeight);
 
     setupShaders();
 
@@ -93,6 +95,7 @@ void Engine::setupShaders() {
     m_shader.screenBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
     m_shader.sphere = std::make_unique<Shader>("sphere.vert", "sphere.frag", "sphere.geom");
     m_shader.cylinder = std::make_unique<Shader>("cylinder.vert", "cylinder.frag", "cylinder.geom");
+    m_picking->pickingShader = std::make_unique<Shader>("selector.vert", "selector.frag", "selector.geom");
 
     m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight),
                                             glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
@@ -108,6 +111,7 @@ void Engine::setupShaders() {
     m_shader.cylinder->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
     m_shader.sphere->LinkUBO("EnvironmentUniforms", m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
     m_shader.cylinder->LinkUBO("EnvironmentUniforms", m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_picking->pickingShader->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
 
     GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
 
@@ -189,6 +193,30 @@ void Engine::updateEdges(GS::Graph &graph) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     globalLogger->info("Finish updating edges");
+}
+
+void Engine::updateSelectorBuffer() {
+    m_picking->Begin();
+    m_picking->pickingShader->Use();
+    m_picking->pickingShader->SetUInt("nodeOffset", 0);
+
+    glBindVertexArray(m_VAOs[1]);
+    glDrawArrays(GL_POINTS, 0, m_graph->nodes.size());
+    m_picking->End();
+}
+
+void Engine::processMouseSelectorInput(GLFWwindow *window) {
+    if (m_state == stop || m_gui->Active() || m_mouseActive) {
+        m_hoveredNodeID = -1;
+        return;
+    }
+
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+
+    updateSelectorBuffer();
+
+    m_hoveredNodeID = m_picking->ReadNodeID(static_cast<int>(xpos), static_cast<int>(ypos));
 }
 
 // Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
@@ -293,6 +321,7 @@ void Engine::loop() {
     m_camera.SetMouseSensitivity(m_controlData.engine.mouseSensitivity);
 
     processEngineInput(m_window);
+
     const float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - m_lastFrame;
     m_lastFrame = currentFrame;
@@ -331,14 +360,25 @@ void Engine::loop() {
     EnvironmentLighting uniforms = {};
     uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
-    uniforms.pointLightCount = 2;
+    uniforms.pointLightCount = 3;
 
     uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
-    uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
 
-    // uniforms.pointLight[0] = {cameraPosition, glm::vec3(colors[0], colors[0], colors[0]), colors[1], colors[2],
-    //                           colors[3]};
-    // uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 1.0f), 1.0f, 0.07f, 0.017f};
+    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
+        std::cout << m_graph->nodes[m_hoveredNodeID].title << std::endl;
+        glm::vec3 nodePos = m_graph->nodes[m_hoveredNodeID].pos;
+
+        glm::vec3 dirToCamera = cameraPosition - nodePos;
+        dirToCamera = glm::normalize(dirToCamera);
+
+        glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
+
+        uniforms.pointLight[1] = {lightPos, glm::vec3(1.f, 1.0f, 1.0f), 0.007f, 0.07f, 0.017f};
+    } else {
+        uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0), 0.001f, 0.1f, 0.001f};
+    }
+
+    uniforms.pointLight[2] = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.f, 1.0f, 1.0f), 0.07f, 0.07f, 0.017f};
 
     m_shader.environmentUBO->Update(uniforms);
 
@@ -346,8 +386,17 @@ void Engine::loop() {
 
     m_shader.cameraMatricesUBO->Update(cameraMatrices);
 
+    processMouseSelectorInput(m_window);
+
     m_shader.sphere->Use();
     m_shader.sphere->SetFloat("time", currentFrame);
+
+    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
+        m_shader.sphere->SetInt("selectedID", m_hoveredNodeID);
+    } else {
+        m_shader.sphere->SetInt("selectedID", -1);
+    }
+
     glBindVertexArray(m_VAOs[1]);
     glDrawArrays(GL_POINTS, 0, m_graph->nodes.size());
 
@@ -443,7 +492,8 @@ void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int 
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
-    m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
+    // m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
+    m_picking->Resize(width, height);
 
     m_scrWidth = width;
     m_scrHeight = height;

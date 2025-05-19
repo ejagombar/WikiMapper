@@ -147,9 +147,6 @@ LabelAtlasData LabelEngine::PrepareLabelAtlases(const std::vector<GS::Node> &nod
         atlases.emplace_back(std::move(layer));
     }
 
-    std::cout << "atlasWidth: " << atlasWidth << std::endl;
-    std::cout << "atlasHeight: " << atlasHeight << std::endl;
-
     return {atlasWidth, atlasHeight, std::move(atlases)};
 }
 

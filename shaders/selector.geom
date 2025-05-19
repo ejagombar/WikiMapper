@@ -1,10 +1,6 @@
 #version 330 core
-
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
-
-uniform float time;
-const float offsetSpeed = 0.4;
 
 layout(std140) uniform GlobalUniforms {
     mat4 projection;
@@ -12,33 +8,22 @@ layout(std140) uniform GlobalUniforms {
     vec4 cameraPosition;
 };
 
-in vec3 vColor[];
 in float vSize[];
 flat in uint vNodeID[];
 
-out vec3 fPos; // Pass world position to fragment shader
-out vec3 fColor;
-out float fSize;
-out vec2 mapping;
 flat out uint fNodeID;
+out vec2 mapping;
 
 const float g_boxCorrection = 1.5;
 
 void main() {
-    fPos = gl_in[0].gl_Position.xyz;
-    fColor = vColor[0];
-    fSize = vSize[0];
     fNodeID = vNodeID[0];
 
-    // Extract world-space camera basis vectors
     vec3 cameraRight = vec3(view[0][0], view[1][0], view[2][0]);
     vec3 cameraUp = vec3(view[0][1], view[1][1], view[2][1]);
 
     vec3 position = gl_in[0].gl_Position.xyz;
-    float scale = 1;
-
-    vec3 center = gl_in[0].gl_Position.xyz + vec3(sin(time + gl_in[0].gl_Position.z * offsetSpeed) * 0.04, sin(time + gl_in[0].gl_Position.y * offsetSpeed) * 0.055, sin(time + gl_in[0].gl_Position.x * offsetSpeed) * 0.07);
-
+    vec3 center = position;
     vec3 offsetX = vSize[0] * cameraRight;
     vec3 offsetY = vSize[0] * cameraUp;
 

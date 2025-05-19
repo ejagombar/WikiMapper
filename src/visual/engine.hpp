@@ -11,6 +11,7 @@
 #include "./filter.hpp"
 #include "./gui.hpp"
 #include "./label.hpp"
+#include "./selector.hpp"
 #include "./skybox.hpp"
 #include "./text.hpp"
 #include "./uniformBufferObject.hpp"
@@ -47,12 +48,6 @@ class Engine {
         GLubyte b;
         GLubyte radius;
         GLfloat position[3];
-    };
-
-    struct CameraMatrices {
-        glm::mat4 projection;
-        glm::mat4 view;
-        glm::vec4 position;
     };
 
     struct PointLight {
@@ -111,6 +106,9 @@ class Engine {
     void updateParticles(GS::Graph &graph);
     void updateGraphData();
 
+    void updateSelectorBuffer();
+    void processMouseSelectorInput(GLFWwindow *window);
+
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;
 
@@ -141,6 +139,8 @@ class Engine {
     std::unique_ptr<Text2d> m_text2d;
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<GUI> m_gui;
+    std::unique_ptr<SelectorSystem> m_picking;
+    int m_hoveredNodeID = -1;
 
     GS::GraphTripleBuf &m_graphBuf;
     uint32_t m_lastVersion = 0;
