@@ -8,12 +8,13 @@ out float vSize;
 
 flat out uint vNodeID;
 uniform int selectedID;
+uniform float time;
 
 void main()
 {
     if (selectedID == gl_VertexID) {
-        vColor = aRGBRadius.rgb * vec3(1.1);
-        vSize = aRGBRadius.a * 11;
+        vColor = aRGBRadius.rgb;
+        vSize = aRGBRadius.a * 10 * (sin(time * 4) + 10) / 10;
     } else {
         vColor = aRGBRadius.rgb;
         vSize = aRGBRadius.a * 10;

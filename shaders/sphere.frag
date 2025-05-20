@@ -21,6 +21,12 @@ layout(std140) uniform GlobalUniforms {
     vec4 cameraPosition;
 };
 
+layout(std140) uniform MaterialProperties {
+    float specularStrength;
+    float shininess;
+    float ambient;
+};
+
 in vec3 fColor; // Interpolated color from the geometry shader
 in vec3 fPos; // World position of the sphere
 in float fSize;
@@ -73,6 +79,11 @@ void main()
     vec3 pointLighting = vec3(0.0);
     for (int i = 0; i < pointLightCount; ++i) {
         PointLight light = pointLight[i];
+
+        if (!(light.constant > 0 && light.linear > 0 && light.quadratic > 0)) {
+            continue;
+        }
+
         vec3 lightDir = normalize(light.position - fPos);
         float distance = length(light.position - fPos);
 
@@ -85,23 +96,14 @@ void main()
         // Specular component
         vec3 viewDir = normalize(cameraPosition.xyz - fPos);
         vec3 reflectDir = reflect(-lightDir, normal);
-        float specularStrength = 0.9;
-        float shininess = 128.0;
         float specular = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 
         // Combine point light components
         pointLighting += attenuation * (diffuse + specularStrength * specular) * light.color;
     }
 
-    // Ambient component
-    vec3 ambient = 0.2 * fColor;
-
     // Combine all contributions
-    vec3 lighting = ambient + globalLighting + pointLighting;
+    vec3 lighting = ambient * fColor + globalLighting + pointLighting;
 
-    // if (selectedID == int(fNodeID)) {
-    //     FragColor = vec4(lighting * fColor * vec3(1.1), 1.0);
-    // } else {
-    // }
     FragColor = vec4(lighting * fColor, 1.0);
 }

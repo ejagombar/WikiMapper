@@ -106,10 +106,13 @@ void Engine::setupShaders() {
         std::make_unique<UBOManager<CameraMatrices>>(m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
     m_shader.environmentUBO =
         std::make_unique<UBOManager<EnvironmentLighting>>(m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_shader.materialUBO =
+        std::make_unique<UBOManager<MaterialProperties>>(m_shader.MATERIAL_PROPERTIES_UBO_BINDING_POINT);
 
     m_shader.sphere->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
     m_shader.cylinder->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
     m_shader.sphere->LinkUBO("EnvironmentUniforms", m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_shader.sphere->LinkUBO("MaterialProperties", m_shader.MATERIAL_PROPERTIES_UBO_BINDING_POINT);
     m_shader.cylinder->LinkUBO("EnvironmentUniforms", m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
     m_picking->pickingShader->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
 
@@ -355,12 +358,12 @@ void Engine::loop() {
 
     const glm::mat4 cameraDirection = cameraMatrices.projection * glm::mat4(glm::mat3(view));
 
-    auto &colors = m_controlData.engine.customColors;
+    auto &colors = m_controlData.engine.customVals;
 
     EnvironmentLighting uniforms = {};
     uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
-    uniforms.pointLightCount = 3;
+    uniforms.pointLightCount = 2;
 
     uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
 
@@ -373,12 +376,10 @@ void Engine::loop() {
 
         glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
 
-        uniforms.pointLight[1] = {lightPos, glm::vec3(1.f, 1.0f, 1.0f), 0.007f, 0.07f, 0.017f};
+        uniforms.pointLight[1] = {lightPos, glm::vec3(1.f, 1.0f, 1.0f), 0.6f, 0.03, m_controlData.engine.customVals[5]};
     } else {
-        uniforms.pointLight[1] = {glm::vec3(-2.0f, 1.0f, -1.0f), glm::vec3(0), 0.001f, 0.1f, 0.001f};
+        uniforms.pointLight[1] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
     }
-
-    uniforms.pointLight[2] = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.f, 1.0f, 1.0f), 0.07f, 0.07f, 0.017f};
 
     m_shader.environmentUBO->Update(uniforms);
 
@@ -390,6 +391,11 @@ void Engine::loop() {
 
     m_shader.sphere->Use();
     m_shader.sphere->SetFloat("time", currentFrame);
+
+    MaterialProperties properties = {m_controlData.engine.customVals[0], m_controlData.engine.customVals[1],
+                                     m_controlData.engine.customVals[2]};
+
+    m_shader.materialUBO->Update(properties);
 
     if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
         m_shader.sphere->SetInt("selectedID", m_hoveredNodeID);

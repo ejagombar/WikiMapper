@@ -65,12 +65,20 @@ class Engine {
         alignas(16) PointLight pointLight[4];
     };
 
+    struct MaterialProperties {
+        alignas(4) float specularStrength;
+        alignas(4) float shininess;
+        alignas(4) float ambient;
+    };
+
     struct ShaderData {
         const GLuint CAMERA_MATRICES_UBO_BINDING_POINT = 0;
         const GLuint ENVIRONMENT_LIGHTING_UBO_BINDING_POINT = 1;
+        const GLuint MATERIAL_PROPERTIES_UBO_BINDING_POINT = 2;
 
         std::unique_ptr<UBOManager<CameraMatrices>> cameraMatricesUBO;
         std::unique_ptr<UBOManager<EnvironmentLighting>> environmentUBO;
+        std::unique_ptr<UBOManager<MaterialProperties>> materialUBO;
 
         std::unique_ptr<Shader> skybox;
         std::unique_ptr<Shader> screenBlur;

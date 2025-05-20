@@ -250,13 +250,11 @@ void GUI::RenderDebugMenu() {
         m_controlData.sim.store(localSim, std::memory_order_relaxed);
     }
 
-    auto &colors = m_controlData.engine.customColors;
+    auto &colors = m_controlData.engine.customVals;
 
-    ImGui::SliderFloat("Color 1", &colors[0], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("Color 2", &colors[1], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("Color 3", &colors[2], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("Color 4", &colors[3], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderFloat("Color 5", &colors[4], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Specular Strength", &colors[0], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Shininess", &colors[1], 0.0f, 512.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("Ambient", &colors[2], 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::PopItemWidth();
     ImGui::End();

@@ -29,7 +29,7 @@ struct EngineControlData {
     float cameraFov = 45;
     float mouseSensitivity = 2.f;
 
-    float customColors[5];
+    float customVals[6] = {0.9f, 128.f, 0.2f, 0.007, 0.07, 0.017};
 };
 
 struct ControlData {

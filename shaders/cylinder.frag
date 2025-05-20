@@ -107,6 +107,11 @@ void main()
     // Point light contributions
     for (int i = 0; i < pointLightCount; ++i) {
         PointLight light = pointLight[i];
+
+        if (!(light.constant > 0 && light.linear > 0 && light.quadratic > 0)) {
+            continue;
+        }
+
         vec3 toLight = light.position - new_point;
         float distance = length(toLight);
         vec3 lightDir = normalize(toLight);
