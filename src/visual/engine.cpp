@@ -20,7 +20,6 @@
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
-#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -210,6 +209,11 @@ void Engine::updateSelectorBuffer() {
 
 void Engine::processMouseSelectorInput(GLFWwindow *window) {
     if (m_state == stop || m_gui->Active() || m_mouseActive) {
+        if (m_hoveredNodeID >= 0) {
+            m_previousHoveredNodeID = m_hoveredNodeID;
+            m_inTransition = true;
+            m_hoverBrightness = 0.0f;
+        }
         m_hoveredNodeID = -1;
         return;
     }
@@ -219,7 +223,17 @@ void Engine::processMouseSelectorInput(GLFWwindow *window) {
 
     updateSelectorBuffer();
 
-    m_hoveredNodeID = m_picking->ReadNodeID(static_cast<int>(xpos), static_cast<int>(ypos));
+    int newHoveredNodeID = m_picking->ReadNodeID(static_cast<int>(xpos), static_cast<int>(ypos));
+
+    if (newHoveredNodeID != m_hoveredNodeID) {
+        if (m_hoveredNodeID >= 0) {
+            m_previousHoveredNodeID = m_hoveredNodeID;
+        }
+
+        m_hoveredNodeID = newHoveredNodeID;
+        m_inTransition = true;
+        m_hoverBrightness = 0.0f;
+    }
 }
 
 // Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
@@ -256,6 +270,42 @@ void Engine::updateParticles(GS::Graph &graph) {
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Engine::computeLighting(glm::vec3 cameraPosition) {
+    EnvironmentLighting uniforms = {};
+    uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
+    uniforms.pointLightCount = 3;
+
+    uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
+
+    if (m_previousHoveredNodeID >= 0 && m_previousHoveredNodeID < static_cast<int>(m_graph->nodes.size()) &&
+        m_inTransition) {
+
+        glm::vec3 prevNodePos = m_graph->nodes[m_previousHoveredNodeID].pos;
+        glm::vec3 dirToCamera = cameraPosition - prevNodePos;
+        dirToCamera = glm::normalize(dirToCamera);
+        glm::vec3 prevLightPos = prevNodePos + (dirToCamera * 1.0f);
+
+        uniforms.pointLight[1] = {prevLightPos, glm::vec3(1.0f - m_hoverBrightness), 0.6f, 0.03, 0.01};
+    } else {
+        uniforms.pointLight[1] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
+    }
+
+    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
+        m_gui->SetActiveNodeInfo(m_graph->nodes[m_hoveredNodeID].title);
+        glm::vec3 nodePos = m_graph->nodes[m_hoveredNodeID].pos;
+        glm::vec3 dirToCamera = cameraPosition - nodePos;
+        dirToCamera = glm::normalize(dirToCamera);
+        glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
+
+        uniforms.pointLight[2] = {lightPos, glm::vec3(m_hoverBrightness), 0.6f, 0.03, 0.01};
+    } else {
+        uniforms.pointLight[2] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
+    }
+
+    m_shader.environmentUBO->Update(uniforms);
 }
 
 Engine::~Engine() {
@@ -315,6 +365,21 @@ uint32_t Engine::Run() {
     return 0;
 }
 
+void Engine::computeHoverTransition(float deltaTime) {
+    if (m_inTransition) {
+        m_hoverBrightness += deltaTime * m_transitionSpeed;
+
+        if (m_hoverBrightness >= 1.0f) {
+            m_hoverBrightness = 1.0f;
+            m_inTransition = false;
+
+            if (m_hoveredNodeID < 0) {
+                m_previousHoveredNodeID = -1;
+            }
+        }
+    }
+}
+
 // The engine main loop. This is called to render each frame. It also processes any user inputs, and updates node
 // positions if required (if a new graph position frame has been generated).
 void Engine::loop() {
@@ -331,6 +396,8 @@ void Engine::loop() {
 
     if (m_state == stop)
         deltaTime = 0;
+
+    computeHoverTransition(deltaTime);
 
     uint32_t currentVersion = m_graphBuf.Version();
     if (currentVersion != m_lastVersion) {
@@ -355,36 +422,11 @@ void Engine::loop() {
     glm::mat3 normal = m_camera.CalcNormalMatrix();
 
     const CameraMatrices cameraMatrices{projection, view, glm::vec4(cameraPosition, 1.0)};
-
     const glm::mat4 cameraDirection = cameraMatrices.projection * glm::mat4(glm::mat3(view));
 
-    auto &colors = m_controlData.engine.customVals;
-
-    EnvironmentLighting uniforms = {};
-    uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
-    uniforms.pointLightCount = 2;
-
-    uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
-
-    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
-        m_gui->SetActiveNodeInfo(m_graph->nodes[m_hoveredNodeID].title);
-        glm::vec3 nodePos = m_graph->nodes[m_hoveredNodeID].pos;
-
-        glm::vec3 dirToCamera = cameraPosition - nodePos;
-        dirToCamera = glm::normalize(dirToCamera);
-
-        glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
-
-        uniforms.pointLight[1] = {lightPos, glm::vec3(1.f, 1.0f, 1.0f), 0.6f, 0.03, m_controlData.engine.customVals[5]};
-    } else {
-        uniforms.pointLight[1] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
-    }
-
-    m_shader.environmentUBO->Update(uniforms);
+    computeLighting(cameraPosition);
 
     m_skybox->Display(cameraDirection);
-
     m_shader.cameraMatricesUBO->Update(cameraMatrices);
 
     processMouseSelectorInput(m_window);
@@ -413,7 +455,6 @@ void Engine::loop() {
     m_shader.cylinder->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_LINES, 0, m_graph->edges.size() * 2);
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

@@ -47,7 +47,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
 #endif
 
     static float coolingFactor = 1.0f;
-    coolingFactor = std::max(0.1f, coolingFactor * 0.99f);
+    coolingFactor = std::max(0.0f, coolingFactor * 0.999f);
 
     float nodeCountScaling = 1.0f / (1.0f + std::log10(std::max(1.0f, float(writeG.nodes.size()))));
 

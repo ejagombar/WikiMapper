@@ -117,6 +117,10 @@ class Engine {
     void updateSelectorBuffer();
     void processMouseSelectorInput(GLFWwindow *window);
 
+    void computeLighting(glm::vec3 cameraPosition);
+
+    void computeHoverTransition(float deltaTime);
+
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;
 
@@ -159,6 +163,11 @@ class Engine {
 
     static const uint8_t count = 2;
     unsigned int m_VAOs[count], m_VBOs[count];
+
+    int m_previousHoveredNodeID = -1;
+    float m_hoverBrightness = 1.0f;
+    const float m_transitionSpeed = 4.0f;
+    bool m_inTransition = false;
 };
 
 #endif
