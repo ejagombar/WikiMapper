@@ -28,6 +28,8 @@ class GUI {
     void SearchCompleted(std::string resultTitle);
     void RenderSearchBar();
     void RenderBottomLeftBox();
+    void SetActiveNodeInfo(std::string activeNodeTitle);
+    void SetOriginNodeInfo(std::string originNodeTitle);
 
     bool Active();
 
@@ -36,6 +38,9 @@ class GUI {
   private:
     void subtitle(const char *text);
     void separator();
+
+    std::string m_activeNodeTitle;
+    std::string m_originNodeTitle;
 
     ControlData &m_controlData;
     GUISettings m_settings;

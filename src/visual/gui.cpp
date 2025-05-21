@@ -21,6 +21,10 @@ void GUI::separator() {
     ImGui::Dummy(ImVec2(0.0f, 5.0f));
 }
 
+void GUI::SetActiveNodeInfo(std::string activeNodeTitle) { m_activeNodeTitle = activeNodeTitle; }
+
+void GUI::SetOriginNodeInfo(std::string originNodeTitle) { m_originNodeTitle = originNodeTitle; }
+
 GUI::GUI(GLFWwindow *m_window, std::string font, ControlData &controlData) : m_controlData(controlData) {
     IMGUI_CHECKVERSION();
 
@@ -120,18 +124,20 @@ void GUI::RenderMenu() {
 };
 
 void GUI::RenderBottomLeftBox() {
-    ImVec2 boxSize = ImVec2(500, 110);
+    ImVec2 boxSize = ImVec2(800, 110);
     ImVec2 boxPos = ImVec2(20, ImGui::GetIO().DisplaySize.y - boxSize.y - 20);
-    ImVec4 boxColor = ImVec4(0.02f, 0.02f, 0.02f, 0.95f);
 
+    // Set position and size of the next window
     ImGui::SetNextWindowPos(boxPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(boxSize);
 
-    // Use WindowRounding for the outer window corners and no border
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 30.0f); // Increased rounding
+    // Push style variables (rounding, padding, no border)
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 30.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(60, 50));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f); // No border outline
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, boxColor);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    // Push style colors — make background fully transparent
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0)); // transparent
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
 
     ImGui::Begin("##bottomLeftBox", nullptr,
@@ -139,12 +145,13 @@ void GUI::RenderBottomLeftBox() {
                      ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoSavedSettings);
 
-    // Render the fixed, non-scrollable top text line using a larger bold font
+    // Top text line in a larger/bold font
     ImGui::PushFont(m_subTitleFont);
-    ImGui::Text(" Root: ");
+    ImGui::Text("Root: ");
     ImGui::PopFont();
 
-    ImGui::Text(" Hovering: ");
+    // Show dynamic hovering text
+    ImGui::Text("Hovering: %s", m_activeNodeTitle.c_str());
 
     ImGui::End();
 

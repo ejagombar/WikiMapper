@@ -368,7 +368,7 @@ void Engine::loop() {
     uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
 
     if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
-        std::cout << m_graph->nodes[m_hoveredNodeID].title << std::endl;
+        m_gui->SetActiveNodeInfo(m_graph->nodes[m_hoveredNodeID].title);
         glm::vec3 nodePos = m_graph->nodes[m_hoveredNodeID].pos;
 
         glm::vec3 dirToCamera = cameraPosition - nodePos;
