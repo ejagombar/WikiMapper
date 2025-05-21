@@ -7,11 +7,11 @@
 ## Todo
 
 ### Quick TODO List
-- [x] Fix the issue where the data loads twice upon searching
-- [x] Fix the issue where it crashes when no results are found
-- [ ] Add improved visuals - lighting, and glow
-- [ ] UI inconsistencies
-- [ ] Camera movement smoothness issues
+- [ ] Fix camera movement smoothness issues.
+- [ ] Set label distance for each node individually (Maybe combine this by storing the number of nodes that each node links to and calculating size, distance from that).
+- [ ] Change UI to display only the page title. Find a way to generate a link, somehow without storing the link per node?
+- [ ] Click and drag nodes, make it work with simulation.
+- [ ] Double clicking node causes more relevant nodes to be added to the scene.
 
 ### Features
 - [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness
