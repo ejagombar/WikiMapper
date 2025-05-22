@@ -288,7 +288,7 @@ void Engine::computeLighting(glm::vec3 cameraPosition) {
         dirToCamera = glm::normalize(dirToCamera);
         glm::vec3 prevLightPos = prevNodePos + (dirToCamera * 1.0f);
 
-        uniforms.pointLight[1] = {prevLightPos, glm::vec3(1.0f - m_hoverBrightness), 0.6f, 0.03, 0.01};
+        uniforms.pointLight[1] = {prevLightPos, glm::vec3(1.0f - m_hoverBrightness), 0.001f, 0.3, 0.01};
     } else {
         uniforms.pointLight[1] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
     }
@@ -300,7 +300,7 @@ void Engine::computeLighting(glm::vec3 cameraPosition) {
         dirToCamera = glm::normalize(dirToCamera);
         glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
 
-        uniforms.pointLight[2] = {lightPos, glm::vec3(m_hoverBrightness), 0.6f, 0.03, 0.01};
+        uniforms.pointLight[2] = {lightPos, glm::vec3(m_hoverBrightness), 0.001f, 0.3, 0.01};
     } else {
         uniforms.pointLight[2] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
     }
