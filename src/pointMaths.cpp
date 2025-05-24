@@ -53,7 +53,7 @@ std::vector<glm::vec3> spreadRand(const uint32_t numPoints, const float size) {
     std::vector<glm::vec3> points;
     points.reserve(numPoints);
 
-    for (uint32_t i = 0; i < numPoints; ++i) {
+    for (uint32_t i = 0; i < numPoints; i++) {
         points.emplace_back(glm::vec3(x(gen), y(gen), z(gen)));
     }
 
@@ -70,7 +70,7 @@ std::vector<glm::vec3> spreadOrbitRand(const glm::vec3 center, const uint32_t nu
     std::uniform_real_distribution<float> distPhi(phiRange.x, phiRange.y);
     std::uniform_real_distribution<float> distCosTheta(std::cos(thetaRange.y), std::cos(thetaRange.x));
 
-    for (uint32_t i = 0; i < numPoints; ++i) {
+    for (uint32_t i = 0; i < numPoints; i++) {
         float phi = distPhi(gen);
         float cosTheta = distCosTheta(gen);
         float theta = std::acos(cosTheta);
@@ -96,7 +96,7 @@ std::vector<glm::vec3> generatePointsOnSphericalSectorSurface(uint32_t numPoints
     std::uniform_real_distribution<float> distPhi(phiMin, phiMax);
     std::uniform_real_distribution<float> distCosTheta(std::cos(thetaMax), std::cos(thetaMin));
 
-    for (uint32_t i = 0; i < numPoints; ++i) {
+    for (uint32_t i = 0; i < numPoints; i++) {
         // Randomly generate theta and phi within the given ranges
         float phi = distPhi(gen);
         float cosTheta = distCosTheta(gen);
@@ -120,7 +120,7 @@ std::vector<glm::vec3> spreadOrbit(const glm::vec3 center, const uint32_t numPoi
 
     const float phi = glm::pi<float>() * (sqrt(5.0f) - 1);
 
-    for (uint32_t i = 0; i < numPoints; ++i) {
+    for (uint32_t i = 0; i < numPoints; i++) {
         float z = 1.0 - (static_cast<float>(i) / (numPoints - 1.0f)) * 2.0f;
         float unitRadius = sqrt(1.0f - z * z);
 

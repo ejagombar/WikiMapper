@@ -77,7 +77,7 @@ void main()
 
     // Accumulate point light contributions
     vec3 pointLighting = vec3(0.0);
-    for (int i = 0; i < pointLightCount; ++i) {
+    for (int i = 0; i < pointLightCount; i++) {
         PointLight light = pointLight[i];
 
         if (!(light.constant > 0 && light.linear > 0 && light.quadratic > 0)) {

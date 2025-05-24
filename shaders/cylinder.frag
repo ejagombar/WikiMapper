@@ -105,7 +105,7 @@ void main()
         );
 
     // Point light contributions
-    for (int i = 0; i < pointLightCount; ++i) {
+    for (int i = 0; i < pointLightCount; i++) {
         PointLight light = pointLight[i];
 
         if (!(light.constant > 0 && light.linear > 0 && light.quadratic > 0)) {

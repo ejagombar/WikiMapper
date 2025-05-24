@@ -162,7 +162,7 @@ void Engine::updateNodes(GS::Graph &graph) {
     uint32_t nodeCount = uint32_t(graph.nodes.size());
     m_nodeData.resize(nodeCount);
 
-    for (uint32_t i = 0; i < nodeCount; ++i) {
+    for (uint32_t i = 0; i < nodeCount; i++) {
         const auto &src = graph.nodes[i];
         m_nodeData[i] = {src.rgb[0], src.rgb[1], src.rgb[2], GLubyte(src.size), {src.pos.x, src.pos.y, src.pos.z}};
     }
@@ -182,7 +182,7 @@ void Engine::updateEdges(GS::Graph &graph) {
     uint32_t edgeCount = uint32_t(graph.edges.size());
     m_edgeData.resize(edgeCount * 2);
 
-    for (uint32_t i = 0; i < edgeCount; ++i) {
+    for (uint32_t i = 0; i < edgeCount; i++) {
         const auto &s = graph.EdgeStart(i);
         const auto &e = graph.EdgeEnd(i);
         m_edgeData[2 * i] = {s.rgb[0], s.rgb[1], s.rgb[2], GLubyte(s.edgeSize), {s.pos.x, s.pos.y, s.pos.z}};

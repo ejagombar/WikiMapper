@@ -51,13 +51,13 @@ void main() {
     blurResult *= weight[0];
 
     if (horizontal) {
-        for (int i = 1; i < 15; ++i) {
+        for (int i = 1; i < 15; i++) {
             blurResult += texture(screenTexture, TexCoords + vec2(tex_offset.x * i * blurScale, 0.0)).rgb * weight[i];
             blurResult += texture(screenTexture, TexCoords - vec2(tex_offset.x * i * blurScale, 0.0)).rgb * weight[i];
         }
     }
     else {
-        for (int i = 1; i < 15; ++i) {
+        for (int i = 1; i < 15; i++) {
             blurResult += texture(screenTexture, TexCoords + vec2(0.0, tex_offset.y * i * blurScale)).rgb * weight[i];
             blurResult += texture(screenTexture, TexCoords - vec2(0.0, tex_offset.y * i * blurScale)).rgb * weight[i];
         }

@@ -13,7 +13,6 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     if (FT_New_Face(ft, fontPath.c_str(), 0, &face))
         throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
 
-    // Set font pixel size. (Here we choose 128 so that glyph bitmaps are large enough.)
     FT_Set_Pixel_Sizes(face, 0, 128);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -171,7 +170,7 @@ void LabelEngine::UploadLabelAtlasesToGPU(const LabelAtlasData &data) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    for (uint32_t i = 0; i < numLabels; ++i) {
+    for (uint32_t i = 0; i < numLabels; i++) {
         const auto &pixels = data.atlases[i];
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, m_atlasWidth, m_atlasHeight, 1, GL_RED, GL_UNSIGNED_BYTE,
                         pixels.data());
