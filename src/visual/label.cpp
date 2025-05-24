@@ -178,9 +178,11 @@ void LabelEngine::UpdateLabelPositions(const std::vector<GS::Node> &nodes) {
     uint32_t numLabels = static_cast<uint32_t>(nodes.size());
 
     m_activeLabels.resize(numLabels);
+    const float width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
+
     for (uint32_t i = 0; i < numLabels; i++) {
         m_activeLabels[i].position = nodes[i].pos;
-        m_activeLabels[i].width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
+        m_activeLabels[i].width = width;
         m_activeLabels[i].texIndex = static_cast<float>(i);
     }
 
