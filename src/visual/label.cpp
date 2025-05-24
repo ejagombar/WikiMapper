@@ -1,9 +1,7 @@
-// render_engine.cpp
 #include "label.hpp"
 #include "shader.hpp"
 #include <cstdint>
 #include <cstring>
-#include <iostream>
 
 LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexShader,
                          const std::string &fragmentShader, const std::string &geometryShader) {
@@ -64,6 +62,9 @@ LabelEngine::LabelEngine(const std::string &fontPath, const std::string &vertexS
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(LabelData), (void *)offsetof(LabelData, texIndex));
     glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(LabelData), (void *)offsetof(LabelData, offsetDistance));
+    glEnableVertexAttribArray(3);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
@@ -97,7 +98,11 @@ LabelAtlasData LabelEngine::PrepareLabelAtlases(const std::vector<GS::Node> &nod
     uint32_t numLabels = static_cast<uint32_t>(nodes.size());
     std::vector<int32_t> labelWidths(numLabels, 0);
     int32_t maxWidth = 0;
-    for (uint32_t i = 0; i < numLabels; ++i) {
+
+    // std::vector<std::string> uniqueTexts;
+    // std::vector<uint32_t> textIndices(nodes.size());
+
+    for (uint32_t i = 0; i < numLabels; i++) {
         int32_t width = 0;
         const std::string &text = nodes[i].title;
         for (uint8_t c : text) {
@@ -117,7 +122,7 @@ LabelAtlasData LabelEngine::PrepareLabelAtlases(const std::vector<GS::Node> &nod
     std::vector<Pixels> atlases;
     atlases.reserve(numLabels);
 
-    for (uint32_t i = 0; i < numLabels; ++i) {
+    for (uint32_t i = 0; i < numLabels; i++) {
         int32_t textWidth = labelWidths[i];
 
         Pixels layer;
@@ -184,6 +189,7 @@ void LabelEngine::UpdateLabelPositions(const std::vector<GS::Node> &nodes) {
         m_activeLabels[i].position = nodes[i].pos;
         m_activeLabels[i].width = width;
         m_activeLabels[i].texIndex = static_cast<float>(i);
+        m_activeLabels[i].offsetDistance = nodes[i].size;
     }
 
     glBindVertexArray(m_VAO);

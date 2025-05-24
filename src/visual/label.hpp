@@ -4,6 +4,7 @@
 #include "shader.hpp"
 #include <cstdint>
 #include <ft2build.h>
+#include <unordered_map>
 #include FT_FREETYPE_H
 #include "../graph.hpp"
 #include <glm/glm.hpp>
@@ -27,6 +28,7 @@ struct LabelData {
     glm::vec3 position;
     float width;
     float texIndex;
+    float offsetDistance;
 };
 
 typedef std::vector<uint8_t> Pixels;
@@ -67,6 +69,9 @@ class LabelEngine {
     int32_t m_commonHeight;
 
     std::vector<LabelCharacter> m_characters;
+
+    std::unordered_map<std::string, uint32_t> m_textCache;
+    std::vector<std::string> m_cachedTexts;
 };
 
 #endif // LABEL_H
