@@ -1,6 +1,7 @@
 #include "graph.hpp"
 #include <atomic>
 #include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -99,6 +100,112 @@ void Graph::Clear() {
     nodes.clear();
     edges.clear();
 };
+
+// Binary load function
+bool Graph::LoadBinary(const std::string &filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file for reading: " << filename << std::endl;
+        return false;
+    }
+
+    try {
+        // Clear existing data
+        Clear();
+
+        // Read header
+        uint32_t version, nodeCount, edgeCount;
+        file.read(reinterpret_cast<char *>(&version), sizeof(version));
+        file.read(reinterpret_cast<char *>(&nodeCount), sizeof(nodeCount));
+        file.read(reinterpret_cast<char *>(&edgeCount), sizeof(edgeCount));
+
+        if (version != 1) {
+            std::cerr << "Error: Unsupported file version: " << version << std::endl;
+            return false;
+        }
+
+        // Reserve space for efficiency
+        nodes.reserve(nodeCount);
+        edges.reserve(edgeCount);
+
+        // Read all nodes
+        for (uint32_t i = 0; i < nodeCount; ++i) {
+            Node node("");
+            file.read(node.title, sizeof(node.title));
+            file.read(reinterpret_cast<char *>(&node.pos), sizeof(node.pos));
+            file.read(reinterpret_cast<char *>(&node.vel), sizeof(node.vel));
+            file.read(reinterpret_cast<char *>(&node.force), sizeof(node.force));
+            file.read(reinterpret_cast<char *>(node.rgb), sizeof(node.rgb));
+            file.read(reinterpret_cast<char *>(&node.size), sizeof(node.size));
+            file.read(reinterpret_cast<char *>(&node.edgeSize), sizeof(node.edgeSize));
+            file.read(reinterpret_cast<char *>(&node.fixed), sizeof(node.fixed));
+            file.read(reinterpret_cast<char *>(&node.mass), sizeof(node.mass));
+
+            // Ensure null termination
+            node.title[sizeof(node.title) - 1] = '\0';
+            nodes.push_back(node);
+        }
+
+        // Read all edges
+        for (uint32_t i = 0; i < edgeCount; ++i) {
+            Edge edge;
+            file.read(reinterpret_cast<char *>(&edge.startIdx), sizeof(edge.startIdx));
+            file.read(reinterpret_cast<char *>(&edge.endIdx), sizeof(edge.endIdx));
+            edges.push_back(edge);
+        }
+
+        file.close();
+        return true;
+    } catch (const std::exception &e) {
+        std::cerr << "Error reading binary file: " << e.what() << std::endl;
+        Clear(); // Clean up partial data
+        return false;
+    }
+}
+
+bool Graph::SaveBinary(const std::string &filename) const {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file for writing: " << filename << std::endl;
+        return false;
+    }
+
+    try {
+        // Write header
+        const uint32_t version = 1;
+        const uint32_t nodeCount = static_cast<uint32_t>(nodes.size());
+        const uint32_t edgeCount = static_cast<uint32_t>(edges.size());
+
+        file.write(reinterpret_cast<const char *>(&version), sizeof(version));
+        file.write(reinterpret_cast<const char *>(&nodeCount), sizeof(nodeCount));
+        file.write(reinterpret_cast<const char *>(&edgeCount), sizeof(edgeCount));
+
+        // Write all nodes
+        for (const auto &node : nodes) {
+            file.write(node.title, sizeof(node.title));
+            file.write(reinterpret_cast<const char *>(&node.pos), sizeof(node.pos));
+            file.write(reinterpret_cast<const char *>(&node.vel), sizeof(node.vel));
+            file.write(reinterpret_cast<const char *>(&node.force), sizeof(node.force));
+            file.write(reinterpret_cast<const char *>(node.rgb), sizeof(node.rgb));
+            file.write(reinterpret_cast<const char *>(&node.size), sizeof(node.size));
+            file.write(reinterpret_cast<const char *>(&node.edgeSize), sizeof(node.edgeSize));
+            file.write(reinterpret_cast<const char *>(&node.fixed), sizeof(node.fixed));
+            file.write(reinterpret_cast<const char *>(&node.mass), sizeof(node.mass));
+        }
+
+        // Write all edges
+        for (const auto &edge : edges) {
+            file.write(reinterpret_cast<const char *>(&edge.startIdx), sizeof(edge.startIdx));
+            file.write(reinterpret_cast<const char *>(&edge.endIdx), sizeof(edge.endIdx));
+        }
+
+        file.close();
+        return true;
+    } catch (const std::exception &e) {
+        std::cerr << "Error writing binary file: " << e.what() << std::endl;
+        return false;
+    }
+}
 
 float Graph::GetRadius() const {
     if (nodes.empty())

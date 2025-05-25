@@ -4,8 +4,11 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <glm/glm.hpp>
+#include <iomanip>
 #include <random>
+#include <sstream>
 #include <vector>
 
 namespace GS {
@@ -62,6 +65,9 @@ class Graph {
 
     std::vector<uint32_t> GetNeighboursIdx(uint32_t rootIdx) const;
     std::vector<Node> GetNeighbours(uint32_t rootIdx) const;
+
+    bool SaveBinary(const std::string &filename) const;
+    bool LoadBinary(const std::string &filename);
 
     float GetRadius() const;
     uint32_t GetTopNode();

@@ -52,7 +52,7 @@ void generateRealData(GS::Graph &graph) {
         }
     }
 
-    linkedPages = neo4jDB.GetLinkedPages("winchester");
+    linkedPages = neo4jDB.GetLinkedPages("multiverse");
 
     i = 0;
     for (const auto &page : linkedPages) {
@@ -68,7 +68,7 @@ void generateRealData(GS::Graph &graph) {
 
     i = 0;
 
-    linkedPages = neo4jDB.GetLinkedPages("cake");
+    linkedPages = neo4jDB.GetLinkedPages("atom");
     for (const auto &page : linkedPages) {
         i++;
         const uint32_t idx = graph.AddNode(page.title.c_str());
@@ -83,6 +83,8 @@ void generateRealData(GS::Graph &graph) {
     graph.AddEdge(3, 14);
     graph.AddEdge(7, 3);
     graph.AddEdge(8, 11);
+
+    graph.SaveBinary("data.wiki");
 }
 
 void search(GS::Graph &graph, std::string query) {
