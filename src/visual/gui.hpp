@@ -30,6 +30,7 @@ class GUI {
     void RenderBottomLeftBox();
     void SetActiveNodeInfo(std::string activeNodeTitle);
     void SetOriginNodeInfo(std::string originNodeTitle);
+    void setupTheme();
 
     bool Active();
 
@@ -47,6 +48,7 @@ class GUI {
     ImFont *m_defaultFont;
     ImFont *m_titleFont;
     ImFont *m_subTitleFont;
+    bool m_overrideActive = false;
 };
 
 #endif // LABEL_H

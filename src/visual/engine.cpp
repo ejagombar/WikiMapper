@@ -98,7 +98,7 @@ void Engine::setupShaders() {
     m_picking->pickingShader = std::make_unique<Shader>("selector.vert", "selector.frag", "selector.geom");
 
     m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight),
-                                            glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
+                                            glm::ivec2(1000, 800), 50, false, .5f, 14, 0.92f);
 
     m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom");
 
