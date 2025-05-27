@@ -122,10 +122,14 @@ GUI::GUI(GLFWwindow *m_window, std::string font, ControlData &controlData) : m_c
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     m_defaultFont = io.Fonts->AddFontFromFileTTF(font.c_str(), 32.0f);
     m_titleFont = io.Fonts->AddFontFromFileTTF(font.c_str(), 84.0f);
     m_subTitleFont = io.Fonts->AddFontFromFileTTF(font.c_str(), 42.0f);
+
+    // io.ConfigViewportsNoAutoMerge = true;
+    io.ConfigViewportsNoTaskBarIcon = true;
 
     setupTheme();
 
@@ -156,10 +160,13 @@ void GUI::BeginFrame() {
 }
 
 void GUI::RenderMenu() {
-    ImVec2 settingsSize(1050, 875);
-    ImVec2 settingsPos((ImGui::GetIO().DisplaySize.x - settingsSize.x) * 0.5f,
-                       (ImGui::GetIO().DisplaySize.y - settingsSize.y) * 0.5f);
+    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowViewport(mainViewport->ID);
 
+    ImVec2 settingsSize(1050, 875);
+
+    ImVec2 settingsPos = ImVec2(mainViewport->Pos.x + (mainViewport->Size.x - settingsSize.x) * 0.5f,
+                                mainViewport->Pos.y + (mainViewport->Size.y - settingsSize.y) * 0.5f);
     ImGui::SetNextWindowPos(settingsPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(settingsSize, ImGuiCond_Always);
 
@@ -167,7 +174,7 @@ void GUI::RenderMenu() {
     ImGui::Begin("Settings", nullptr,
                  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus);
+                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
     ImGui::PushFont(m_titleFont);
     ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextPrimary);
@@ -241,10 +248,13 @@ void GUI::RenderMenu() {
 }
 
 void GUI::RenderBottomLeftBox() {
+    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowViewport(mainViewport->ID);
 
     m_overrideActive = false;
     ImVec2 boxSize = ImVec2(850, 115);
-    ImVec2 boxPos = ImVec2(0, ImGui::GetIO().DisplaySize.y - boxSize.y);
+    ImVec2 localPos = ImVec2(0, ImGui::GetIO().DisplaySize.y - boxSize.y);
+    ImVec2 boxPos = ImVec2(mainViewport->Pos.x + localPos.x, mainViewport->Pos.y + localPos.y);
     ImGui::SetNextWindowPos(boxPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(boxSize);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
@@ -253,7 +263,7 @@ void GUI::RenderBottomLeftBox() {
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus);
+                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
     if (!m_activeNodeTitle.empty()) {
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
@@ -269,7 +279,8 @@ void GUI::RenderBottomLeftBox() {
     if (!m_activeNodeTitle.empty()) {
         m_overrideActive = true;
         boxSize = ImVec2(250, 50);
-        boxPos = ImVec2(0, ImGui::GetIO().DisplaySize.y - 70);
+
+        ImVec2 boxPos = ImVec2(mainViewport->Pos.x, mainViewport->Pos.y + mainViewport->Size.y - boxSize.y - 20);
         ImGui::SetNextWindowPos(boxPos, ImGuiCond_Always);
         ImGui::SetNextWindowSize(boxSize);
 
@@ -303,8 +314,12 @@ void GUI::RenderBottomLeftBox() {
 }
 
 void GUI::RenderSearchBar() {
+    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowViewport(mainViewport->ID);
+
     ImVec2 searchBarSize = ImVec2(595, 80);
-    ImVec2 searchBarPos = ImVec2(25, 25);
+    ImVec2 localPos = ImVec2(25, 25);
+    ImVec2 searchBarPos = ImVec2(mainViewport->Pos.x + localPos.x, mainViewport->Pos.y + localPos.y);
 
     // glow effect for searching
     ImVec4 searchBarColor = ColorScheme::Surface;
@@ -328,7 +343,7 @@ void GUI::RenderSearchBar() {
     ImGui::Begin("##searchbar", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus);
+                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
     // Search input
     ImGui::PushItemWidth(450);
