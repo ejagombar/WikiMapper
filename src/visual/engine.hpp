@@ -100,6 +100,8 @@ class Engine {
     void mouse_callback(GLFWwindow *window, double xpos, double ypos);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
+    void handleDoubleClick(int action);
+    void doubleClickCalled();
 
     void renderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
@@ -168,6 +170,8 @@ class Engine {
     float m_hoverBrightness = 1.0f;
     const float m_transitionSpeed = 4.0f;
     bool m_inTransition = false;
+
+    int32_t m_selectedNode = -1;
 };
 
 #endif

@@ -26,7 +26,8 @@
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
 // and associated mutex is quite messy and a temporary solution. This shall be changed eventually.
-Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData) : m_controlData(controlData), m_graphBuf(graphBuf) {
+Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
+    : m_controlData(controlData), m_graphBuf(graphBuf) {
 
     globalLogger->info("Initialising Engine");
 
@@ -96,13 +97,17 @@ void Engine::setupShaders() {
     m_shader.cylinder = std::make_unique<Shader>("cylinder.vert", "cylinder.frag", "cylinder.geom");
     m_picking->pickingShader = std::make_unique<Shader>("selector.vert", "selector.frag", "selector.geom");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight), glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
+    m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight),
+                                            glm::ivec2(1000, 800), 100, false, .5f, 14, 0.92f);
 
     m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom");
 
-    m_shader.cameraMatricesUBO = std::make_unique<UBOManager<CameraMatrices>>(m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_shader.environmentUBO = std::make_unique<UBOManager<EnvironmentLighting>>(m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
-    m_shader.materialUBO = std::make_unique<UBOManager<MaterialProperties>>(m_shader.MATERIAL_PROPERTIES_UBO_BINDING_POINT);
+    m_shader.cameraMatricesUBO =
+        std::make_unique<UBOManager<CameraMatrices>>(m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_shader.environmentUBO =
+        std::make_unique<UBOManager<EnvironmentLighting>>(m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_shader.materialUBO =
+        std::make_unique<UBOManager<MaterialProperties>>(m_shader.MATERIAL_PROPERTIES_UBO_BINDING_POINT);
 
     m_shader.sphere->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
     m_shader.cylinder->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
@@ -122,7 +127,8 @@ void Engine::initNodeBuffers() {
 
     GLint colorRadiusAttr = m_shader.sphere->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(colorRadiusAttr);
-    glVertexAttribPointer(colorRadiusAttr, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData), reinterpret_cast<void *>(offsetof(NodeData, r)));
+    glVertexAttribPointer(colorRadiusAttr, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData),
+                          reinterpret_cast<void *>(offsetof(NodeData, r)));
 
     const size_t nodePosOffset = offsetof(NodeData, position);
 
@@ -139,7 +145,8 @@ void Engine::initEdgeBuffers() {
 
     GLint colorRadiusAttrib = m_shader.cylinder->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(colorRadiusAttrib);
-    glVertexAttribPointer(colorRadiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData), reinterpret_cast<void *>(offsetof(EdgeData, r)));
+    glVertexAttribPointer(colorRadiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData),
+                          reinterpret_cast<void *>(offsetof(EdgeData, r)));
 
     const size_t edgePosOffset = offsetof(EdgeData, position);
 
@@ -266,6 +273,21 @@ void Engine::updateParticles(GS::Graph &graph) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void Engine::computeHoverTransition(float deltaTime) {
+    if (m_inTransition) {
+        m_hoverBrightness += deltaTime * m_transitionSpeed;
+
+        if (m_hoverBrightness >= 1.0f) {
+            m_hoverBrightness = 1.0f;
+            m_inTransition = false;
+
+            if (m_hoveredNodeID < 0) {
+                m_previousHoveredNodeID = -1;
+            }
+        }
+    }
+}
+
 void Engine::computeLighting(glm::vec3 cameraPosition) {
     EnvironmentLighting uniforms = {};
     uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -274,7 +296,8 @@ void Engine::computeLighting(glm::vec3 cameraPosition) {
 
     uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
 
-    if (m_previousHoveredNodeID >= 0 && m_previousHoveredNodeID < static_cast<int>(m_graph->nodes.size()) && m_inTransition) {
+    if (m_previousHoveredNodeID >= 0 && m_previousHoveredNodeID < static_cast<int>(m_graph->nodes.size()) &&
+        m_inTransition) {
 
         glm::vec3 prevNodePos = m_graph->nodes[m_previousHoveredNodeID].pos;
         glm::vec3 dirToCamera = cameraPosition - prevNodePos;
@@ -295,7 +318,17 @@ void Engine::computeLighting(glm::vec3 cameraPosition) {
 
         uniforms.pointLight[2] = {lightPos, glm::vec3(m_hoverBrightness), 0.001f, 0.3, 0.01};
     } else {
-        uniforms.pointLight[2] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
+        if (m_selectedNode >= 0 && m_selectedNode < static_cast<int32_t>(m_graph->nodes.size())) {
+            glm::vec3 nodePos = m_graph->nodes[m_selectedNode].pos;
+            glm::vec3 dirToCamera = cameraPosition - nodePos;
+            dirToCamera = glm::normalize(dirToCamera);
+            glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
+            m_gui->SetActiveNodeInfo(m_graph->nodes[m_selectedNode].title);
+            uniforms.pointLight[2] = {lightPos, glm::vec3(1.0), 0.001f, 0.3, 0.01};
+        } else {
+            m_gui->SetActiveNodeInfo("");
+            uniforms.pointLight[2] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
+        }
     }
 
     m_shader.environmentUBO->Update(uniforms);
@@ -336,7 +369,9 @@ uint32_t Engine::Run() {
             updateNodes(*graph);
             updateEdges(*graph);
 
-            fut = std::async(std::launch::async, [engine = m_text.get(), graph = graph->nodes]() { return engine->PrepareLabelAtlases(graph); });
+            fut = std::async(std::launch::async, [engine = m_text.get(), graph = graph->nodes]() {
+                return engine->PrepareLabelAtlases(graph);
+            });
             textureGenTriggered = true;
         }
 
@@ -354,21 +389,6 @@ uint32_t Engine::Run() {
     }
 
     return 0;
-}
-
-void Engine::computeHoverTransition(float deltaTime) {
-    if (m_inTransition) {
-        m_hoverBrightness += deltaTime * m_transitionSpeed;
-
-        if (m_hoverBrightness >= 1.0f) {
-            m_hoverBrightness = 1.0f;
-            m_inTransition = false;
-
-            if (m_hoveredNodeID < 0) {
-                m_previousHoveredNodeID = -1;
-            }
-        }
-    }
 }
 
 // The engine main loop. This is called to render each frame. It also processes any user inputs, and updates node
@@ -425,7 +445,8 @@ void Engine::loop() {
     m_shader.sphere->Use();
     m_shader.sphere->SetFloat("time", currentFrame);
 
-    MaterialProperties properties = {m_controlData.engine.customVals[0], m_controlData.engine.customVals[1], m_controlData.engine.customVals[2]};
+    MaterialProperties properties = {m_controlData.engine.customVals[0], m_controlData.engine.customVals[1],
+                                     m_controlData.engine.customVals[2]};
 
     m_shader.materialUBO->Update(properties);
 
@@ -502,7 +523,8 @@ void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int ac
 // function will return early. The "q" key is an exception to this as this opens and closes the menu so this should
 // work when the menu is active or not. This leads to a very small bug when typing into the search box, if you press
 // q and the menu is open, it will close the menu, but this will not happen for any other letter.
-void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) {
+void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
+                          [[maybe_unused]] int mods) {
 
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play && !m_gui->Active()) {
@@ -555,7 +577,54 @@ void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, do
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int button, int action, [[maybe_unused]] int mods) {
+void Engine::doubleClickCalled() {
+    std::cout << "Double Click" << std::endl;
+
+    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
+        m_selectedNode = m_hoveredNodeID;
+    } else if (m_hoveredNodeID != m_selectedNode) {
+        m_selectedNode = -1;
+    }
+}
+
+void Engine::handleDoubleClick(int action) {
+    static auto lastClickTime = std::chrono::system_clock::now();
+    static bool waitingForSecondClick = false;
+    static bool doubleClickProcessed = false;
+
+    const double doubleClickThreshold = 500.0;
+    const double minClickInterval = 10.0;
+
+    if (action == GLFW_PRESS) {
+        auto now = std::chrono::system_clock::now();
+        double timeSinceLastClick = std::chrono::duration<double, std::milli>(now - lastClickTime).count();
+
+        if (waitingForSecondClick && timeSinceLastClick >= minClickInterval &&
+            timeSinceLastClick <= doubleClickThreshold && !doubleClickProcessed) {
+
+            doubleClickCalled();
+
+            doubleClickProcessed = true;
+            waitingForSecondClick = false;
+        } else if (!waitingForSecondClick && timeSinceLastClick >= minClickInterval) {
+            waitingForSecondClick = true;
+            doubleClickProcessed = false;
+        }
+
+        lastClickTime = now;
+    } else if (action == GLFW_RELEASE) {
+        auto now = std::chrono::system_clock::now();
+        double timeSinceLastClick = std::chrono::duration<double, std::milli>(now - lastClickTime).count();
+
+        if (timeSinceLastClick > doubleClickThreshold) {
+            waitingForSecondClick = false;
+            doubleClickProcessed = false;
+        }
+    }
+}
+
+void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int button, int action,
+                                   [[maybe_unused]] int mods) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         m_firstMouse = true;
@@ -566,16 +635,11 @@ void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int butt
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         m_mouseActive = false;
     }
-
-    if (action == GLFW_RELEASE) {
-        static auto before = std::chrono::system_clock::now();
-        auto now = std::chrono::system_clock::now();
-        double diff_ms = std::chrono::duration<double, std::milli>(now - before).count();
-        before = now;
-        if (diff_ms > 10 && diff_ms < 500) {
-            // action = GLFW_DOUBLECLICK;
-            std::cout << "DOUBLE CLICK" << std::endl;
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS && !m_gui->Active() && m_hoveredNodeID != m_selectedNode) {
+            m_selectedNode = -1;
         }
+        handleDoubleClick(action);
     }
 }
 
