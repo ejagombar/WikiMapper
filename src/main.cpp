@@ -31,9 +31,11 @@ ControlData controlData;
 std::atomic<bool> shouldTerminate(false);
 
 void generateRealData(GS::Graph &graph) {
+    graph.LoadBinary("../data.wiki"); // Use local data for demo
+    return;
+
     Neo4jInterface neo4jDB("http://127.0.0.1:7474");
     if (!neo4jDB.Authenticate("neo4j", "test1234")) {
-        return;
     }
 
     // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
@@ -84,7 +86,7 @@ void generateRealData(GS::Graph &graph) {
     graph.AddEdge(7, 3);
     graph.AddEdge(8, 11);
 
-    graph.SaveBinary("data.wiki");
+    // graph.SaveBinary("data.wiki");
 }
 
 void search(GS::Graph &graph, std::string query) {

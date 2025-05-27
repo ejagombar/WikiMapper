@@ -124,11 +124,9 @@ bool Graph::LoadBinary(const std::string &filename) {
             return false;
         }
 
-        // Reserve space for efficiency
         nodes.reserve(nodeCount);
         edges.reserve(edgeCount);
 
-        // Read all nodes
         for (uint32_t i = 0; i < nodeCount; ++i) {
             Node node("");
             file.read(node.title, sizeof(node.title));
@@ -141,12 +139,10 @@ bool Graph::LoadBinary(const std::string &filename) {
             file.read(reinterpret_cast<char *>(&node.fixed), sizeof(node.fixed));
             file.read(reinterpret_cast<char *>(&node.mass), sizeof(node.mass));
 
-            // Ensure null termination
             node.title[sizeof(node.title) - 1] = '\0';
             nodes.push_back(node);
         }
 
-        // Read all edges
         for (uint32_t i = 0; i < edgeCount; ++i) {
             Edge edge;
             file.read(reinterpret_cast<char *>(&edge.startIdx), sizeof(edge.startIdx));
@@ -156,9 +152,10 @@ bool Graph::LoadBinary(const std::string &filename) {
 
         file.close();
         return true;
+
     } catch (const std::exception &e) {
         std::cerr << "Error reading binary file: " << e.what() << std::endl;
-        Clear(); // Clean up partial data
+        Clear();
         return false;
     }
 }
@@ -171,7 +168,6 @@ bool Graph::SaveBinary(const std::string &filename) const {
     }
 
     try {
-        // Write header
         const uint32_t version = 1;
         const uint32_t nodeCount = static_cast<uint32_t>(nodes.size());
         const uint32_t edgeCount = static_cast<uint32_t>(edges.size());
@@ -180,7 +176,6 @@ bool Graph::SaveBinary(const std::string &filename) const {
         file.write(reinterpret_cast<const char *>(&nodeCount), sizeof(nodeCount));
         file.write(reinterpret_cast<const char *>(&edgeCount), sizeof(edgeCount));
 
-        // Write all nodes
         for (const auto &node : nodes) {
             file.write(node.title, sizeof(node.title));
             file.write(reinterpret_cast<const char *>(&node.pos), sizeof(node.pos));
@@ -193,7 +188,6 @@ bool Graph::SaveBinary(const std::string &filename) const {
             file.write(reinterpret_cast<const char *>(&node.mass), sizeof(node.mass));
         }
 
-        // Write all edges
         for (const auto &edge : edges) {
             file.write(reinterpret_cast<const char *>(&edge.startIdx), sizeof(edge.startIdx));
             file.write(reinterpret_cast<const char *>(&edge.endIdx), sizeof(edge.endIdx));
