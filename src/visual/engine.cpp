@@ -577,15 +577,7 @@ void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, do
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void Engine::doubleClickCalled() {
-    std::cout << "Double Click" << std::endl;
-
-    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
-        m_selectedNode = m_hoveredNodeID;
-    } else if (m_hoveredNodeID != m_selectedNode) {
-        m_selectedNode = -1;
-    }
-}
+void Engine::doubleClickCalled() { std::cout << "Double Click" << std::endl; }
 
 void Engine::handleDoubleClick(int action) {
     static auto lastClickTime = std::chrono::system_clock::now();
@@ -636,8 +628,12 @@ void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int butt
         m_mouseActive = false;
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        if (action == GLFW_PRESS && !m_gui->Active() && m_hoveredNodeID != m_selectedNode) {
-            m_selectedNode = -1;
+        if (action == GLFW_PRESS && !m_gui->Active()) {
+            if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
+                m_selectedNode = m_hoveredNodeID;
+            } else if (m_hoveredNodeID != m_selectedNode) {
+                m_selectedNode = -1;
+            }
         }
         handleDoubleClick(action);
     }
