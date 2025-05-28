@@ -10,7 +10,7 @@
 - [x] Set label distance for each node individually (Maybe combine this by storing the number of nodes that each node links to and calculating size, distance from that).
 - [ ] Double clicking node causes more relevant nodes to be added to the scene.
 - [ ] Click and drag nodes, make it work with simulation.
-- [ ] Change UI to display only the page title. Find a way to generate a link, somehow without storing the link per node?
+- [x] Change UI to display only the page title. Find a way to generate a link, somehow without storing the link per node?
 - [ ] Fix camera movement smoothness issues.
 
 ### Features
@@ -32,6 +32,7 @@ There are many potential optimisations with this project. At the moment, I am fo
 - [x] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once. Not all variables have been moved to this, just the very common ones.
 - [x] Simplify sphere imposter frag shader. Remove 4 * and / 2 calculation from quadratic equation. 
 - [ ] Use cylinder imposter for close by links and use flat line for futher ones.
+- [ ] Store nodes data in contiguous memory for few cache misses and better SIMD execution. For example, node positions could be stored in an array directly as opposed to storing the position as part of a struct in an array. 
 
 
 ## Benchmarks
