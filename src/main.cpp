@@ -31,11 +31,12 @@ ControlData controlData;
 std::atomic<bool> shouldTerminate(false);
 
 void generateRealData(GS::Graph &graph) {
-    graph.LoadBinary("../data.wiki"); // Use local data for demo
-    return;
+    // graph.LoadBinary("../data.wiki"); // Use local data for demo
+    // return;
 
     Neo4jInterface neo4jDB("http://127.0.0.1:7474");
     if (!neo4jDB.Authenticate("neo4j", "test1234")) {
+        return;
     }
 
     // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
@@ -182,6 +183,35 @@ void graphPositionSimulation() {
 
         updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
+
+        int32_t sourceNode = controlData.graph.sourceNode.load(std::memory_order_relaxed);
+        if (sourceNode >= 0) {
+            controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
+            std::cout << "Double Clicked on " << sourceNode << std::endl;
+
+            Neo4jInterface neo4jDB("http://127.0.0.1:7474");
+            if (!neo4jDB.Authenticate("neo4j", "test1234")) {
+                std::cout << "Failed" << std::endl;
+            }
+
+            auto linkedPages = neo4jDB.GetLinkedPages(readGraph->nodes.at(sourceNode).title);
+
+            int i = 0;
+            for (const auto &page : linkedPages) {
+                i++;
+                const uint32_t idx = writeGraph->AddNode(page.title.c_str());
+                writeGraph->AddEdge(sourceNode, idx);
+                writeGraph->nodes[sourceNode].size++;
+
+                if (i > 20) {
+                    break;
+                }
+            }
+
+            graphBuf.Publish();
+            readGraph = graphBuf.GetCurrent();
+            writeGraph = graphBuf.GetWriteBuffer();
+        }
 
         std::this_thread::sleep_for(simulationInterval);
     }

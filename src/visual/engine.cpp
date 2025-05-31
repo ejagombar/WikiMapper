@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 #include <future>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/quaternion_common.hpp>
@@ -577,28 +578,26 @@ void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, do
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void Engine::doubleClickCalled() { std::cout << "Double Click" << std::endl; }
+void Engine::doubleClickCalled() { m_controlData.graph.sourceNode.store(m_hoveredNodeID, std::memory_order_relaxed); }
 
 void Engine::handleDoubleClick(int action) {
     static auto lastClickTime = std::chrono::system_clock::now();
     static bool waitingForSecondClick = false;
     static bool doubleClickProcessed = false;
 
-    const double doubleClickThreshold = 500.0;
-    const double minClickInterval = 10.0;
+    const double doubleClickThreshold = 400.0;
 
     if (action == GLFW_PRESS) {
         auto now = std::chrono::system_clock::now();
         double timeSinceLastClick = std::chrono::duration<double, std::milli>(now - lastClickTime).count();
 
-        if (waitingForSecondClick && timeSinceLastClick >= minClickInterval &&
-            timeSinceLastClick <= doubleClickThreshold && !doubleClickProcessed) {
+        if (waitingForSecondClick && timeSinceLastClick <= doubleClickThreshold && !doubleClickProcessed) {
 
             doubleClickCalled();
 
             doubleClickProcessed = true;
             waitingForSecondClick = false;
-        } else if (!waitingForSecondClick && timeSinceLastClick >= minClickInterval) {
+        } else if (!waitingForSecondClick) {
             waitingForSecondClick = true;
             doubleClickProcessed = false;
         }

@@ -2,6 +2,7 @@
 #define DEBUGSIM_H
 
 #include <atomic>
+#include <cstdint>
 #include <string>
 
 struct SimulationControlData {
@@ -21,6 +22,8 @@ struct SimulationControlData {
 struct GraphControlData {
     std::string searchString = "";
     std::atomic<bool> searching = false;
+
+    std::atomic<int32_t> sourceNode;
 };
 
 struct EngineControlData {

@@ -11,7 +11,7 @@
 - [ ] Double clicking node causes more relevant nodes to be added to the scene.
 - [ ] Click and drag nodes, make it work with simulation.
 - [x] Change UI to display only the page title. Find a way to generate a link, somehow without storing the link per node?
-- [ ] Fix camera movement smoothness issues.
+- [ ] Fix camera movement smoothness issues. **Unsolved.** 
 
 ### Features
 - [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness

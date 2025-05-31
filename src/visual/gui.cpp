@@ -267,7 +267,7 @@ void GUI::RenderBottomLeftBox() {
 
     if (!m_activeNodeTitle.empty()) {
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
-        ImGui::Text("Currently Hovering:");
+        ImGui::Text("Node:");
         ImGui::PopStyleColor();
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextPrimary);
