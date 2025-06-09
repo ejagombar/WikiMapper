@@ -7,7 +7,9 @@
 #include "store.hpp"
 #include "visual/engine.hpp"
 #include <atomic>
+#include <cctype>
 #include <chrono>
+#include <clocale>
 #include <cmath>
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
@@ -16,8 +18,10 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
+#include <iostream>
 #include <json/json.h>
 #include <random>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -135,6 +139,14 @@ void setupGraph(GS::Graph &db, bool genData = true) {
     }
 }
 
+std::string toLowerString(const char *input) {
+    std::string result;
+    for (size_t i = 0; input[i] != '\0'; ++i) {
+        result += std::tolower(static_cast<unsigned char>(input[i]));
+    }
+    return result;
+}
+
 void graphPositionSimulation() {
     globalLogger->info("Physics thread starting");
 
@@ -150,6 +162,8 @@ void graphPositionSimulation() {
         auto frameEnd = std::chrono::system_clock::now();
         float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
         frameStart = frameEnd;
+
+        std::cout << "SIZE: " << readGraph->nodes.size() << std::endl;
 
         SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
 
@@ -170,6 +184,43 @@ void graphPositionSimulation() {
             simStart = std::chrono::system_clock::now();
         }
 
+        int32_t sourceNode = controlData.graph.sourceNode.load(std::memory_order_relaxed);
+        if (sourceNode >= 0) {
+            controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
+            std::cout << "Double Clicked on " << sourceNode << std::endl;
+
+            Neo4jInterface neo4jDB("http://127.0.0.1:7474");
+            if (!neo4jDB.Authenticate("neo4j", "test1234")) {
+                std::cout << "Failed" << std::endl;
+            }
+
+            std::vector<LinkedPage> linkedPages;
+            linkedPages.push_back(LinkedPage("Page", "page"));
+            // neo4jDB.GetLinkedPages(toLowerString(readGraph->nodes.at(sourceNode).title));
+
+            int i = 0;
+            for (const auto &page : linkedPages) {
+                i++;
+                std::cout << page.title << std::endl;
+                const uint32_t idx = writeGraph->AddNode(page.title.c_str());
+                writeGraph->AddEdge(sourceNode, idx);
+                writeGraph->nodes[sourceNode].size++;
+
+                if (i > 20) {
+                    break;
+                }
+            }
+
+            // setupGraph(*writeGraph, false);
+            controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+
+            graphBuf.Publish();
+            readGraph = graphBuf.GetCurrent();
+            writeGraph = graphBuf.GetWriteBuffer();
+
+            // dat.resetSimulation = true;
+        }
+
         if (dat.resetSimulation) {
             setupGraph(*writeGraph, false);
             graphBuf.Publish();
@@ -183,35 +234,6 @@ void graphPositionSimulation() {
 
         updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
-
-        int32_t sourceNode = controlData.graph.sourceNode.load(std::memory_order_relaxed);
-        if (sourceNode >= 0) {
-            controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
-            std::cout << "Double Clicked on " << sourceNode << std::endl;
-
-            Neo4jInterface neo4jDB("http://127.0.0.1:7474");
-            if (!neo4jDB.Authenticate("neo4j", "test1234")) {
-                std::cout << "Failed" << std::endl;
-            }
-
-            auto linkedPages = neo4jDB.GetLinkedPages(readGraph->nodes.at(sourceNode).title);
-
-            int i = 0;
-            for (const auto &page : linkedPages) {
-                i++;
-                const uint32_t idx = writeGraph->AddNode(page.title.c_str());
-                writeGraph->AddEdge(sourceNode, idx);
-                writeGraph->nodes[sourceNode].size++;
-
-                if (i > 20) {
-                    break;
-                }
-            }
-
-            graphBuf.Publish();
-            readGraph = graphBuf.GetCurrent();
-            writeGraph = graphBuf.GetWriteBuffer();
-        }
 
         std::this_thread::sleep_for(simulationInterval);
     }

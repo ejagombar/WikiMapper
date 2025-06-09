@@ -4,11 +4,8 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
 #include <glm/glm.hpp>
-#include <iomanip>
 #include <random>
-#include <sstream>
 #include <vector>
 
 namespace GS {
@@ -21,7 +18,7 @@ struct Node {
     glm::vec3 vel = glm::vec3(0, 0, 0);
     glm::vec3 force = glm::vec3(0, 0, 0);
     unsigned char rgb[3];
-    unsigned char size;
+    unsigned char size = 10;
     unsigned char edgeSize;
     bool fixed = false; // Whether this node's position is fixed (e.g., when dragged by user)
     float mass = 1.0f;  // Node mass, affects force response

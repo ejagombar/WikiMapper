@@ -21,7 +21,6 @@
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
-#include <iostream>
 #include <memory>
 #include <vector>
 
