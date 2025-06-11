@@ -1,56 +1,142 @@
 # WikiMapper
-3D graph software to visualise Wikipedia page links. This project is work in progress.
 
-![wikimapper](https://github.com/user-attachments/assets/a2724d92-b34e-4ad5-8d16-27c0a4f778a7)
+A real-time 3D graph visualization tool for exploring Wikipedia page connections. WikiMapper renders Wikipedia articles as nodes and their links as edges in an interactive 3D space, powered by force-directed graph algorithms and OpenGL.
 
+[![C++](https://img.shields.io/badge/C%2B%2B-20%2B-blue.svg)](https://isocpp.org/)
+[![CMake](https://img.shields.io/badge/CMake-3.20%2B-green.svg)](https://cmake.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Todo
+![WikiMapper Screenshot](https://github.com/user-attachments/assets/a2724d92-b34e-4ad5-8d16-27c0a4f778a7)
 
-### Quick TODO List
-- [x] Set label distance for each node individually (Maybe combine this by storing the number of nodes that each node links to and calculating size, distance from that).
-- [ ] Double clicking node causes more relevant nodes to be added to the scene.
-- [ ] Click and drag nodes, make it work with simulation.
-- [x] Change UI to display only the page title. Find a way to generate a link, somehow without storing the link per node?
-- [ ] Fix camera movement smoothness issues. **Unsolved.** 
+## Installation
 
-### Features
-- [x] **3D graph lines.** Currently a thick line is drawn between nodes on the graph. This line does not change with thickness as the camera gets futher away, making it not look very realistic. An imposter cyclinder needs to be implemented to give each line varying depth and thickness
-- [x] **Menu.** A menu that give the user options to enable/disable features, change the font size etc.
-- [x] **Search.** Allow a user to search for a page and the camera will jump to that node.
-- [ ] **External links.** Link each node to the original Wikipedia page.
-- [x] **Lighting**. Add lighting to the spheres shading, and possibly the text and lines as well.
-- [x] **Force Directed Graph Drawing.** Algorithm to spread points out in space. 
- 
+### Prerequisites
+- C++20 compatible compiler 
+- CMake 3.20 or higher
+- OpenGL 4.5+ compatible graphics driver
+- **Optional**: Wikipedia [Neo4j database](https://github.com/ejagombar/WikiLoader) *(Public server coming soon)*
+
+### Dependencies
+All dependencies are automatically fetched by CMake:
+- OpenGL/GLAD for graphics
+- GLFW for windowing
+- GLM for mathematics
+- Dear ImGui for UI
+- FreeType for text rendering
+- cpp-httplib for HTTP requests
+- spdlog for logging
+- nlohmann/json for JSON parsing
+
+### Build Instructions (Linux)
+
+```bash
+# Clone the repository
+git clone https://github.com/ejagombar/WikiMapper.git && cd wikimapper
+
+# Create build directory
+mkdir build
+
+# Configure environment
+cmake --preset=default
+
+# Build project
+cmake --build build
+
+# Run the application
+./build/WikiMapperExplorer
+```
+
+Windows coming soon...
+
+## Usage
+
+### Basic Controls
+- **Right-click + drag** - Rotate camera view
+- **WASD** - Move camera position
+- **Space/Ctrl** - Move camera up/down
+- **Left Shift** - Crouch mode for slower movement
+- **Q** - Toggle settings menu
+- **X** - Exit application
+
+### Graph Interaction
+- **Left-click** - Select nodes
+- **Double-click** - Expand node connections
+- **Hover** - Highlight nodes with visual feedback
+- **Search bar** - Find and jump to specific Wikipedia pages
+
+## Roadmap
+
+### Near-term Features
+- [ ] Node dragging with physics integration
+- [ ] Force-directed graph performance optimizations for larger datasets
+- [x] Double clicking node causes more relevant nodes to be added to the scene
+- [ ] Improve camera movement smoothness
+
+### Long-term Goals
+- [ ] Graph clustering and community detection
+- [ ] Advanced graph search (shortest path between points)
+- [ ] Secondary camera mode (click + drag to rotate visualisation)
+
+## Architecture
+
+### Multi-threading
+- **Rendering thread** handles all OpenGL operations and user interface
+- **Physics thread** runs force-directed layout simulation independently
+- **Triple buffer system** ensures thread-safe data exchange without blocking
+
+### Rendering Pipeline
+- **Uniform Buffer Objects (UBOs)** for efficient shader data management
+- **Instanced rendering** for optimal GPU utilization
+- **Custom Imposter shaders** for sphere and cylinder to massively reduce vertex count
+- **Framebuffer effects** including blur filters and post-processing
+
+### Core Components
+- **Graph System** - Node/edge data structures with spatial indexing
+- **Physics Simulation** - Force-directed layout with oscillation detection
+- **Visual Engine** - OpenGL rendering with modern techniques
+- **UI System** - ImGui integration with custom styling
+- **Database Layer** - Neo4j HTTP API wrapper
 
 ### Opportunities for Optimisation
 There are many potential optimisations with this project. At the moment, I am focusing on adding new features and performance will be slightly sidelined. Some important performance choices have been made, such as using imposter spheres instead of sphere meshes. This allows for 500,000 of spheres to be created and run at over 200fps. However, many optimisations have been left to later. One of the main reasons for this is to allow me to implement new features faster and eventaully compare the performance between the future optimised version and non-optimised version.
 
-- [x] ~~Bake the sphere imposter depth maps into a texture, instead of calculating per sphere every frame.~~ This is barely more efficient than the current method it seems. (Source)[http://11235813tdd.blogspot.com/2013/04/raycasted-spheres-and-point-sprites-vs.html]
-- [x] Pack the data more tightly that is being sent to the GPU for the imposter spheres. Float values are not required for the positions of the sphere. This can be significantly reduced by having discreet positions in space that the spheres can be placed at which would allow variables smaller than floats to be used. Floats do also not need to be used for the sphere size of colour either. ** The size and colour has been compressed into a single float for the spheres.**
-- [x] When rendering text, create a texture that contains the word or sentance that needs to be displayed, instead of having a separate draw call for every letter of every word.
 - [ ] Deferred shading.
-- [x] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once. Not all variables have been moved to this, just the very common ones.
-- [x] Simplify sphere imposter frag shader. Remove 4 * and / 2 calculation from quadratic equation. 
-- [ ] Use cylinder imposter for close by links and use flat line for futher ones.
+- [ ] Use cylinder imposters for close by links and use flat line for futher ones.
 - [ ] Store nodes data in contiguous memory for few cache misses and better SIMD execution. For example, node positions could be stored in an array directly as opposed to storing the position as part of a struct in an array. 
+- [x] Prerender text labels to a texture.
+- [x] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once. Not all variables have been moved to this, just the very common ones.
 
+## License
 
-## Benchmarks
-In order to evaluate the impact that optimisiations and changes that I make have on performance, I have implemented a benchmark system. For now, the benchmark is enabled with some compile time if statements. This benchmark is just a temporary solution and I want to implement it better in the future. Using the compile time #defines allow me to easily add and remove this code. I have added two modes: one mode to record a benchmark path and one to run the benchmark. The benchmark recording mode records the movement of the camera and appends the position to a file. A second file is used to store timestamps of when the benchmark is stopped and started. This allows me to benchmark different scenarios separately. The second mode allows me to replay the recorded file and disable user input. The number of frames are recorded for each section and divided by the total time that it took to run that section. Two benchmark files have been added to the assets folder to allow me to test the code across multiple machines. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Benchmark Setup
-- **Section 1** - Sphere (node) closeup.
-- **Section 2** - View of the whole graph.
-- **Section 3** - Closeup of a collection of cylinders (verticies).
-- **Section 4** - Facing away from the graph, with no objects in view.
+## Credits and Sources
 
-The below benchmarks were run on my computer. The frame time measurements are recorded in milliseconds.
+### Sphere Imposter Techniques
+- [Ambient Occlusion and Edge Cueing to Enhance Real Time Molecular Visualization](http://vcg.isti.cnr.it/Publications/2006/TCM06/Tarini_FinalVersionElec.pdf) - Foundational paper on sphere imposters for molecular visualization
+- [Rendering a Sphere on a Quad](https://bgolus.medium.com/rendering-a-sphere-on-a-quad-13c92025570c) - Ben Golus's comprehensive guide to sphere imposters
+- [Lies and Impostors](https://paroj.github.io/gltut/Illumination/Tutorial%2013.html) - Detailed explanation of imposter geometry techniques
+- [Point Sprite Sphere Impostors](https://www.youtube.com/watch?v=a8R8ZxPy3eA) - Video tutorial on modern sphere imposter implementation
+- [Raycasted Spheres and Point Sprites vs. Geometry Instancing (OpenGL 3.3)](http://11235813tdd.blogspot.com/2013/04/raycasted-spheres-and-point-sprites-vs.html) - Performance comparison and optimization insights
+- [OpenGL impostor-sphere: problem when calculating the depth value](https://stackoverflow.com/questions/53650693/opengl-impostor-sphere-problem-when-calculating-the-depth-value) - Community solutions for depth buffer issues
+- [Drawing Millions of Spheres](https://community.khronos.org/t/drawing-millions-of-sphere/62742) - Khronos community discussion on large-scale sphere rendering
+- [Imposter Sphere](https://community.khronos.org/t/imposter-sphere/71189) - Additional community insights and implementation details
 
-| Commit Tag | 1 | 2 | 3 | 4 | Overall | Notable Changes |
-| ---- | ---- | ---- | ---- | ---- | ---- | ---- | 
-|69967a7|1.395|1.701|1.382|1.269|1.437|Baseline|
-|8122499|1.287|1.679|1.303|1.250|1.380| Simplify imposter cylinder shaders.|
+### General Guides
 
-This [paper](https://www.cmu.edu/biolphys/deserno/pdf/sphere_equi.pdf) was used for the formula to evenly distribut points around a sphere
-https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere
+- [learnopengl.com](https://learnopengl.com/) - Comprehensive modern OpenGL tutorials that provided the foundation for the rendering pipeline
+- [opengl-tutorial.org](http://www.opengl-tutorial.org/) - Initial OpenGL tutorials, particularly Tutorial 18: Billboards and Particles
+- [Learning GLSL](https://github.com/ssloy/glsltuto/tree/master) - Shader programming techniques and best practices
 
+### Libraries and Dependencies
+- [GLFW](https://github.com/glfw/glfw) - Cross-platform window management and input handling
+- [GLAD](https://github.com/Dav1dde/glad) - OpenGL function loader
+- [GLM](https://github.com/g-truc/glm) - Mathematics library for graphics software
+- [Dear ImGui](https://github.com/ocornut/imgui) - Immediate mode GUI library with custom styling
+- [FreeType](https://github.com/freetype/freetype) - Font rendering library for high-quality text
+- [cpp-httplib](https://github.com/yhirose/cpp-httplib) - HTTP client library
+- [nlohmann/json](https://github.com/nlohmann/json) - C++ JSON library
+- [spdlog](https://github.com/gabime/spdlog) - C++ logging library
+
+### Data Sources
+- [Wikimedia Foundation](https://www.wikimedia.org/) - Wikipedia data and infrastructure
