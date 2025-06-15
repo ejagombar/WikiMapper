@@ -195,8 +195,8 @@ void graphPositionSimulation() {
             }
 
             std::vector<LinkedPage> linkedPages;
-            linkedPages.push_back(LinkedPage("Page", "page"));
-            // neo4jDB.GetLinkedPages(toLowerString(readGraph->nodes.at(sourceNode).title));
+            // linkedPages.push_back(LinkedPage("Page", "page"));
+            linkedPages = neo4jDB.GetLinkedPages(toLowerString(readGraph->nodes.at(sourceNode).title));
 
             int i = 0;
             for (const auto &page : linkedPages) {
@@ -211,7 +211,7 @@ void graphPositionSimulation() {
                 }
             }
 
-            // setupGraph(*writeGraph, false);
+            setupGraph(*writeGraph, false);
             controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
 
             graphBuf.Publish();
