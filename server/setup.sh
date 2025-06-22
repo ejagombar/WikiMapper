@@ -2,6 +2,7 @@
 set -e
 
 BOLD_GREEN="\e[1;32m"
+YELLOW="\e[1;33m"
 RESET="\e[0m"
 
 APP_NAME="wikimapper-server"
@@ -20,13 +21,22 @@ sudo cp $APP_NAME $INSTALL_DIR/
 sudo chown -R www-data:www-data $INSTALL_DIR
 sudo chmod +x $INSTALL_DIR/$APP_NAME
 
-echo "${BOLD_GREEN}Creating env file at $ENV_FILE. Set up credentials manually${RESET}"
-sudo tee $ENV_FILE > /dev/null <<EOF
+if [ -f "$ENV_FILE" ]; then
+    echo -e "${YELLOW}Warning: Environment file '$ENV_FILE' already exists. It will NOT be replaced.${RESET}"
+    echo -e "${BOLD_GREEN}Current content of $ENV_FILE:${RESET}"
+    sudo cat "$ENV_FILE"
+    echo "" 
+else
+    echo -e "${BOLD_GREEN}Creating env file at $ENV_FILE. Remember to set up credentials manually after this script runs.${RESET}"
+    sudo tee "$ENV_FILE" > /dev/null <<EOF
 NEO4J_URL=http://127.0.0.1:7474
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=
-API_PORT=
+NEO4J_USER=neo4j
+NEO4J_PASS= # <--- IMPORTANT: Set your Neo4j password here
+API_PORT=    # <--- IMPORTANT: Set your desired API port here
 EOF
+    echo -e "${BOLD_GREEN}Environment file created. Please open it to set NEO4J_PASS and API_PORT:${RESET}"
+    echo "  sudo vim $ENV_FILE"
+fi
 
 echo "Copying $SERVICE_NAME to systemd directory..."
 sudo cp $SERVICE_FILE_SRC $SERVICE_FILE_DST
@@ -41,4 +51,3 @@ echo "Starting $APP_NAME..."
 sudo systemctl restart $APP_NAME
 
 echo "Done! Check status with: sudo systemctl status $APP_NAME"
-
