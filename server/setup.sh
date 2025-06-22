@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+BOLD_GREEN="\e[1;32m"
+RESET="\e[0m"
+
 APP_NAME="wikimapper-server"
 INSTALL_DIR="/opt/$APP_NAME"
 SERVICE_NAME="$APP_NAME.service"
@@ -17,7 +20,7 @@ sudo cp $APP_NAME $INSTALL_DIR/
 sudo chown -R www-data:www-data $INSTALL_DIR
 sudo chmod +x $INSTALL_DIR/$APP_NAME
 
-echo "Creating env file at $ENV_FILE..."
+echo "${BOLD_GREEN}Creating env file at $ENV_FILE. Set up credentials manually${RESET}"
 sudo tee $ENV_FILE > /dev/null <<EOF
 NEO4J_URL=http://127.0.0.1:7474
 NEO4J_USERNAME=neo4j
