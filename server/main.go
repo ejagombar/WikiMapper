@@ -2,14 +2,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 )
 
 type LinkedPage struct {
@@ -47,7 +51,8 @@ func (c *Neo4jClient) ExecuteCypher(cypher string, params map[string]interface{}
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.URL+"/db/neo4j/tx/commit", bytes.NewBuffer(payload))
+	endpoint := fmt.Sprintf("%s/db/neo4j/tx/commit", c.URL)
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(payload))
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +106,8 @@ func ParsePages(data map[string]interface{}) ([]LinkedPage, error) {
 	return pages, nil
 }
 
-// Handler functions
 func linkedPagesHandler(client *Neo4jClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract path parameter manually: /linked-pages/{name}
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) != 3 || parts[1] != "linked-pages" {
 			http.Error(w, "Invalid path", http.StatusBadRequest)
@@ -133,7 +136,6 @@ func linkedPagesHandler(client *Neo4jClient) http.HandlerFunc {
 
 func linkingPagesHandler(client *Neo4jClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract path parameter manually: /linking-pages/{name}
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) != 3 || parts[1] != "linking-pages" {
 			http.Error(w, "Invalid path", http.StatusBadRequest)
@@ -230,12 +232,39 @@ func main() {
 
 	client := NewNeo4jClient(neo4jURL, username, password)
 
-	http.HandleFunc("/linked-pages/", linkedPagesHandler(client))
-	http.HandleFunc("/linking-pages/", linkingPagesHandler(client))
-	http.HandleFunc("/shortest-path", shortestPathHandler(client))
-	http.HandleFunc("/random-pages", randomPagesHandler(client))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/linked-pages/", linkedPagesHandler(client))
+	mux.HandleFunc("/linking-pages/", linkingPagesHandler(client))
+	mux.HandleFunc("/shortest-path", shortestPathHandler(client))
+	mux.HandleFunc("/random-pages", randomPagesHandler(client))
 
-	port := ":8080"
-	fmt.Printf("Server listening on %s...\n", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
+	// Graceful shutdown
+	idleConnsClosed := make(chan struct{})
+
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
+		<-sigint
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+		close(idleConnsClosed)
+	}()
+
+	fmt.Println("Server is running on :8080")
+	if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("HTTP server ListenAndServe: %v", err)
+	}
+
+	<-idleConnsClosed
+	fmt.Println("Server stopped")
 }
