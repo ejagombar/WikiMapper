@@ -240,7 +240,7 @@ func main() {
 	mux.HandleFunc("/random-pages", randomPagesHandler(client))
 
 	server := &http.Server{
-		Addr:    port,
+		Addr:    ":" + port,
 		Handler: mux,
 	}
 
