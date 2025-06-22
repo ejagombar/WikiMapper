@@ -1,48 +1,41 @@
 #!/usr/bin/env bash
-
 set -e
 
-# === CONFIG ===
-APP_NAME="neo4j-server"
+APP_NAME="wikimapper-server"
 INSTALL_DIR="/opt/$APP_NAME"
+SERVICE_NAME="$APP_NAME.service"
+SERVICE_FILE_SRC="./$SERVICE_NAME"
+SERVICE_FILE_DST="/etc/systemd/system/$SERVICE_NAME"
 ENV_FILE="/etc/default/$APP_NAME"
-SERVICE_FILE="/etc/systemd/system/$APP_NAME.service"
 
-echo "Building $APP_NAME..."
+echo "Building Go binary..."
 go build -o $APP_NAME main.go
 
-echo "Creating $INSTALL_DIR..."
+echo "Installing binary to $INSTALL_DIR..."
 sudo mkdir -p $INSTALL_DIR
-sudo cp ./$APP_NAME $INSTALL_DIR/
+sudo cp $APP_NAME $INSTALL_DIR/
+sudo chown -R www-data:www-data $INSTALL_DIR
 sudo chmod +x $INSTALL_DIR/$APP_NAME
 
-echo "Setting up environment variables..."
-if [ -f ".env" ]; then
-    echo "Using .env file..."
-    sudo cp .env $ENV_FILE
-else
-    echo "Creating $ENV_FILE..."
-    cat <<EOF | sudo tee $ENV_FILE
+echo "Creating env file at $ENV_FILE..."
+sudo tee $ENV_FILE > /dev/null <<EOF
 NEO4J_URL=http://127.0.0.1:7474
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=
 API_PORT=
 EOF
-    echo "Edit $ENV_FILE if needed: sudo nano $ENV_FILE"
-fi
 
-echo "Installing systemd service file..."
-
-sed "s|EXEC_START_PLACEHOLDER|$INSTALL_DIR/$APP_NAME|g" ./$APP_NAME.service | sudo tee $SERVICE_FILE > /dev/null
+echo "Copying $SERVICE_NAME to systemd directory..."
+sudo cp $SERVICE_FILE_SRC $SERVICE_FILE_DST
 
 echo "Reloading systemd..."
 sudo systemctl daemon-reload
 
-echo "Enabling $APP_NAME.service..."
-sudo systemctl enable $APP_NAME.service
+echo "Enabling $APP_NAME to start on boot..."
+sudo systemctl enable $APP_NAME
 
-echo "Starting $APP_NAME.service..."
-sudo systemctl restart $APP_NAME.service
+echo "Starting $APP_NAME..."
+sudo systemctl restart $APP_NAME
 
 echo "Done! Check status with: sudo systemctl status $APP_NAME"
-echo "View logs with: sudo journalctl -u $APP_NAME -f"
+

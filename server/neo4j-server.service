@@ -4,20 +4,15 @@ After=network.target
 
 [Service]
 Type=simple
-# Load environment variables
-EnvironmentFile=/etc/default/neo4j-api
-# Path to your binary
-ExecStart=/opt/neo4j-api/neo4j-api
+EnvironmentFile=/etc/default/wikimapper-server
+ExecStart=/opt/wikimapper-server/wikimapper-server
 Restart=on-failure
 RestartSec=5
-
-# Optional: Run as a specific user (recommended)
 User=www-data
 Group=www-data
-
-# Logs go to journalctl by default
 StandardOutput=journal
 StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
+
