@@ -31,8 +31,8 @@ else
     sudo tee "$ENV_FILE" > /dev/null <<EOF
 NEO4J_URL=http://127.0.0.1:7474
 NEO4J_USER=neo4j
-NEO4J_PASS= # <--- IMPORTANT: Set your Neo4j password here
-API_PORT=    # <--- IMPORTANT: Set your desired API port here
+NEO4J_PASS=
+API_PORT=6348
 EOF
     echo -e "${BOLD_GREEN}Environment file created. Please open it to set NEO4J_PASS and API_PORT:${RESET}"
     echo "  sudo vim $ENV_FILE"

@@ -225,6 +225,7 @@ func main() {
 	neo4jURL := os.Getenv("NEO4J_URL")
 	username := os.Getenv("NEO4J_USER")
 	password := os.Getenv("NEO4J_PASS")
+	port := os.Getenv("API_PORT")
 
 	if neo4jURL == "" || username == "" || password == "" {
 		log.Fatal("Please set NEO4J_URL, NEO4J_USER, and NEO4J_PASS environment variables")
@@ -239,7 +240,7 @@ func main() {
 	mux.HandleFunc("/random-pages", randomPagesHandler(client))
 
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    port,
 		Handler: mux,
 	}
 
@@ -260,7 +261,7 @@ func main() {
 		close(idleConnsClosed)
 	}()
 
-	fmt.Println("Server is running on :8080")
+	fmt.Println("Server is running on " + port + ":")
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe: %v", err)
 	}
