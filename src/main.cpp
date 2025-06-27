@@ -38,13 +38,14 @@ void generateRealData(GS::Graph &graph) {
     // graph.LoadBinary("../data.wiki"); // Use local data for demo
     // return;
 
-    Neo4jInterface neo4jDB("http://127.0.0.1:7474");
-    if (!neo4jDB.Authenticate("neo4j", "test1234")) {
-        return;
-    }
+    HttpInterface dBInterface("http://eagombar.uk:6348");
+    // Neo4jInterface neo4jDB("http://127.0.0.1:7474");
+    // if (!neo4jDB.Authenticate("neo4j", "test1234")) {
+    //     return;
+    // }
 
     // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = neo4jDB.GetLinkedPages("physics");
+    auto linkedPages = dBInterface.GetLinkedPages("physics");
 
     auto x = graph.AddNode("Physics");
 
@@ -59,7 +60,7 @@ void generateRealData(GS::Graph &graph) {
         }
     }
 
-    linkedPages = neo4jDB.GetLinkedPages("multiverse");
+    // linkedPages = neo4jDB.GetLinkedPages("multiverse");
 
     i = 0;
     for (const auto &page : linkedPages) {
@@ -75,7 +76,7 @@ void generateRealData(GS::Graph &graph) {
 
     i = 0;
 
-    linkedPages = neo4jDB.GetLinkedPages("atom");
+    linkedPages = dBInterface.GetLinkedPages("atom");
     for (const auto &page : linkedPages) {
         i++;
         const uint32_t idx = graph.AddNode(page.title.c_str());
