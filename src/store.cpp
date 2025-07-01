@@ -44,19 +44,11 @@ json Neo4jInterface::ExecuteCypherQuery(const std::string &cypher, const json &p
 std::vector<LinkedPage> ParsePagesFromResult(const json &data) {
     std::vector<LinkedPage> pages;
 
-    if (!data.contains("results") || data["results"].empty())
+    if (!data.is_array())
         return pages;
-    const auto &result = data["results"][0];
-
-    if (!result.contains("data") || !result["data"].is_array())
-        return pages;
-    const auto &rows = result["data"];
-
-    pages.reserve(rows.size());
 
     try {
-        for (const auto &row : rows) {
-            const auto &node = row["row"][0];
+        for (const auto &node : data) {
             pages.emplace_back(LinkedPage{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
         }
     } catch (const json::exception &e) {
@@ -93,8 +85,9 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &pageNa
 }
 
 std::vector<LinkedPage> Neo4jInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
-    const std::string cypher = "MATCH path = shortestPath((start:PAGE {pageName: $startName})-[*]-(end:PAGE {pageName: $endName})) "
-                               "RETURN nodes(path) AS nodes";
+    const std::string cypher =
+        "MATCH path = shortestPath((start:PAGE {pageName: $startName})-[*]-(end:PAGE {pageName: $endName})) "
+        "RETURN nodes(path) AS nodes";
 
     try {
         json data = ExecuteCypherQuery(cypher, {{"startName", startPage}, {"endName", endPage}});
@@ -204,7 +197,8 @@ std::vector<LinkedPage> HttpInterface::FindShortestPath(const std::string &start
     try {
         return ParsePagesFromResult(GetHttpResults("/shortest-path?start=" + startPage + "&end=" + endPage));
     } catch (const std::exception &e) {
-        throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage + "': " + std::string(e.what()));
+        throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage +
+                                 "': " + std::string(e.what()));
         return {};
     }
 }
