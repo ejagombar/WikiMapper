@@ -20,6 +20,8 @@
 #include <glm/geometric.hpp>
 #include <iostream>
 #include <json/json.h>
+#include <memory>
+#include <mutex>
 #include <random>
 #include <string>
 #include <thread>
@@ -34,24 +36,26 @@ GS::GraphTripleBuf graphBuf;
 ControlData controlData;
 std::atomic<bool> shouldTerminate(false);
 
+std::shared_ptr<HttpInterface> dBInterface;
+std::mutex dBInterfaceMutex;
+
 void generateRealData(GS::Graph &graph) {
+
     // graph.LoadBinary("../data.wiki"); // Use local data for demo
     // return;
 
-    HttpInterface dBInterface("http://eagombar.uk:6348");
-    // Neo4jInterface neo4jDB("http://127.0.0.1:7474");
-    // if (!neo4jDB.Authenticate("neo4j", "test1234")) {
-    //     return;
-    // }
+    std::vector<LinkedPage> linkedPages;
 
-    // auto randomPage = neo4jDB.GetRandomPages(1).at(0);
-    auto linkedPages = dBInterface.GetLinkedPages("physics");
+    std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+
+    linkedPages = dBInterface->GetLinkedPages("physics");
 
     auto x = graph.AddNode("Physics");
 
     int i = 0;
     for (const auto &page : linkedPages) {
         i++;
+        std::cout << page.title << std::endl;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(x, idx);
         graph.nodes[x].size++;
@@ -60,7 +64,7 @@ void generateRealData(GS::Graph &graph) {
         }
     }
 
-    // linkedPages = neo4jDB.GetLinkedPages("multiverse");
+    linkedPages = dBInterface->GetLinkedPages("multiverse");
 
     i = 0;
     for (const auto &page : linkedPages) {
@@ -69,6 +73,8 @@ void generateRealData(GS::Graph &graph) {
         graph.AddEdge(5, idx);
         graph.nodes[5].size++;
 
+        std::cout << page.title << std::endl;
+
         if (i > 20) {
             break;
         }
@@ -76,12 +82,15 @@ void generateRealData(GS::Graph &graph) {
 
     i = 0;
 
-    linkedPages = dBInterface.GetLinkedPages("atom");
+    linkedPages = dBInterface->GetLinkedPages("atom");
+
     for (const auto &page : linkedPages) {
         i++;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(11, idx);
         graph.nodes[11].size++;
+
+        std::cout << page.title << std::endl;
 
         if (i > 20) {
             break;
@@ -96,12 +105,11 @@ void generateRealData(GS::Graph &graph) {
 }
 
 void search(GS::Graph &graph, std::string query) {
-    Neo4jInterface neo4jDB("http://127.0.0.1:7474");
-    if (!neo4jDB.Authenticate("neo4j", "test1234")) {
-        return;
-    }
+    std::vector<LinkedPage> linkedPages;
 
-    auto linkedPages = neo4jDB.GetLinkedPages(query);
+    std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+    linkedPages = dBInterface->GetLinkedPages(query);
+
     auto x = graph.AddNode(query.c_str());
 
     for (const auto &page : linkedPages) {
@@ -190,14 +198,13 @@ void graphPositionSimulation() {
             controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
             std::cout << "Double Clicked on " << sourceNode << std::endl;
 
-            Neo4jInterface neo4jDB("http://127.0.0.1:7474");
-            if (!neo4jDB.Authenticate("neo4j", "test1234")) {
-                std::cout << "Failed" << std::endl;
-            }
-
             std::vector<LinkedPage> linkedPages;
             // linkedPages.push_back(LinkedPage("Page", "page"));
-            linkedPages = neo4jDB.GetLinkedPages(toLowerString(readGraph->nodes.at(sourceNode).title));
+
+            {
+                std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+                linkedPages = dBInterface->GetLinkedPages(toLowerString(readGraph->nodes.at(sourceNode).title));
+            }
 
             int i = 0;
             for (const auto &page : linkedPages) {
@@ -243,6 +250,16 @@ void graphPositionSimulation() {
 int main() {
     globalLogger->info("WikiMapper starting");
 
+    {
+        std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+        dBInterface = std::make_shared<HttpInterface>("http://eagombar.uk:6348");
+
+        // dBInterface = std::make_shared<Neo4jInterface>("http://127.0.0.1:7474");
+        // if (!dBInterface->Authenticate("neo4j", "test1234")) {
+        //     return 1;
+        // }
+    }
+
     GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
     setupGraph(*writeGraph);
     graphBuf.PublishAll();
@@ -255,6 +272,11 @@ int main() {
     shouldTerminate = true;
 
     t.join();
+
+    {
+        std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+        dBInterface.reset();
+    }
 
     globalLogger->info("WikiMapper exited.");
 }
