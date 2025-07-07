@@ -130,8 +130,6 @@ class Engine {
     float m_lastY;
     bool m_firstMouse = true;
 
-    int m_frameCount = 0;
-    double m_startTime;
     float m_deltaTime = 0.0f;
     float m_lastFrame = 0.0f;
 

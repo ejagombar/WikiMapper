@@ -337,29 +337,16 @@ Engine::~Engine() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
 
-    globalLogger->info("Execution Time: ", glfwGetTime() - m_startTime);
-
     glfwTerminate();
 }
 
 uint32_t Engine::Run() {
-    double lastTime = glfwGetTime();
-    m_startTime = lastTime;
-
     glfwSwapInterval(0);
 
     bool textureGenTriggered = false;
     std::future<LabelAtlasData> fut;
 
     while (!glfwWindowShouldClose(m_window)) {
-        double currentTime = glfwGetTime();
-
-        m_frameCount++;
-        if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
-            printf("%f fps\n", double(m_frameCount));
-            m_frameCount = 0;
-            lastTime += 1.0;
-        }
 
         if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {
             m_controlData.engine.initGraphData.store(false, std::memory_order_relaxed);
@@ -397,6 +384,7 @@ void Engine::loop() {
 
     m_camera.SetFov(m_controlData.engine.cameraFov);
     m_camera.SetMouseSensitivity(m_controlData.engine.mouseSensitivity);
+    m_gui->RenderFPSWidget();
 
     processEngineInput(m_window);
 

@@ -9,7 +9,7 @@
 
 struct GUISettings {
     bool debugMode = false;
-
+    bool showFPS = true;
     float searchTimeElapsed = 0.0f;
 };
 
@@ -31,6 +31,7 @@ class GUI {
     void SetActiveNodeInfo(std::string activeNodeTitle);
     void SetOriginNodeInfo(std::string originNodeTitle);
     void setupTheme();
+    void RenderFPSWidget();
 
     bool Active();
 

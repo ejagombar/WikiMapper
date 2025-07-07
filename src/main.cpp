@@ -10,7 +10,6 @@
 #include <atomic>
 #include <cctype>
 #include <chrono>
-#include <clocale>
 #include <cmath>
 #include <cstdint>
 #include <glm/detail/qualifier.hpp>
@@ -19,7 +18,6 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
-#include <iostream>
 #include <json/json.h>
 #include <memory>
 #include <mutex>
@@ -42,8 +40,8 @@ std::mutex dBInterfaceMutex;
 
 void generateRealData(GS::Graph &graph) {
 
-    // graph.LoadBinary("../data.wiki"); // Use local data for demo
-    // return;
+    graph.LoadBinary("../data.wiki"); // Use local data for demo
+    return;
 
     std::vector<LinkedPage> linkedPages;
 

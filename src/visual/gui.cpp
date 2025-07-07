@@ -115,6 +115,42 @@ void GUI::SetActiveNodeInfo(std::string activeNodeTitle) { m_activeNodeTitle = a
 
 void GUI::SetOriginNodeInfo(std::string originNodeTitle) { m_originNodeTitle = originNodeTitle; }
 
+void GUI::RenderFPSWidget() {
+    if (!m_settings.showFPS)
+        return;
+
+    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowViewport(mainViewport->ID);
+
+    ImVec2 widgetSize = ImVec2(98, 58);
+    ImVec2 widgetPos = ImVec2(mainViewport->Pos.x + mainViewport->Size.x - widgetSize.x - 20, mainViewport->Pos.y + 20);
+
+    ImGui::SetNextWindowPos(widgetPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(widgetSize, ImGuiCond_Always);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 8));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
+    ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
+
+    ImGui::Begin("##FPSWidget", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
+                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoInputs);
+
+    float fps = ImGui::GetIO().Framerate;
+    ImGui::PushFont(m_subTitleFont);
+    ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
+    ImGui::Text("%.0f", fps);
+    ImGui::PopStyleColor();
+    ImGui::PopFont();
+
+    ImGui::End();
+
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+}
+
 GUI::GUI(GLFWwindow *m_window, std::string font, ControlData &controlData) : m_controlData(controlData) {
     IMGUI_CHECKVERSION();
 
@@ -321,7 +357,6 @@ void GUI::RenderSearchBar() {
     ImVec2 localPos = ImVec2(25, 25);
     ImVec2 searchBarPos = ImVec2(mainViewport->Pos.x + localPos.x, mainViewport->Pos.y + localPos.y);
 
-    // glow effect for searching
     ImVec4 searchBarColor = ColorScheme::Surface;
     if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
         float pulse = (sin(m_settings.searchTimeElapsed * 2.0f) * 0.5f + 0.5f) * 0.3f;
