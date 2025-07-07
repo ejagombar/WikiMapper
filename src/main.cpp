@@ -4,6 +4,7 @@
 #include "logger.hpp"
 #include "pointMaths.hpp"
 #include "simulation.hpp"
+#include "spdlog/common.h"
 #include "store.hpp"
 #include "visual/engine.hpp"
 #include <atomic>
@@ -30,7 +31,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../lib/std_image.h"
 
-std::shared_ptr<spdlog::logger> globalLogger = spdlog::basic_logger_mt("global", "wikimapper.log");
+std::shared_ptr<spdlog::logger> globalLogger;
 
 GS::GraphTripleBuf graphBuf;
 ControlData controlData;
@@ -55,7 +56,6 @@ void generateRealData(GS::Graph &graph) {
     int i = 0;
     for (const auto &page : linkedPages) {
         i++;
-        std::cout << page.title << std::endl;
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(x, idx);
         graph.nodes[x].size++;
@@ -73,8 +73,6 @@ void generateRealData(GS::Graph &graph) {
         graph.AddEdge(5, idx);
         graph.nodes[5].size++;
 
-        std::cout << page.title << std::endl;
-
         if (i > 20) {
             break;
         }
@@ -89,8 +87,6 @@ void generateRealData(GS::Graph &graph) {
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(11, idx);
         graph.nodes[11].size++;
-
-        std::cout << page.title << std::endl;
 
         if (i > 20) {
             break;
@@ -172,8 +168,6 @@ void graphPositionSimulation() {
         float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
         frameStart = frameEnd;
 
-        std::cout << "SIZE: " << readGraph->nodes.size() << std::endl;
-
         SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
 
         if (controlData.graph.searching.load(std::memory_order_relaxed)) {
@@ -196,10 +190,8 @@ void graphPositionSimulation() {
         int32_t sourceNode = controlData.graph.sourceNode.load(std::memory_order_relaxed);
         if (sourceNode >= 0) {
             controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
-            std::cout << "Double Clicked on " << sourceNode << std::endl;
 
             std::vector<LinkedPage> linkedPages;
-            // linkedPages.push_back(LinkedPage("Page", "page"));
 
             {
                 std::lock_guard<std::mutex> lock(dBInterfaceMutex);
@@ -209,7 +201,6 @@ void graphPositionSimulation() {
             int i = 0;
             for (const auto &page : linkedPages) {
                 i++;
-                std::cout << page.title << std::endl;
                 const uint32_t idx = writeGraph->AddNode(page.title.c_str());
                 writeGraph->AddEdge(sourceNode, idx);
                 writeGraph->nodes[sourceNode].size++;
@@ -226,7 +217,7 @@ void graphPositionSimulation() {
             readGraph = graphBuf.GetCurrent();
             writeGraph = graphBuf.GetWriteBuffer();
 
-            // dat.resetSimulation = true;
+            dat.resetSimulation = true;
         }
 
         if (dat.resetSimulation) {
@@ -247,7 +238,41 @@ void graphPositionSimulation() {
     }
 }
 
+bool isTerminalAttached() { return isatty(STDOUT_FILENO) != 0; }
+
+void initializeLogger(bool enableConsole, bool autoDetectTerminal) {
+    std::vector<spdlog::sink_ptr> sinks;
+
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("wikimapper.log", true);
+    file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [thread %t] %v");
+    sinks.push_back(file_sink);
+
+    bool shouldAddConsole = enableConsole;
+    if (autoDetectTerminal) {
+        shouldAddConsole = shouldAddConsole && isTerminalAttached();
+    }
+
+    if (shouldAddConsole) {
+        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        console_sink->set_pattern("[%H:%M:%S %z] [%n] [%^%L%$] [thread %t] %v");
+        sinks.push_back(console_sink);
+    }
+
+    globalLogger = std::make_shared<spdlog::logger>("global", sinks.begin(), sinks.end());
+
+    if (shouldAddConsole) {
+        globalLogger->flush_on(spdlog::level::info);
+    } else {
+        globalLogger->flush_on(spdlog::level::err);
+    }
+
+    spdlog::flush_every(std::chrono::seconds(3));
+    spdlog::register_logger(globalLogger);
+}
+
 int main() {
+    initializeLogger(true, true);
+
     globalLogger->info("WikiMapper starting");
 
     {
