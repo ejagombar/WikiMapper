@@ -1,10 +1,12 @@
 #ifndef GUI_H
 #define GUI_H
 
+#include "texture.hpp"
 #include <GLFW/glfw3.h>
 #include <string>
 
 #include "../controlData.hpp"
+#include "../logger.hpp"
 #include "imgui.h"
 
 struct GUISettings {
@@ -40,6 +42,7 @@ class GUI {
   private:
     void subtitle(const char *text);
     void separator();
+    void loadIconTextures();
 
     std::string m_activeNodeTitle;
     std::string m_originNodeTitle;
@@ -50,6 +53,22 @@ class GUI {
     ImFont *m_titleFont;
     ImFont *m_subTitleFont;
     bool m_overrideActive = false;
+
+    GLuint m_graphIconTexture = 0;
+    GLuint m_diceIconTexture = 0;
+    GLuint m_backgroundIconTexture = 0;
+
+    enum class DataSourceType { Neo4j = 0, HTTPServer = 1 };
+
+    struct DataSourceSettings {
+        DataSourceType sourceType = DataSourceType::Neo4j;
+        char neo4jUrl[256] = "bolt://localhost";
+        char neo4jPort[16] = "7687";
+        char neo4jPassword[256] = "";
+        char httpUrl[256] = "http://localhost";
+        char httpPort[16] = "8080";
+        bool connectionValid = false;
+    } m_dataSourceSettings;
 };
 
-#endif // LABEL_H
+#endif // GUI_H
