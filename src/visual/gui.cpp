@@ -123,14 +123,14 @@ void GUI::RenderFPSWidget() {
     ImGuiViewport *mainViewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowViewport(mainViewport->ID);
 
-    ImVec2 widgetSize = ImVec2(98, 58);
-    ImVec2 widgetPos = ImVec2(mainViewport->Pos.x + mainViewport->Size.x - widgetSize.x - 20, mainViewport->Pos.y + 20);
+    ImVec2 widgetSize = ImVec2(98, 68);
+    ImVec2 widgetPos = ImVec2(mainViewport->Pos.x + mainViewport->Size.x - widgetSize.x - 25, mainViewport->Pos.y + 25);
 
     ImGui::SetNextWindowPos(widgetPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(widgetSize, ImGuiCond_Always);
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 8));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 20.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
     ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
 
@@ -141,6 +141,7 @@ void GUI::RenderFPSWidget() {
 
     float fps = ImGui::GetIO().Framerate;
     ImGui::PushFont(m_subTitleFont);
+    ImGui::SetCursorPos(ImVec2(12, 13));
     ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
     ImGui::Text("%.0f", fps);
     ImGui::PopStyleColor();
