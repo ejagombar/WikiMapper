@@ -13,20 +13,16 @@
 
 void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt,
                           const SimulationControlData &simControlData) {
-    // Copy the graph state
     writeG = readG;
 
-    // OSCILLATION DETECTION AND PREVENTION
-    // Track node position history to detect oscillations
     static std::vector<glm::vec3> prevPositions;
     static std::vector<glm::vec3> prevMovements;
     static std::vector<float> nodeDamping;
 
-    // Initialize or resize history arrays if needed
     if (prevPositions.size() != writeG.nodes.size()) {
         prevPositions.resize(writeG.nodes.size());
         prevMovements.resize(writeG.nodes.size(), glm::vec3(0));
-        nodeDamping.resize(writeG.nodes.size(), 0.7f); // Default damping
+        nodeDamping.resize(writeG.nodes.size(), 0.7f);
 
         for (size_t i = 0; i < writeG.nodes.size(); i++) {
             prevPositions[i] = writeG.nodes[i].pos;
@@ -209,17 +205,18 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
         }
 
         // adaptive boundary handling - soft boundaries that push back
+        const float boundarySize = 200.f;
         for (int d = 0; d < 3; d++) {
             if (std::isnan(node.pos[d])) {
                 node.pos[d] = 0;
                 node.vel[d] = 0;
-            } else if (node.pos[d] > 200.0f) {
-                float excess = node.pos[d] - 200.0f;
-                node.pos[d] = 200.0f - 5.0f * (1.0f - std::exp(-excess * 0.1f));
+            } else if (node.pos[d] > boundarySize) {
+                float excess = node.pos[d] - boundarySize;
+                node.pos[d] = boundarySize - 5.0f * (1.0f - std::exp(-excess * 0.1f));
                 node.vel[d] *= -0.5f;
-            } else if (node.pos[d] < -200.0f) {
-                float excess = -200.0f - node.pos[d];
-                node.pos[d] = -200.0f + 5.0f * (1.0f - std::exp(-excess * 0.1f));
+            } else if (node.pos[d] < -boundarySize) {
+                float excess = -boundarySize - node.pos[d];
+                node.pos[d] = -boundarySize + 5.0f * (1.0f - std::exp(-excess * 0.1f));
                 node.vel[d] *= -0.5f;
             }
         }

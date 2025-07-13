@@ -52,37 +52,26 @@ void Camera::ProcessMouseMovement(const double xoffset, const double yoffset) {
 }
 
 void Camera::ProcessMovement(const float deltaTime) {
-    // Clamp delta time to prevent instability
     float clampedDeltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 20.0f);
 
-    // Normalize input force if it exists
     if (glm::length(m_inputForce) > 0.0f) {
         m_inputForce = glm::normalize(m_inputForce);
     }
 
-    // Calculate total acceleration
     glm::vec3 totalAcceleration = m_inputForce * m_thrustForce * m_sneakMultiplier;
-
-    // Apply velocity damping (space friction)
     glm::vec3 dampingForce = -m_velocity * m_linearDamping;
     totalAcceleration += dampingForce;
 
-    // Update velocity using semi-implicit Euler integration
     m_velocity += totalAcceleration * clampedDeltaTime;
-
-    // Apply maximum velocity constraint
     float speed = glm::length(m_velocity);
     if (speed > m_maxVelocity) {
         m_velocity = (m_velocity / speed) * m_maxVelocity;
     }
 
-    // Update position using updated velocity
     m_position += m_velocity * clampedDeltaTime;
 
-    // Update matrices
     updateMatrices();
 
-    // Reset per-frame values
     m_inputForce = glm::vec3(0.0f);
     m_sneakMultiplier = 1.0f;
 }
