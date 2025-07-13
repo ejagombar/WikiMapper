@@ -2,6 +2,12 @@
 #include <glm/matrix.hpp>
 #include <glm/trigonometric.hpp>
 
+Camera::Camera()
+    : m_position(0.0f), m_velocity(0.0f), m_yaw(glm::pi<float>()), m_pitch(0.0f), m_mouseSensitivity(0.0015f),
+      m_aspectRatio(1.0f), m_fov(45.0f) {
+    updateCameraVectors();
+}
+
 void Camera::SetPosition(const glm::vec3 position, const float yaw, const float pitch) {
     m_position = position;
     m_yaw = yaw;
@@ -9,71 +15,76 @@ void Camera::SetPosition(const glm::vec3 position, const float yaw, const float 
     updateCameraVectors();
 }
 
-const CameraPositionData Camera::GetPositionData() const { return CameraPositionData{m_position, m_yaw, m_pitch}; }
-
-void Camera::ProcessKeyboard(const CameraMovement movement) {
-    if (movement == CameraMovement::FORWARD)
-        m_direction += m_front;
-    if (movement == CameraMovement::BACKWARD)
-        m_direction -= m_front;
-    if (movement == CameraMovement::LEFT)
-        m_direction -= m_right;
-    if (movement == CameraMovement::RIGHT)
-        m_direction += m_right;
-    if (movement == CameraMovement::UP)
-        m_direction += m_worldUp;
-    if (movement == CameraMovement::DOWN)
-        m_direction -= m_worldUp;
-    if (movement == CameraMovement::SNEAK)
-        m_accelerationReduce = 0.92f;
-    else
-        m_accelerationReduce = 0.97f;
+void Camera::ProcessKeyboard(const CameraMovement direction) {
+    switch (direction) {
+    case CameraMovement::FORWARD:
+        m_inputForce += m_front;
+        break;
+    case CameraMovement::BACKWARD:
+        m_inputForce -= m_front;
+        break;
+    case CameraMovement::LEFT:
+        m_inputForce -= m_right;
+        break;
+    case CameraMovement::RIGHT:
+        m_inputForce += m_right;
+        break;
+    case CameraMovement::UP:
+        m_inputForce += m_worldUp;
+        break;
+    case CameraMovement::DOWN:
+        m_inputForce -= m_worldUp;
+        break;
+    case CameraMovement::SNEAK:
+        m_sneakMultiplier = 0.33f;
+        break;
+    }
 }
 
-// Update the angle of the camera, using the change in position in the cursor position. Every frame, the cursor is move
-// back to (0,0) so that the change each frame can be calculated again.
-void Camera::ProcessMouseMovement(const double xoffsetIn, const double yoffsetIn) {
-    float xoffset = static_cast<float>(xoffsetIn);
-    float yoffset = static_cast<float>(yoffsetIn);
+void Camera::ProcessMouseMovement(const double xoffset, const double yoffset) {
+    float xoff = static_cast<float>(xoffset) * m_mouseSensitivity;
+    float yoff = static_cast<float>(yoffset) * m_mouseSensitivity;
 
-    xoffset *= m_mouseSensitivity;
-    yoffset *= m_mouseSensitivity;
-
-    m_yaw += xoffset;
-    m_pitch += yoffset;
-
-    if (m_pitch > glm::radians(89.0f))
-        m_pitch = glm::radians(89.0f);
-    if (m_pitch < glm::radians(-89.0f))
-        m_pitch = glm::radians(-89.0f);
+    m_yaw += xoff;
+    m_pitch = glm::clamp(m_pitch + yoff, glm::radians(-89.0f), glm::radians(89.0f));
 
     updateCameraVectors();
 }
 
-void Camera::SetFov(const float fov) {
-    m_fov = fov;
-    if (m_fov < 1.0f)
-        m_fov = 1.0f;
-    if (m_fov > 160.0f)
-        m_fov = 160.0f;
-}
+void Camera::ProcessMovement(const float deltaTime) {
+    // Clamp delta time to prevent instability
+    float clampedDeltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 20.0f);
 
-// Calculate the new position of the camera, using velocity and acceleration. The position is updated taking into
-// account the amount of time that has passed since the last frame. This ensures that movememnt speed is constant at
-// different FPS.
-void Camera::ProcessPosition(const float deltaTime) {
-    if (glm::length(m_direction) > 0.0f) {
-        m_direction = glm::normalize(m_direction);
+    // Normalize input force if it exists
+    if (glm::length(m_inputForce) > 0.0f) {
+        m_inputForce = glm::normalize(m_inputForce);
     }
 
-    m_acceleration += m_direction;
-    m_direction = glm::vec3(0, 0, 0);
+    // Calculate total acceleration
+    glm::vec3 totalAcceleration = m_inputForce * m_thrustForce * m_sneakMultiplier;
 
-    m_acceleration *= m_accelerationReduce;
-    m_position += m_acceleration * deltaTime * m_movementSpeed;
-    m_projectionMatrix = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_minDisplayRange, m_maxDisplayRange);
-    m_viewMatrix = glm::lookAt(m_position, m_position + m_front, m_up);
-    m_cameraPosition = (glm::inverse(m_viewMatrix)[3]);
+    // Apply velocity damping (space friction)
+    glm::vec3 dampingForce = -m_velocity * m_linearDamping;
+    totalAcceleration += dampingForce;
+
+    // Update velocity using semi-implicit Euler integration
+    m_velocity += totalAcceleration * clampedDeltaTime;
+
+    // Apply maximum velocity constraint
+    float speed = glm::length(m_velocity);
+    if (speed > m_maxVelocity) {
+        m_velocity = (m_velocity / speed) * m_maxVelocity;
+    }
+
+    // Update position using updated velocity
+    m_position += m_velocity * clampedDeltaTime;
+
+    // Update matrices
+    updateMatrices();
+
+    // Reset per-frame values
+    m_inputForce = glm::vec3(0.0f);
+    m_sneakMultiplier = 1.0f;
 }
 
 glm::mat3 Camera::CalcNormalMatrix() const {
@@ -82,11 +93,16 @@ glm::mat3 Camera::CalcNormalMatrix() const {
     return glm::transpose(submv);
 }
 
-// This must be called every time the camera direction is changed.
 void Camera::updateCameraVectors() {
     glm::vec3 direction(cos(m_yaw) * cos(m_pitch), sin(m_pitch), sin(m_yaw) * cos(m_pitch));
 
     m_front = glm::normalize(direction);
     m_right = glm::normalize(glm::cross(m_front, m_worldUp));
     m_up = glm::normalize(glm::cross(m_right, m_front));
+}
+
+void Camera::updateMatrices() {
+    m_projectionMatrix = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_minDisplayRange, m_maxDisplayRange);
+
+    m_viewMatrix = glm::lookAt(m_position, m_position + m_front, m_up);
 }

@@ -412,7 +412,7 @@ void Engine::loop() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    m_camera.ProcessPosition(deltaTime);
+    m_camera.ProcessMovement(deltaTime);
 
     glm::vec3 cameraPosition = m_camera.GetCameraPosition();
     glm::mat4 projection = m_camera.GetProjectionMatrix();
