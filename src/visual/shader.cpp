@@ -151,7 +151,7 @@ void Shader::LinkUBO(const std::string &blockName, GLuint bindingPoGLint) const 
     GLuint blockIndex = glGetUniformBlockIndex(ID, blockName.c_str());
 
     if (blockIndex == GL_INVALID_INDEX) {
-        std::cerr << "Error: Uniform block \"" << blockName << "\" not found in shader!" << std::endl;
+        globalLogger->error("Error: Uniform block \"" + blockName + "\" not found in shader!");
         return;
     }
 

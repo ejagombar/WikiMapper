@@ -40,8 +40,8 @@ std::mutex dBInterfaceMutex;
 
 void generateRealData(GS::Graph &graph) {
 
-    graph.LoadBinary("../data.wiki"); // Use local data for demo
-    return;
+    // graph.LoadBinary("../data.wiki"); // Use local data for demo
+    // return;
 
     std::vector<LinkedPage> linkedPages;
 
@@ -54,9 +54,9 @@ void generateRealData(GS::Graph &graph) {
     int i = 0;
     for (const auto &page : linkedPages) {
         i++;
-        const uint32_t idx = graph.AddNode(page.title.c_str());
+        const uint32_t idx = graph.AddNode(page.title);
         graph.AddEdge(x, idx);
-        graph.nodes[x].size++;
+        // graph.nodes.sizes[x]++;
         if (i > 30) {
             break;
         }
@@ -67,9 +67,9 @@ void generateRealData(GS::Graph &graph) {
     i = 0;
     for (const auto &page : linkedPages) {
         i++;
-        const uint32_t idx = graph.AddNode(page.title.c_str());
+        const uint32_t idx = graph.AddNode(page.title);
         graph.AddEdge(5, idx);
-        graph.nodes[5].size++;
+        // graph.nodes.sizes[5]++;
 
         if (i > 20) {
             break;
@@ -82,9 +82,9 @@ void generateRealData(GS::Graph &graph) {
 
     for (const auto &page : linkedPages) {
         i++;
-        const uint32_t idx = graph.AddNode(page.title.c_str());
+        const uint32_t idx = graph.AddNode(page.title);
         graph.AddEdge(11, idx);
-        graph.nodes[11].size++;
+        // graph.nodes.sizes[5]++;
 
         if (i > 20) {
             break;
@@ -95,6 +95,7 @@ void generateRealData(GS::Graph &graph) {
     graph.AddEdge(7, 3);
     graph.AddEdge(8, 11);
 
+    graph.AddDefaultData();
     // graph.SaveBinary("data.wiki");
 }
 
@@ -109,10 +110,10 @@ void search(GS::Graph &graph, std::string query) {
     for (const auto &page : linkedPages) {
         const uint32_t idx = graph.AddNode(page.title.c_str());
         graph.AddEdge(0, idx);
-        graph.nodes[0].size++;
+        graph.nodes.sizes[0]++;
     }
 
-    globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.size());
+    globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.titles.size());
 }
 
 void setupGraph(GS::Graph &db, bool genData = true) {
@@ -120,11 +121,9 @@ void setupGraph(GS::Graph &db, bool genData = true) {
         generateRealData(db);
     }
 
-    const uint32_t numOfElements = db.nodes.size();
+    const uint32_t numOfElements = db.nodes.titles.size();
 
     uint32_t baseNodeIdx = db.GetTopNode();
-    auto baseNode = db.nodes[baseNodeIdx];
-
     auto neighboursUID = db.GetNeighboursIdx(baseNodeIdx);
     auto out = spreadRand(numOfElements, 50.0f);
 
@@ -133,20 +132,17 @@ void setupGraph(GS::Graph &db, bool genData = true) {
     std::uniform_real_distribution<> dist{0, 1};
     for (uint32_t i = 0; i < numOfElements; i++) {
         auto col = hsv2rgb(dist(gen), 0.8f, 1.0f);
-        db.nodes[i].pos = out[i];
-        db.nodes[i].rgb[0] = static_cast<char>(col.r);
-        db.nodes[i].rgb[1] = static_cast<char>(col.g);
-        db.nodes[i].rgb[2] = static_cast<char>(col.b);
-        db.nodes[i].size = std::sqrt(db.nodes[i].size) * 5;
-        db.nodes[i].edgeSize = db.nodes[i].size * 0.7f;
+        db.nodes.positions[i] = out[i];
+        db.nodes.colors[i] = GS::Color{static_cast<unsigned char>(col.r), static_cast<unsigned char>(col.g),
+                                       static_cast<unsigned char>(col.b)};
+        db.nodes.sizes[i] = std::sqrt(db.nodes.sizes[i]) * 5;
+        db.nodes.edgeSizes[i] = db.nodes.sizes[i] * 0.7f;
     }
 }
 
-std::string toLowerString(const char *input) {
-    std::string result;
-    for (size_t i = 0; input[i] != '\0'; ++i) {
-        result += std::tolower(static_cast<unsigned char>(input[i]));
-    }
+std::string toLower(const std::string &input) {
+    std::string result = input;
+    std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return std::tolower(c); });
     return result;
 }
 
@@ -193,15 +189,15 @@ void graphPositionSimulation() {
 
             {
                 std::lock_guard<std::mutex> lock(dBInterfaceMutex);
-                linkedPages = dBInterface->GetLinkedPages(toLowerString(readGraph->nodes.at(sourceNode).title));
+                linkedPages = dBInterface->GetLinkedPages(toLower(readGraph->nodes.titles.at(sourceNode)));
             }
 
             int i = 0;
             for (const auto &page : linkedPages) {
                 i++;
-                const uint32_t idx = writeGraph->AddNode(page.title.c_str());
+                const uint32_t idx = writeGraph->AddNode(page.title);
                 writeGraph->AddEdge(sourceNode, idx);
-                writeGraph->nodes[sourceNode].size++;
+                writeGraph->nodes.sizes[sourceNode]++;
 
                 if (i > 20) {
                     break;

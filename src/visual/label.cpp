@@ -93,17 +93,14 @@ void LabelEngine::RenderLabels(const float time) {
     glBindVertexArray(0);
 }
 
-LabelAtlasData LabelEngine::PrepareLabelAtlases(const std::vector<GS::Node> &nodes) {
-    uint32_t numLabels = static_cast<uint32_t>(nodes.size());
+LabelAtlasData LabelEngine::PrepareLabelAtlases(const std::vector<std::string> &nodeTitles) {
+    uint32_t numLabels = static_cast<uint32_t>(nodeTitles.size());
     std::vector<int32_t> labelWidths(numLabels, 0);
     int32_t maxWidth = 0;
 
-    // std::vector<std::string> uniqueTexts;
-    // std::vector<uint32_t> textIndices(nodes.size());
-
     for (uint32_t i = 0; i < numLabels; i++) {
         int32_t width = 0;
-        const std::string &text = nodes[i].title;
+        const std::string &text = nodeTitles[i];
         for (uint8_t c : text) {
             if (c >= 128)
                 continue;
@@ -129,7 +126,7 @@ LabelAtlasData LabelEngine::PrepareLabelAtlases(const std::vector<GS::Node> &nod
 
         int32_t penX = (atlasWidth - textWidth) / 2;
         int32_t baseline = m_commonBaseline;
-        const std::string &text = nodes[i].title;
+        const std::string &text = nodeTitles[i];
         for (uint8_t c : text) {
             if (c >= 128)
                 continue;
@@ -178,17 +175,18 @@ void LabelEngine::UploadLabelAtlasesToGPU(const LabelAtlasData &data) {
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
-void LabelEngine::UpdateLabelPositions(const std::vector<GS::Node> &nodes) {
-    uint32_t numLabels = static_cast<uint32_t>(nodes.size());
+void LabelEngine::UpdateLabelPositions(const std::vector<glm::vec3> &nodePositions,
+                                       const std::vector<unsigned char> &nodeSizes) {
+    uint32_t numLabels = static_cast<uint32_t>(nodePositions.size());
 
     m_activeLabels.resize(numLabels);
     const float width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
 
     for (uint32_t i = 0; i < numLabels; i++) {
-        m_activeLabels[i].position = nodes[i].pos;
+        m_activeLabels[i].position = nodePositions[i];
         m_activeLabels[i].width = width;
         m_activeLabels[i].texIndex = static_cast<float>(i);
-        m_activeLabels[i].offsetDistance = nodes[i].size;
+        m_activeLabels[i].offsetDistance = nodeSizes[i];
     }
 
     glBindVertexArray(m_VAO);

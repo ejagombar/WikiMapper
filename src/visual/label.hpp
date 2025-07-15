@@ -50,10 +50,9 @@ class LabelEngine {
 
     std::vector<LabelData> m_activeLabels;
 
-    void SetupTextureAtlases(const std::vector<GS::Node> &nodes);
-    void UpdateLabelPositions(const std::vector<GS::Node> &nodes);
+    void UpdateLabelPositions(const std::vector<glm::vec3> &nodePositions, const std::vector<unsigned char> &nodeSizes);
 
-    LabelAtlasData PrepareLabelAtlases(const std::vector<GS::Node> &nodes);
+    LabelAtlasData PrepareLabelAtlases(const std::vector<std::string> &nodeTitles);
     void UploadLabelAtlasesToGPU(const LabelAtlasData &data);
 
   private:

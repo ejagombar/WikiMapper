@@ -75,10 +75,10 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
     updateEdges(*graph);
 
     // m_text->SetupTextureAtlases(graph->nodes);
-    auto out = m_text->PrepareLabelAtlases(graph->nodes);
+    auto out = m_text->PrepareLabelAtlases(graph->nodes.titles);
     m_text->UploadLabelAtlasesToGPU(out);
 
-    m_text->UpdateLabelPositions(graph->nodes);
+    m_text->UpdateLabelPositions(graph->nodes.positions, graph->nodes.sizes);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
@@ -159,12 +159,15 @@ void Engine::initEdgeBuffers() {
 // Initialise buffer with node data on the GPU
 void Engine::updateNodes(GS::Graph &graph) {
     globalLogger->info("Start updating nodes");
-    uint32_t nodeCount = uint32_t(graph.nodes.size());
+    uint32_t nodeCount = uint32_t(graph.nodes.titles.size());
     m_nodeData.resize(nodeCount);
 
     for (uint32_t i = 0; i < nodeCount; i++) {
-        const auto &src = graph.nodes[i];
-        m_nodeData[i] = {src.rgb[0], src.rgb[1], src.rgb[2], GLubyte(src.size), {src.pos.x, src.pos.y, src.pos.z}};
+        m_nodeData[i] = {graph.nodes.colors[i].r,
+                         graph.nodes.colors[i].g,
+                         graph.nodes.colors[i].b,
+                         GLubyte(graph.nodes.edgeSizes[i]),
+                         {graph.nodes.positions[i].x, graph.nodes.positions[i].y, graph.nodes.positions[i].z}};
     }
 
     // Orphan and then refill GPU buffer
@@ -179,14 +182,27 @@ void Engine::updateNodes(GS::Graph &graph) {
 // Initialise buffer with edge data on the GPU.
 void Engine::updateEdges(GS::Graph &graph) {
     globalLogger->info("Start updating edges");
-    uint32_t edgeCount = uint32_t(graph.edges.size());
+    uint32_t edgeCount = uint32_t(graph.edges.startIdxs.size());
     m_edgeData.resize(edgeCount * 2);
 
     for (uint32_t i = 0; i < edgeCount; i++) {
-        const auto &s = graph.EdgeStart(i);
-        const auto &e = graph.EdgeEnd(i);
-        m_edgeData[2 * i] = {s.rgb[0], s.rgb[1], s.rgb[2], GLubyte(s.edgeSize), {s.pos.x, s.pos.y, s.pos.z}};
-        m_edgeData[2 * i + 1] = {e.rgb[0], e.rgb[1], e.rgb[2], GLubyte(e.edgeSize), {e.pos.x, e.pos.y, e.pos.z}};
+        auto EdgeStart = [&](size_t i) { return; };
+        auto EdgeEnd = [&](size_t i) { return; };
+
+        const auto &s = graph.edges.startIdxs.at(i);
+        const auto &e = graph.edges.endIdxs.at(i);
+
+        m_edgeData[2 * i] = {graph.nodes.colors[s].r,
+                             graph.nodes.colors[s].g,
+                             graph.nodes.colors[s].b,
+                             GLubyte(graph.nodes.edgeSizes[s]),
+                             {graph.nodes.positions[s].x, graph.nodes.positions[s].y, graph.nodes.positions[s].z}};
+
+        m_edgeData[2 * i + 1] = {graph.nodes.colors[e].r,
+                                 graph.nodes.colors[e].g,
+                                 graph.nodes.colors[e].b,
+                                 GLubyte(graph.nodes.edgeSizes[e]),
+                                 {graph.nodes.positions[e].x, graph.nodes.positions[e].y, graph.nodes.positions[e].z}};
     }
 
     // Orphan and then refill GPU buffer
@@ -203,7 +219,7 @@ void Engine::updateSelectorBuffer() {
     m_picking->pickingShader->SetUInt("nodeOffset", 0);
 
     glBindVertexArray(m_VAOs[1]);
-    glDrawArrays(GL_POINTS, 0, m_graph->nodes.size());
+    glDrawArrays(GL_POINTS, 0, m_graph->nodes.positions.size());
     m_picking->End();
 }
 
@@ -239,9 +255,9 @@ void Engine::processMouseSelectorInput(GLFWwindow *window) {
 // Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
 // together so it can be copied all at once as opposed to looping through each value.
 void Engine::updateParticles(GS::Graph &graph) {
-    uint32_t minNodeCount = std::min(m_nodeData.size(), graph.nodes.size());
+    uint32_t minNodeCount = std::min(m_nodeData.size(), graph.nodes.positions.size());
     for (uint32_t i = 0; i < minNodeCount; i++) {
-        const auto &src = graph.nodes.at(i).pos;
+        const auto &src = graph.nodes.positions.at(i);
         auto &dst = m_nodeData.at(i).position;
 
         dst[0] = src.x;
@@ -249,19 +265,22 @@ void Engine::updateParticles(GS::Graph &graph) {
         dst[2] = src.z;
     }
 
-    m_text->UpdateLabelPositions(graph.nodes);
+    m_text->UpdateLabelPositions(graph.nodes.positions, graph.nodes.sizes);
 
-    uint32_t minEdgeCount = std::min(m_edgeData.size() / 2, graph.edges.size());
+    uint32_t minEdgeCount = std::min(m_edgeData.size() / 2, graph.edges.startIdxs.size());
     for (uint32_t i = 0; i < minEdgeCount; i++) {
         const uint32_t lineIdx = i * 2;
 
-        m_edgeData[lineIdx].position[0] = graph.EdgeStart(i).pos.x;
-        m_edgeData[lineIdx].position[1] = graph.EdgeStart(i).pos.y;
-        m_edgeData[lineIdx].position[2] = graph.EdgeStart(i).pos.z;
+        auto EdgeStart = [&](size_t i) { return graph.nodes.positions.at(graph.edges.startIdxs.at(i)); };
+        auto EdgeEnd = [&](size_t i) { return graph.nodes.positions.at(graph.edges.endIdxs.at(i)); };
 
-        m_edgeData[lineIdx + 1].position[0] = graph.EdgeEnd(i).pos.x;
-        m_edgeData[lineIdx + 1].position[1] = graph.EdgeEnd(i).pos.y;
-        m_edgeData[lineIdx + 1].position[2] = graph.EdgeEnd(i).pos.z;
+        m_edgeData[lineIdx].position[0] = EdgeStart(i).x;
+        m_edgeData[lineIdx].position[1] = EdgeStart(i).y;
+        m_edgeData[lineIdx].position[2] = EdgeStart(i).z;
+
+        m_edgeData[lineIdx + 1].position[0] = EdgeEnd(i).x;
+        m_edgeData[lineIdx + 1].position[1] = EdgeEnd(i).y;
+        m_edgeData[lineIdx + 1].position[2] = EdgeEnd(i).z;
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
@@ -295,10 +314,10 @@ void Engine::computeLighting(glm::vec3 cameraPosition) {
 
     uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
 
-    if (m_previousHoveredNodeID >= 0 && m_previousHoveredNodeID < static_cast<int>(m_graph->nodes.size()) &&
+    if (m_previousHoveredNodeID >= 0 && m_previousHoveredNodeID < static_cast<int>(m_graph->nodes.titles.size()) &&
         m_inTransition) {
 
-        glm::vec3 prevNodePos = m_graph->nodes[m_previousHoveredNodeID].pos;
+        glm::vec3 prevNodePos = m_graph->nodes.positions[m_previousHoveredNodeID];
         glm::vec3 dirToCamera = cameraPosition - prevNodePos;
         dirToCamera = glm::normalize(dirToCamera);
         glm::vec3 prevLightPos = prevNodePos + (dirToCamera * 1.0f);
@@ -308,21 +327,21 @@ void Engine::computeLighting(glm::vec3 cameraPosition) {
         uniforms.pointLight[1] = {glm::vec3(0), glm::vec3(0), 0.0f, 0.0f, 0.0f};
     }
 
-    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
-        m_gui->SetActiveNodeInfo(m_graph->nodes[m_hoveredNodeID].title);
-        glm::vec3 nodePos = m_graph->nodes[m_hoveredNodeID].pos;
+    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.titles.size())) {
+        m_gui->SetActiveNodeInfo(m_graph->nodes.titles[m_hoveredNodeID]);
+        glm::vec3 nodePos = m_graph->nodes.positions[m_hoveredNodeID];
         glm::vec3 dirToCamera = cameraPosition - nodePos;
         dirToCamera = glm::normalize(dirToCamera);
         glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
 
         uniforms.pointLight[2] = {lightPos, glm::vec3(m_hoverBrightness), 0.001f, 0.3, 0.01};
     } else {
-        if (m_selectedNode >= 0 && m_selectedNode < static_cast<int32_t>(m_graph->nodes.size())) {
-            glm::vec3 nodePos = m_graph->nodes[m_selectedNode].pos;
+        if (m_selectedNode >= 0 && m_selectedNode < static_cast<int32_t>(m_graph->nodes.titles.size())) {
+            glm::vec3 nodePos = m_graph->nodes.positions[m_selectedNode];
             glm::vec3 dirToCamera = cameraPosition - nodePos;
             dirToCamera = glm::normalize(dirToCamera);
             glm::vec3 lightPos = nodePos + (dirToCamera * 1.0f);
-            m_gui->SetActiveNodeInfo(m_graph->nodes[m_selectedNode].title);
+            m_gui->SetActiveNodeInfo(m_graph->nodes.titles[m_selectedNode]);
             uniforms.pointLight[2] = {lightPos, glm::vec3(1.0), 0.001f, 0.3, 0.01};
         } else {
             m_gui->SetActiveNodeInfo("");
@@ -355,7 +374,7 @@ uint32_t Engine::Run() {
             updateNodes(*graph);
             updateEdges(*graph);
 
-            fut = std::async(std::launch::async, [engine = m_text.get(), graph = graph->nodes]() {
+            fut = std::async(std::launch::async, [engine = m_text.get(), graph = graph->nodes.titles]() {
                 return engine->PrepareLabelAtlases(graph);
             });
             textureGenTriggered = true;
@@ -437,14 +456,14 @@ void Engine::loop() {
 
     m_shader.materialUBO->Update(properties);
 
-    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
+    if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.titles.size())) {
         m_shader.sphere->SetInt("selectedID", m_hoveredNodeID);
     } else {
         m_shader.sphere->SetInt("selectedID", -1);
     }
 
     glBindVertexArray(m_VAOs[1]);
-    glDrawArrays(GL_POINTS, 0, m_graph->nodes.size());
+    glDrawArrays(GL_POINTS, 0, m_graph->nodes.titles.size());
 
     m_text->RenderLabels(currentFrame);
 
@@ -452,7 +471,7 @@ void Engine::loop() {
     m_shader.cylinder->SetMat3("normalMat", normal);
     m_shader.cylinder->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[0]);
-    glDrawArrays(GL_LINES, 0, m_graph->edges.size() * 2);
+    glDrawArrays(GL_LINES, 0, m_graph->edges.startIdxs.size() * 2);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -614,7 +633,7 @@ void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int butt
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS && !m_gui->Active()) {
-            if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.size())) {
+            if (m_hoveredNodeID >= 0 && m_hoveredNodeID < static_cast<int>(m_graph->nodes.titles.size())) {
                 m_selectedNode = m_hoveredNodeID;
             } else if (m_hoveredNodeID != m_selectedNode) {
                 m_selectedNode = -1;

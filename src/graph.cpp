@@ -1,22 +1,43 @@
 #include "graph.hpp"
+#include "logger.hpp"
 #include <atomic>
 #include <cstdint>
-#include <fstream>
-#include <iostream>
+#include <random>
 #include <vector>
 
 namespace GS {
 
 // ------------------ Graph ------------------
 
-uint32_t Graph::AddNode(const char *title) {
-    nodes.emplace_back(Node(title));
-    return nodes.size() - 1;
+uint32_t Graph::AddNode(std::string title) {
+    nodes.titles.emplace_back(title);
+    return nodes.titles.size() - 1;
+}
+
+void Graph::AddDefaultData() {
+    const auto N = nodes.titles.size();
+
+    nodes.velocities.resize(N, glm::vec3(0, 0, 0));
+    nodes.forces.resize(N, glm::vec3(0, 0, 0));
+    nodes.colors.resize(N, Color{200, 200, 200});
+    nodes.sizes.resize(N, 10);
+    nodes.edgeSizes.resize(N, 1);
+    nodes.fixed.resize(false);
+    nodes.masses.resize(N, 1.0f);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(-100.0f, 100.0f);
+
+    nodes.positions.resize(N);
+    for (uint32_t i = 0; i < N; ++i) {
+        nodes.positions[i] = glm::vec3(dis(gen), dis(gen), dis(gen));
+    }
 }
 
 void Graph::AddEdge(uint32_t idx1, uint32_t idx2) {
-    if (idx1 >= nodes.size() || idx2 > nodes.size()) {
-        std::cerr << "Error: Idx out of range." << std::endl;
+    if (idx1 >= nodes.titles.size() || idx2 > nodes.titles.size()) {
+        globalLogger->error("Error: Idx out of range.");
     }
 
     // Do not add self links
@@ -32,43 +53,26 @@ void Graph::AddEdge(uint32_t idx1, uint32_t idx2) {
     }
 
     // Ensure the edge is not a duplicate
-    for (const Edge &e : edges) {
-        if (e.startIdx == idx1 && e.endIdx == idx2) {
+    for (int i = 0; i < edges.startIdxs.size(); i++) {
+        if (edges.startIdxs[i] == idx1 && edges.endIdxs[i] == idx2) {
             return;
         }
     }
-
-    edges.emplace_back(Edge(idx1, idx2));
-}
-
-std::vector<Node> Graph::GetNeighbours(uint32_t idx) const {
-    std::vector<Node> out;
-
-    for (const Edge &e : edges) {
-        if (e.startIdx > idx)
-            continue;
-
-        if (e.startIdx == idx) {
-            out.emplace_back(nodes[e.endIdx]);
-        } else if (e.endIdx == idx) {
-            out.emplace_back(nodes[e.startIdx]);
-        }
-    }
-
-    return out;
+    edges.startIdxs.push_back(idx1);
+    edges.endIdxs.push_back(idx2);
 }
 
 std::vector<uint32_t> Graph::GetNeighboursIdx(uint32_t idx) const {
     std::vector<uint32_t> out;
 
-    for (const Edge &e : edges) {
-        if (e.startIdx > idx)
+    for (int i = 0; i < edges.startIdxs.size(); i++) {
+        if (edges.startIdxs[i] > idx)
             continue;
 
-        if (e.startIdx == idx) {
-            out.push_back(e.endIdx);
-        } else if (e.endIdx == idx) {
-            out.push_back(e.startIdx);
+        if (edges.startIdxs[i] == idx) {
+            out.push_back(edges.endIdxs[i]);
+        } else if (edges.endIdxs[i] == idx) {
+            out.push_back(edges.startIdxs[i]);
         }
     }
 
@@ -78,7 +82,7 @@ std::vector<uint32_t> Graph::GetNeighboursIdx(uint32_t idx) const {
 uint32_t Graph::GetTopNode() {
     int maxLinkCount(0);
     uint32_t topNode(0);
-    for (uint32_t i = 0; i < nodes.size(); i++) {
+    for (uint32_t i = 0; i < nodes.titles.size(); i++) {
         int linkCount = GetNeighboursIdx(i).size();
         if (linkCount > maxLinkCount) {
             maxLinkCount = linkCount;
@@ -97,133 +101,121 @@ Graph &Graph::operator=(const Graph &other) {
 }
 
 void Graph::Clear() {
-    nodes.clear();
-    edges.clear();
+    nodes.titles.clear();
+    nodes.positions.clear();
+    nodes.velocities.clear();
+    nodes.forces.clear();
+    nodes.colors.clear();
+    nodes.sizes.clear();
+    nodes.edgeSizes.clear();
+    nodes.fixed.clear();
+    nodes.masses.clear();
+
+    edges.startIdxs.clear();
+    edges.endIdxs.clear();
 };
 
 // Binary load function
 bool Graph::LoadBinary(const std::string &filename) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Error: Could not open file for reading: " << filename << std::endl;
-        return false;
-    }
-
-    try {
-        // Clear existing data
-        Clear();
-
-        // Read header
-        uint32_t version, nodeCount, edgeCount;
-        file.read(reinterpret_cast<char *>(&version), sizeof(version));
-        file.read(reinterpret_cast<char *>(&nodeCount), sizeof(nodeCount));
-        file.read(reinterpret_cast<char *>(&edgeCount), sizeof(edgeCount));
-
-        if (version != 1) {
-            std::cerr << "Error: Unsupported file version: " << version << std::endl;
-            return false;
-        }
-
-        nodes.reserve(nodeCount);
-        edges.reserve(edgeCount);
-
-        for (uint32_t i = 0; i < nodeCount; ++i) {
-            Node node("");
-            file.read(node.title, sizeof(node.title));
-            file.read(reinterpret_cast<char *>(&node.pos), sizeof(node.pos));
-            file.read(reinterpret_cast<char *>(&node.vel), sizeof(node.vel));
-            file.read(reinterpret_cast<char *>(&node.force), sizeof(node.force));
-            file.read(reinterpret_cast<char *>(node.rgb), sizeof(node.rgb));
-            file.read(reinterpret_cast<char *>(&node.size), sizeof(node.size));
-            file.read(reinterpret_cast<char *>(&node.edgeSize), sizeof(node.edgeSize));
-            file.read(reinterpret_cast<char *>(&node.fixed), sizeof(node.fixed));
-            file.read(reinterpret_cast<char *>(&node.mass), sizeof(node.mass));
-
-            node.title[sizeof(node.title) - 1] = '\0';
-            nodes.push_back(node);
-        }
-
-        for (uint32_t i = 0; i < edgeCount; ++i) {
-            Edge edge;
-            file.read(reinterpret_cast<char *>(&edge.startIdx), sizeof(edge.startIdx));
-            file.read(reinterpret_cast<char *>(&edge.endIdx), sizeof(edge.endIdx));
-            edges.push_back(edge);
-        }
-
-        file.close();
-        return true;
-
-    } catch (const std::exception &e) {
-        std::cerr << "Error reading binary file: " << e.what() << std::endl;
-        Clear();
-        return false;
-    }
+    // std::ifstream file(filename, std::ios::binary);
+    // if (!file.is_open()) {
+    //     std::cerr << "Error: Could not open file for reading: " << filename << std::endl;
+    //     return false;
+    // }
+    //
+    // try {
+    //     // Clear existing data
+    //     Clear();
+    //
+    //     // Read header
+    //     uint32_t version, nodeCount, edgeCount;
+    //     file.read(reinterpret_cast<char *>(&version), sizeof(version));
+    //     file.read(reinterpret_cast<char *>(&nodeCount), sizeof(nodeCount));
+    //     file.read(reinterpret_cast<char *>(&edgeCount), sizeof(edgeCount));
+    //
+    //     if (version != 1) {
+    //         std::cerr << "Error: Unsupported file version: " << version << std::endl;
+    //         return false;
+    //     }
+    //
+    //     nodes.reserve(nodeCount);
+    //     edges.reserve(edgeCount);
+    //
+    //     for (uint32_t i = 0; i < nodeCount; ++i) {
+    //         Node node("");
+    //         file.read(node.title, sizeof(node.title));
+    //         file.read(reinterpret_cast<char *>(&node.pos), sizeof(node.pos));
+    //         file.read(reinterpret_cast<char *>(&node.vel), sizeof(node.vel));
+    //         file.read(reinterpret_cast<char *>(&node.force), sizeof(node.force));
+    //         file.read(reinterpret_cast<char *>(node.rgb), sizeof(node.rgb));
+    //         file.read(reinterpret_cast<char *>(&node.size), sizeof(node.size));
+    //         file.read(reinterpret_cast<char *>(&node.edgeSize), sizeof(node.edgeSize));
+    //         file.read(reinterpret_cast<char *>(&node.fixed), sizeof(node.fixed));
+    //         file.read(reinterpret_cast<char *>(&node.mass), sizeof(node.mass));
+    //
+    //         node.title[sizeof(node.title) - 1] = '\0';
+    //         nodes.push_back(node);
+    //     }
+    //
+    //     for (uint32_t i = 0; i < edgeCount; ++i) {
+    //         Edge edge;
+    //         file.read(reinterpret_cast<char *>(&edge.startIdx), sizeof(edge.startIdx));
+    //         file.read(reinterpret_cast<char *>(&edge.endIdx), sizeof(edge.endIdx));
+    //         edges.push_back(edge);
+    //     }
+    //
+    //     file.close();
+    //     return true;
+    //
+    // } catch (const std::exception &e) {
+    //     std::cerr << "Error reading binary file: " << e.what() << std::endl;
+    //     Clear();
+    //     return false;
+    // }
+    return false;
 }
 
 bool Graph::SaveBinary(const std::string &filename) const {
-    std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Error: Could not open file for writing: " << filename << std::endl;
-        return false;
-    }
+    // std::ofstream file(filename, std::ios::binary);
+    // if (!file.is_open()) {
+    //     std::cerr << "Error: Could not open file for writing: " << filename << std::endl;
+    //     return false;
+    // }
+    //
+    // try {
+    //     const uint32_t version = 1;
+    //     const uint32_t nodeCount = static_cast<uint32_t>(nodes.size());
+    //     const uint32_t edgeCount = static_cast<uint32_t>(edges.size());
+    //
+    //     file.write(reinterpret_cast<const char *>(&version), sizeof(version));
+    //     file.write(reinterpret_cast<const char *>(&nodeCount), sizeof(nodeCount));
+    //     file.write(reinterpret_cast<const char *>(&edgeCount), sizeof(edgeCount));
+    //
+    //     for (const auto &node : nodes) {
+    //         file.write(node.title, sizeof(node.title));
+    //         file.write(reinterpret_cast<const char *>(&node.pos), sizeof(node.pos));
+    //         file.write(reinterpret_cast<const char *>(&node.vel), sizeof(node.vel));
+    //         file.write(reinterpret_cast<const char *>(&node.force), sizeof(node.force));
+    //         file.write(reinterpret_cast<const char *>(node.rgb), sizeof(node.rgb));
+    //         file.write(reinterpret_cast<const char *>(&node.size), sizeof(node.size));
+    //         file.write(reinterpret_cast<const char *>(&node.edgeSize), sizeof(node.edgeSize));
+    //         file.write(reinterpret_cast<const char *>(&node.fixed), sizeof(node.fixed));
+    //         file.write(reinterpret_cast<const char *>(&node.mass), sizeof(node.mass));
+    //     }
+    //
+    //     for (const auto &edge : edges) {
+    //         file.write(reinterpret_cast<const char *>(&edge.startIdx), sizeof(edge.startIdx));
+    //         file.write(reinterpret_cast<const char *>(&edge.endIdx), sizeof(edge.endIdx));
+    //     }
+    //
+    //     file.close();
+    //     return true;
+    // } catch (const std::exception &e) {
+    //     std::cerr << "Error writing binary file: " << e.what() << std::endl;
+    //     return false;
+    // }
 
-    try {
-        const uint32_t version = 1;
-        const uint32_t nodeCount = static_cast<uint32_t>(nodes.size());
-        const uint32_t edgeCount = static_cast<uint32_t>(edges.size());
-
-        file.write(reinterpret_cast<const char *>(&version), sizeof(version));
-        file.write(reinterpret_cast<const char *>(&nodeCount), sizeof(nodeCount));
-        file.write(reinterpret_cast<const char *>(&edgeCount), sizeof(edgeCount));
-
-        for (const auto &node : nodes) {
-            file.write(node.title, sizeof(node.title));
-            file.write(reinterpret_cast<const char *>(&node.pos), sizeof(node.pos));
-            file.write(reinterpret_cast<const char *>(&node.vel), sizeof(node.vel));
-            file.write(reinterpret_cast<const char *>(&node.force), sizeof(node.force));
-            file.write(reinterpret_cast<const char *>(node.rgb), sizeof(node.rgb));
-            file.write(reinterpret_cast<const char *>(&node.size), sizeof(node.size));
-            file.write(reinterpret_cast<const char *>(&node.edgeSize), sizeof(node.edgeSize));
-            file.write(reinterpret_cast<const char *>(&node.fixed), sizeof(node.fixed));
-            file.write(reinterpret_cast<const char *>(&node.mass), sizeof(node.mass));
-        }
-
-        for (const auto &edge : edges) {
-            file.write(reinterpret_cast<const char *>(&edge.startIdx), sizeof(edge.startIdx));
-            file.write(reinterpret_cast<const char *>(&edge.endIdx), sizeof(edge.endIdx));
-        }
-
-        file.close();
-        return true;
-    } catch (const std::exception &e) {
-        std::cerr << "Error writing binary file: " << e.what() << std::endl;
-        return false;
-    }
-}
-
-float Graph::GetRadius() const {
-    if (nodes.empty())
-        return 0.0f;
-
-    glm::vec3 center = GetCenter();
-    float maxDistSq = 0.0f;
-
-    for (const auto &node : nodes) {
-        float distSq = glm::dot(node.pos - center, node.pos - center);
-        maxDistSq = std::max(maxDistSq, distSq);
-    }
-
-    return std::sqrt(maxDistSq);
-}
-glm::vec3 Graph::GetCenter() const {
-    if (nodes.empty())
-        return glm::vec3(0, 0, 0);
-
-    glm::vec3 sum(0, 0, 0);
-    for (const auto &node : nodes) {
-        sum += node.pos;
-    }
-    return sum / static_cast<float>(nodes.size());
+    return false;
 }
 
 // ------------------ GraphTripleBuffer ------------------
