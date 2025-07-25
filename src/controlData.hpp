@@ -12,7 +12,7 @@ struct SimulationControlData {
     float repulsionStrength = 4.0f;  // Strength of repulsive force
     float attractionStrength = 65.f; // Strength of attractive force
     float centeringForce = 40.f;     // Strength of centering force
-    float timeStep = 0.6f;           // Integration time step scaling
+    float timeStep = 6000.f;         // Integration time step scaling
     float forceMultiplier = 1.0f;
     float maxForce = 5.0f; // Force clamping to avoid instability
     float targetDistance = 11.0f;

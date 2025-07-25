@@ -626,7 +626,7 @@ void GUI::RenderDebugMenu() {
         ImGui::Spacing();
         ImGui::Text("Simulation Settings");
         ImGui::Separator();
-        valUpdated[3] = ImGui::SliderFloat("Time Step", &localSim.timeStep, .01f, 10.0f, "%.3f");
+        valUpdated[3] = ImGui::SliderFloat("Time Step", &localSim.timeStep, .01f, 100000.0f, "%.3f");
         valUpdated[4] = ImGui::SliderFloat("Force Multiplier", &localSim.forceMultiplier, 0.1f, 10.0f, "%.3f");
         valUpdated[6] = ImGui::SliderFloat("Target Distance", &localSim.targetDistance, .01f, 100.0f, "%.3f");
 

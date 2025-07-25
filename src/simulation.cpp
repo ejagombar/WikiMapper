@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "controlData.hpp"
+#include "logger.hpp"
 
 #include "simulation.hpp"
 
@@ -41,7 +42,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
 #endif
 
     static float coolingFactor = 1.0f;
-    coolingFactor = std::max(0.0f, coolingFactor * 0.999f);
+    // coolingFactor = std::max(0.0f, coolingFactor * 0.999f);
 
     float nodeCountScaling = 1.0f / (1.0f + std::log10(std::max(1.0f, float(writeG.nodes.positions.size()))));
 
@@ -49,7 +50,7 @@ void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float
     float effectiveAttractionStrength = simControlData.attractionStrength * coolingFactor;
     float effectiveCenteringForce = simControlData.centeringForce * 0.1f;
 
-    float safeTimeStep = dt * simControlData.timeStep * 0.1f;
+    float safeTimeStep = dt * simControlData.timeStep;
 
     for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
         glm::vec3 currentMovement = writeG.nodes.positions[i] - prevPositions[i];

@@ -3,50 +3,23 @@
 
 #include <atomic>
 #include <cstdint>
+#include <cstring>
+#include <fstream>
 #include <glm/glm.hpp>
+#include <iomanip>
+#include <random>
+#include <sstream>
 #include <string>
 #include <vector>
 
 namespace GS {
-// TODO: USE STRUCTURE OF ARRAYS FOR SIMD TO IMPROVE PEFROMANCE
-
-// The graph datastructure nodes are heavily linked to nodes that are displayed in the viewer. This allowed an
-// intemediary layer to be removed from the engine, decreasing the number of copies, at the cost of modularity.
-// struct Node {
-//     char title[64];
-//     glm::vec3 pos = glm::vec3(0, 0, 0);
-//     glm::vec3 vel = glm::vec3(0, 0, 0);
-//     glm::vec3 force = glm::vec3(0, 0, 0);
-//     unsigned char rgb[3];
-//     unsigned char size = 10;
-//     unsigned char edgeSize;
-//     bool fixed = false; // Whether this node's position is fixed (e.g., when dragged by user)
-//     float mass = 1.0f;  // Node mass, affects force response
-//
-//     Node(const char *t) {
-//         strncpy(title, t, sizeof(title) - 1);
-//         title[sizeof(title) - 1] = '\0'; // Ensure null-termination
-//
-//         std::random_device rd;
-//         std::mt19937 gen(rd());
-//         std::uniform_real_distribution<> dis(-100.0, 100.0);
-//         pos = glm::vec3(dis(gen), dis(gen), dis(gen));
-//
-//         rgb[0] = 200;
-//         rgb[1] = 200;
-//         rgb[2] = 200;
-//         size = 10;
-//         edgeSize = 1;
-//     }
-// };
 
 struct Color {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
+    unsigned char r, g, b;
 };
 
-struct Nodes {
+// Structure of Arrays for better cache performance and GPU compatibility
+struct NodeData {
     std::vector<std::string> titles;
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> velocities;
@@ -54,64 +27,83 @@ struct Nodes {
     std::vector<Color> colors;
     std::vector<unsigned char> sizes;
     std::vector<unsigned char> edgeSizes;
-    std::vector<bool> fixed;   // Whether this node's position is fixed (e.g., when dragged by user)
-    std::vector<float> masses; // Node mass, affects force response
+    std::vector<bool> fixed;
+    std::vector<float> masses;
 };
 
-struct Edges {
+struct EdgeData {
     std::vector<uint32_t> startIdxs;
     std::vector<uint32_t> endIdxs;
 };
 
-// A graph storage class. Each Node is stored in an vectors, using the vector index as the indentifier. The edges store
-// two values which reference to the start and end indexes of the nodes. A vector was chosen to store the Nodes and
-// Edges over a Map as items will not regularly need to be deleted from the Graph.
-// TODO: Template the graph to allow for different Node datastructures.
+// A graph storage class using Structure of Arrays (SoA) for better performance
 class Graph {
   public:
-    Graph() {};
+    Graph() = default;
     ~Graph() = default;
 
     Graph &operator=(const Graph &other);
 
-    uint32_t AddNode(std::string title);
-    void AddEdge(uint32_t idx1, uint32_t idx2);
+    // Node management
+    uint32_t AddNode(const std::string &title);
+    void ReserveNodes(const uint32_t N);
+    void ReserveEdges(const uint32_t N);
+    void ResizeNodes(const uint32_t N);
+    void ResizeEdges(const uint32_t N);
+    void GenerateDefaultData(); // Generate positions, velocities, etc.
     void Clear();
-    void AddDefaultData();
 
+    // Edge management
+    void AddEdge(uint32_t idx1, uint32_t idx2);
+
+    // Query functions
     std::vector<uint32_t> GetNeighboursIdx(uint32_t rootIdx) const;
+    uint32_t GetTopNode();
 
+    // File I/O (only saves/loads titles and edges)
     bool SaveBinary(const std::string &filename) const;
     bool LoadBinary(const std::string &filename);
 
-    uint32_t GetTopNode();
+    // Utility functions
+    float GetRadius() const;
+    glm::vec3 GetCenter() const;
+    size_t GetNodeCount() const { return nodes.titles.size(); }
+    size_t GetEdgeCount() const { return edges.startIdxs.size(); }
 
-    // Node &EdgeStart(uint32_t idx) { return nodes.at(edges.at(idx).startIdx); }
-    // Node &EdgeEnd(uint32_t idx) { return nodes.at(edges.at(idx).endIdx); }
+    // Data access
+    NodeData nodes;
+    EdgeData edges;
 
-    Nodes nodes;
-    Edges edges;
+    // Helper functions for accessing specific node data
+    const std::string &GetNodeTitle(size_t idx) const { return nodes.titles[idx]; }
+
+    const glm::vec3 &GetNodePosition(size_t idx) const { return nodes.positions[idx]; }
+
+    void SetNodePosition(size_t idx, const glm::vec3 &pos) {
+        if (idx < nodes.positions.size()) {
+            nodes.positions[idx] = pos;
+        }
+    }
+
+    bool IsNodeFixed(size_t idx) const { return idx < nodes.fixed.size() ? nodes.fixed[idx] : false; }
+
+    void SetNodeFixed(size_t idx, bool fixed) {
+        if (idx < nodes.fixed.size()) {
+            nodes.fixed[idx] = fixed;
+        }
+    }
 };
 
-// A triple buffer system ensures that the node locations can be updated on the simulation thread, whilst also
-// ensuring that data is always available to read from on the engine thread. A triple buffer was selected over a
-// double buffer as the simulation thread needs to read from one graph copy and write to another. At the same time,
-// the render engine can read from the third graph copy. More information can be found here.
-// https://www.gamedev.net/forums/topic/403834-multithreading---sharing-data-triple-buffering/
-// TODO: Re-evaluate a double buffer and compare.
+// Triple buffer system for thread-safe graph updates
 class GraphTripleBuf {
   public:
     GraphTripleBuf();
     ~GraphTripleBuf();
 
     Graph *GetCurrent();
-    Graph *GetWriteBuffer() { return m_buffers[m_write]; };
+    Graph *GetWriteBuffer() { return m_buffers[m_write]; }
     void Publish();
-
-    // Use this function instead of the usual Publish() function to write the graph data to all graph instances.
-    // This is a slower operation and should only be used to initialise the state of the graph.
     void PublishAll();
-
     uint32_t Version();
 
   private:
@@ -125,4 +117,5 @@ class GraphTripleBuf {
 };
 
 } // namespace GS
+
 #endif

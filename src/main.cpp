@@ -40,8 +40,8 @@ std::mutex dBInterfaceMutex;
 
 void generateRealData(GS::Graph &graph) {
 
-    // graph.LoadBinary("../data.wiki"); // Use local data for demo
-    // return;
+    graph.LoadBinary("data2.wiki"); // Use local data for demo
+    return;
 
     std::vector<LinkedPage> linkedPages;
 
@@ -95,8 +95,9 @@ void generateRealData(GS::Graph &graph) {
     graph.AddEdge(7, 3);
     graph.AddEdge(8, 11);
 
-    graph.AddDefaultData();
-    // graph.SaveBinary("data.wiki");
+    // graph.SaveBinary("data2.wiki");
+    // graph.Clear();
+    // graph.LoadBinary("data2.wiki"); // Use local data for demo
 }
 
 void search(GS::Graph &graph, std::string query) {
@@ -120,6 +121,7 @@ void setupGraph(GS::Graph &db, bool genData = true) {
     if (genData) {
         generateRealData(db);
     }
+    db.GenerateDefaultData();
 
     const uint32_t numOfElements = db.nodes.titles.size();
 
@@ -159,7 +161,7 @@ void graphPositionSimulation() {
         GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
 
         auto frameEnd = std::chrono::system_clock::now();
-        float elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
+        double elapsed_seconds = std::chrono::duration<double>(frameEnd - frameStart).count();
         frameStart = frameEnd;
 
         SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
