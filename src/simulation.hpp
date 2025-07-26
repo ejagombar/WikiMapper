@@ -4,7 +4,6 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
-void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt,
-                          const SimulationControlData &simControlData);
+void updateGraphPositions(GS::Graph &writeG, const float dt, const SimulationControlData &simControlData);
 
 #endif // SIMULATION_H

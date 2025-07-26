@@ -14,10 +14,7 @@
 
 // #define DEBUG_FORCES
 
-void updateGraphPositions(const GS::Graph &readG, GS::Graph &writeG, const float dt,
-                          const SimulationControlData &simControlData) {
-    writeG = readG;
-
+void updateGraphPositions(GS::Graph &writeG, const float dt, const SimulationControlData &simControlData) {
     static std::vector<glm::vec3> prevPositions;
     static std::vector<glm::vec3> prevMovements;
     static std::vector<float> nodeDamping;

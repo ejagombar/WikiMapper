@@ -26,6 +26,17 @@
 #include <thread>
 #include <vector>
 
+#include <future>
+#include <optional>
+
+struct PendingNodeExpansion {
+    std::future<std::vector<LinkedPage>> future;
+    uint32_t sourceNodeId;
+    std::string nodeName;
+};
+
+std::optional<PendingNodeExpansion> pendingExpansion;
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "../lib/std_image.h"
 
@@ -148,13 +159,91 @@ std::string toLower(const std::string &input) {
     return result;
 }
 
+void processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
+    if (controlData.graph.searching.load(std::memory_order_relaxed)) {
+        globalLogger->info("Loading data for " + controlData.graph.searchString);
+        writeGraph->Clear();
+        search(*writeGraph, controlData.graph.searchString);
+        setupGraph(*writeGraph, false);
+        graphBuf.PublishAll();
+        globalLogger->info("Published graph data");
+        readGraph = graphBuf.GetCurrent();
+        writeGraph = graphBuf.GetWriteBuffer();
+        controlData.graph.searching.store(false, std::memory_order_relaxed);
+        controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+    }
+
+    if (pendingExpansion.has_value()) {
+        auto &expansion = pendingExpansion.value();
+
+        if (expansion.future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            try {
+                auto linkedPages = expansion.future.get();
+
+                int i = 0;
+                for (const auto &page : linkedPages) {
+                    i++;
+                    globalLogger->info("Page" + page.title);
+                    const uint32_t idx = writeGraph->AddNode(page.title);
+                    writeGraph->AddEdge(expansion.sourceNodeId, idx);
+                    writeGraph->nodes.sizes[expansion.sourceNodeId]++;
+                    if (i > 20) {
+                        break;
+                    }
+                }
+
+                controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+                graphBuf.PublishAll();
+                readGraph = graphBuf.GetCurrent();
+                writeGraph = graphBuf.GetWriteBuffer();
+                dat.resetSimulation = true;
+
+                globalLogger->info("Completed async node expansion for: " + expansion.nodeName);
+            } catch (const std::exception &e) {
+                globalLogger->error("Failed to expand node: " + std::string(e.what()));
+            }
+
+            pendingExpansion.reset();
+        }
+    }
+
+    int32_t sourceNode = controlData.graph.sourceNode.load(std::memory_order_relaxed);
+    if (sourceNode >= 0) {
+        controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
+
+        if (!pendingExpansion.has_value()) {
+            std::string nodeName = readGraph->nodes.titles.at(sourceNode);
+
+            auto future = std::async(std::launch::async, [nodeName]() -> std::vector<LinkedPage> {
+                std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+                return dBInterface->GetLinkedPages(toLower(nodeName));
+            });
+
+            pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
+
+            globalLogger->info("Started async node expansion for: " + nodeName);
+        } else {
+            globalLogger->info("Node expansion already in progress, ignoring request");
+        }
+    }
+
+    if (dat.resetSimulation) {
+        setupGraph(*writeGraph, false);
+        graphBuf.Publish();
+        readGraph = graphBuf.GetCurrent();
+        writeGraph = graphBuf.GetWriteBuffer();
+        dat.resetSimulation = false;
+        controlData.sim.store(dat, std::memory_order_relaxed);
+        globalLogger->info("Reset simulation");
+    }
+}
+
 void graphPositionSimulation() {
     globalLogger->info("Physics thread starting");
 
     const auto simulationInterval = std::chrono::milliseconds(0);
 
-    auto simStart = std::chrono::system_clock::now();
-    auto frameStart = simStart;
+    auto frameStart = std::chrono::system_clock::now();
 
     while (!shouldTerminate) {
         GS::Graph *readGraph = graphBuf.GetCurrent();
@@ -165,69 +254,9 @@ void graphPositionSimulation() {
         frameStart = frameEnd;
 
         SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
-
-        if (controlData.graph.searching.load(std::memory_order_relaxed)) {
-            globalLogger->info("Loading data for " + controlData.graph.searchString);
-            writeGraph->Clear();
-            search(*writeGraph, controlData.graph.searchString);
-            setupGraph(*writeGraph, false);
-
-            graphBuf.PublishAll();
-            globalLogger->info("Published graph data");
-
-            readGraph = graphBuf.GetCurrent();
-            writeGraph = graphBuf.GetWriteBuffer();
-
-            controlData.graph.searching.store(false, std::memory_order_relaxed);
-            controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
-            simStart = std::chrono::system_clock::now();
-        }
-
-        int32_t sourceNode = controlData.graph.sourceNode.load(std::memory_order_relaxed);
-        if (sourceNode >= 0) {
-            controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
-
-            std::vector<LinkedPage> linkedPages;
-
-            {
-                std::lock_guard<std::mutex> lock(dBInterfaceMutex);
-                linkedPages = dBInterface->GetLinkedPages(toLower(readGraph->nodes.titles.at(sourceNode)));
-            }
-
-            int i = 0;
-            for (const auto &page : linkedPages) {
-                i++;
-                const uint32_t idx = writeGraph->AddNode(page.title);
-                writeGraph->AddEdge(sourceNode, idx);
-                writeGraph->nodes.sizes[sourceNode]++;
-
-                if (i > 20) {
-                    break;
-                }
-            }
-
-            setupGraph(*writeGraph, false);
-            controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
-
-            graphBuf.Publish();
-            readGraph = graphBuf.GetCurrent();
-            writeGraph = graphBuf.GetWriteBuffer();
-
-            dat.resetSimulation = true;
-        }
-
-        if (dat.resetSimulation) {
-            setupGraph(*writeGraph, false);
-            graphBuf.Publish();
-            readGraph = graphBuf.GetCurrent();
-            writeGraph = graphBuf.GetWriteBuffer();
-            dat.resetSimulation = false;
-            controlData.sim.store(dat, std::memory_order_relaxed);
-            globalLogger->info("Reset simulation");
-            simStart = std::chrono::system_clock::now();
-        }
-
-        updateGraphPositions(*readGraph, *writeGraph, elapsed_seconds, dat);
+        processControls(readGraph, writeGraph, dat);
+        *writeGraph = *readGraph;
+        updateGraphPositions(*writeGraph, elapsed_seconds, dat);
         graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
