@@ -79,15 +79,15 @@ int main() {
         // }
     }
 
-    SimulationEngine simulationEngine(graphBuf, shouldTerminate, controlData, dBInterface, dBInterfaceMutex);
+    GraphEngine graphEngine(graphBuf, shouldTerminate, controlData, dBInterface, dBInterfaceMutex);
 
     GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
-    simulationEngine.setupGraph(*writeGraph);
+    graphEngine.setupGraph(*writeGraph);
     graphBuf.PublishAll();
 
     Engine renderEngine(graphBuf, controlData);
 
-    std::thread t{&SimulationEngine::graphPositionSimulation, std::ref(simulationEngine)};
+    std::thread t{&GraphEngine::graphPositionSimulation, std::ref(graphEngine)};
 
     renderEngine.Run();
 

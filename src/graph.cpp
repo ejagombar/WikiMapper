@@ -1,10 +1,10 @@
 #include "graph.hpp"
+#include "../lib/rgb_hsv.hpp"
 #include "logger.hpp"
 #include <atomic>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
-#include <random>
 #include <vector>
 
 namespace GS {
@@ -14,24 +14,19 @@ namespace GS {
 uint32_t Graph::AddNode(const std::string &title) {
     nodes.titles.emplace_back(title);
 
-    // Automatically expand all other vectors to match
-    const size_t new_size = nodes.titles.size();
-    nodes.positions.resize(new_size);
-    nodes.velocities.resize(new_size, glm::vec3(0, 0, 0));
-    nodes.forces.resize(new_size, glm::vec3(0, 0, 0));
-    nodes.colors.resize(new_size, Color{200, 200, 200});
-    nodes.sizes.resize(new_size, 10);
-    nodes.edgeSizes.resize(new_size, 1);
-    nodes.fixed.resize(new_size, false);
-    nodes.masses.resize(new_size, 1.0f);
+    nodes.positions.emplace_back(getRandVec3());
+    nodes.velocities.emplace_back(glm::vec3(0, 0, 0));
+    nodes.forces.emplace_back(glm::vec3(0, 0, 0));
+    nodes.sizes.push_back(20);
+    nodes.edgeSizes.push_back(10);
+    nodes.fixed.push_back(false);
+    nodes.masses.push_back(1.0f);
 
-    // Set random initial position for the new node
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(-100.0f, 100.0f);
-    nodes.positions.back() = glm::vec3(dis(gen), dis(gen), dis(gen));
+    auto col = hsv2rgb(getRandFloat(0, 1), 0.8f, 1.0f);
+    nodes.colors.emplace_back(GS::Color{static_cast<unsigned char>(col.r), static_cast<unsigned char>(col.g),
+                                        static_cast<unsigned char>(col.b)});
 
-    return new_size - 1;
+    return nodes.titles.size() - 1;
 }
 
 void Graph::ReserveNodes(const uint32_t N) {
@@ -57,8 +52,8 @@ void Graph::ResizeNodes(const uint32_t N) {
     nodes.velocities.resize(N, glm::vec3(0, 0, 0));
     nodes.forces.resize(N, glm::vec3(0, 0, 0));
     nodes.colors.resize(N, Color{200, 200, 200});
-    nodes.sizes.resize(N, 10);
-    nodes.edgeSizes.resize(N, 1);
+    nodes.sizes.resize(N, 20);
+    nodes.edgeSizes.resize(N, 10);
     nodes.fixed.resize(N, false);
     nodes.masses.resize(N, 1.0f);
 }
@@ -87,17 +82,13 @@ void Graph::GenerateDefaultData() {
     nodes.fixed.resize(N);
     nodes.masses.resize(N);
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(-100.0f, 100.0f);
-
     for (size_t i = 0; i < N; ++i) {
-        nodes.positions[i] = glm::vec3(dis(gen), dis(gen), dis(gen));
+        nodes.positions[i] = getRandVec3();
         nodes.velocities[i] = glm::vec3(0, 0, 0);
         nodes.forces[i] = glm::vec3(0, 0, 0);
         nodes.colors[i] = Color{200, 200, 200};
-        nodes.sizes[i] = 10;
-        nodes.edgeSizes[i] = 1;
+        nodes.sizes[i] = 60;
+        nodes.edgeSizes[i] = 10;
         nodes.fixed[i] = false;
         nodes.masses[i] = 1.0f;
     }

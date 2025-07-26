@@ -8,13 +8,13 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
-class SimulationEngine {
+class GraphEngine {
   public:
-    SimulationEngine(GS::GraphTripleBuf &graphBuf, std::atomic<bool> &shouldTerminate, ControlData &controlData,
-                     std::shared_ptr<HttpInterface> &dBInterface, std::mutex &dBInterfaceMutex)
+    GraphEngine(GS::GraphTripleBuf &graphBuf, std::atomic<bool> &shouldTerminate, ControlData &controlData,
+                std::shared_ptr<HttpInterface> &dBInterface, std::mutex &dBInterfaceMutex)
         : graphBuf(graphBuf), shouldTerminate(shouldTerminate), controlData(controlData), dBInterface(dBInterface),
           dBInterfaceMutex(dBInterfaceMutex) {};
-    ~SimulationEngine() {};
+    ~GraphEngine() {};
 
     void graphPositionSimulation();
     void setupGraph(GS::Graph &db, bool genData = true);

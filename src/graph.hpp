@@ -4,11 +4,8 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
 #include <glm/glm.hpp>
-#include <iomanip>
 #include <random>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -91,6 +88,19 @@ class Graph {
         if (idx < nodes.fixed.size()) {
             nodes.fixed[idx] = fixed;
         }
+    }
+
+  private:
+    static glm::vec3 getRandVec3(float min = -100.0f, float max = 100.0f) {
+        static std::mt19937 gen(std::random_device{}());
+        std::uniform_real_distribution<float> dis(min, max);
+        return glm::vec3(dis(gen), dis(gen), dis(gen));
+    }
+
+    static float getRandFloat(float min = -100.0f, float max = 100.0f) {
+        static std::mt19937 gen(std::random_device{}());
+        std::uniform_real_distribution<float> dis(min, max);
+        return dis(gen);
     }
 };
 

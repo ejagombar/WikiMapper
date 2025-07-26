@@ -24,8 +24,7 @@ std::string toLower(const std::string &input) {
     return result;
 }
 
-void SimulationEngine::updateGraphPositions(GS::Graph &writeG, const float dt,
-                                            const SimulationControlData &simControlData) {
+void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const SimulationControlData &simControlData) {
     static std::vector<glm::vec3> prevPositions;
     static std::vector<glm::vec3> prevMovements;
     static std::vector<float> nodeDamping;
@@ -265,7 +264,7 @@ void SimulationEngine::updateGraphPositions(GS::Graph &writeG, const float dt,
     }
 }
 
-void SimulationEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
+void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
     if (controlData.graph.searching.load(std::memory_order_relaxed)) {
         globalLogger->info("Loading data for " + controlData.graph.searchString);
         writeGraph->Clear();
@@ -292,7 +291,7 @@ void SimulationEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGra
                     globalLogger->info("Page" + page.title);
                     const uint32_t idx = writeGraph->AddNode(page.title);
                     writeGraph->AddEdge(expansion.sourceNodeId, idx);
-                    writeGraph->nodes.sizes[expansion.sourceNodeId]++;
+                    // writeGraph->nodes.sizes[expansion.sourceNodeId]++;
                     if (i > 20) {
                         break;
                     }
@@ -344,7 +343,7 @@ void SimulationEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGra
     }
 }
 
-void SimulationEngine::graphPositionSimulation() {
+void GraphEngine::graphPositionSimulation() {
     globalLogger->info("Physics thread starting");
 
     const auto simulationInterval = std::chrono::milliseconds(0);
@@ -369,7 +368,7 @@ void SimulationEngine::graphPositionSimulation() {
     }
 }
 
-void SimulationEngine::generateRealData(GS::Graph &graph) {
+void GraphEngine::generateRealData(GS::Graph &graph) {
 
     graph.LoadBinary("data2.wiki"); // Use local data for demo
     return;
@@ -431,7 +430,7 @@ void SimulationEngine::generateRealData(GS::Graph &graph) {
     // graph.LoadBinary("data2.wiki"); // Use local data for demo
 }
 
-void SimulationEngine::search(GS::Graph &graph, std::string query) {
+void GraphEngine::search(GS::Graph &graph, std::string query) {
     std::vector<LinkedPage> linkedPages;
 
     std::lock_guard<std::mutex> lock(dBInterfaceMutex);
@@ -448,7 +447,7 @@ void SimulationEngine::search(GS::Graph &graph, std::string query) {
     globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.titles.size());
 }
 
-void SimulationEngine::setupGraph(GS::Graph &db, bool genData) {
+void GraphEngine::setupGraph(GS::Graph &db, bool genData) {
     if (genData) {
         generateRealData(db);
     }

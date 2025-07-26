@@ -166,7 +166,7 @@ void Engine::updateNodes(GS::Graph &graph) {
         m_nodeData[i] = {graph.nodes.colors[i].r,
                          graph.nodes.colors[i].g,
                          graph.nodes.colors[i].b,
-                         GLubyte(graph.nodes.edgeSizes[i]),
+                         GLubyte(graph.nodes.sizes[i]),
                          {graph.nodes.positions[i].x, graph.nodes.positions[i].y, graph.nodes.positions[i].z}};
     }
 
@@ -285,6 +285,8 @@ void Engine::updateParticles(GS::Graph &graph) {
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NodeData) * m_nodeData.size(), m_nodeData.data());
+
+    globalLogger->critical(m_nodeData.size());
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
