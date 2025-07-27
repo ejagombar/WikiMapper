@@ -6,7 +6,7 @@ A real-time 3D graph visualization tool for exploring Wikipedia page connections
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-green.svg)](https://cmake.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-![Screenshot From 2025-06-12 00-09-59](https://github.com/user-attachments/assets/3e9e6b5e-b7fd-4584-b559-1ed1513fd0ab)
+ <img width="1937" height="1134" alt="WikiMapper Screenshot" src="https://github.com/user-attachments/assets/f7c7f4b2-435a-440b-917a-571d2dc7a67d" />
 
 ## Installation
 
