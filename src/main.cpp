@@ -61,11 +61,12 @@ int main() {
     GS::GraphTripleBuf graphBuf;
 
     std::mutex dBInterfaceMutex;
-    std::shared_ptr<HttpInterface> dBInterface;
+    std::shared_ptr<dBInterface> dBInterface;
 
     std::atomic<bool> shouldTerminate(false);
 
     initializeLogger(true, true);
+    // initializeLogger(false, false);
 
     globalLogger->info("WikiMapper starting");
 
@@ -75,6 +76,7 @@ int main() {
 
         // dBInterface = std::make_shared<Neo4jInterface>("http://127.0.0.1:7474");
         // if (!dBInterface->Authenticate("neo4j", "test1234")) {
+        //     globalLogger->info("Failed to Auth");
         //     return 1;
         // }
     }
@@ -90,6 +92,8 @@ int main() {
     std::thread t{&GraphEngine::graphPositionSimulation, std::ref(graphEngine)};
 
     renderEngine.Run();
+
+    // writeGraph->SaveBinary("physics.wiki");
 
     shouldTerminate = true;
     t.join();

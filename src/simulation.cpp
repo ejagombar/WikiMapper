@@ -240,24 +240,24 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     // Reset simulation if requested
     if (simControlData.resetSimulation) {
 
-        std::fill(writeG.nodes.velocities.begin(), writeG.nodes.velocities.end(), glm::vec3(0.0f));
-        std::fill(writeG.nodes.forces.begin(), writeG.nodes.forces.end(), glm::vec3(0.0f));
-        std::fill(writeG.nodes.fixed.begin(), writeG.nodes.fixed.end(), false);
-
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<> dis(-10.0, 10.0); // Start much closer to center
-
-        for (size_t i = 0; i < writeG.nodes.positions.size(); ++i) {
-            writeG.nodes.positions[i] = glm::vec3(dis(gen), dis(gen), dis(gen));
-        }
-
-        // Reset history data
-        for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-            prevPositions[i] = writeG.nodes.positions[i];
-            prevMovements[i] = glm::vec3(0);
-            nodeDamping[i] = 0.7f;
-        }
+        // std::fill(writeG.nodes.velocities.begin(), writeG.nodes.velocities.end(), glm::vec3(0.0f));
+        // std::fill(writeG.nodes.forces.begin(), writeG.nodes.forces.end(), glm::vec3(0.0f));
+        // std::fill(writeG.nodes.fixed.begin(), writeG.nodes.fixed.end(), false);
+        //
+        // std::random_device rd;
+        // std::mt19937 gen(rd());
+        // std::uniform_real_distribution<> dis(-10.0, 10.0); // Start much closer to center
+        //
+        // for (size_t i = 0; i < writeG.nodes.positions.size(); ++i) {
+        //     writeG.nodes.positions[i] = glm::vec3(dis(gen), dis(gen), dis(gen));
+        // }
+        //
+        // // Reset history data
+        // for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
+        //     prevPositions[i] = writeG.nodes.positions[i];
+        //     prevMovements[i] = glm::vec3(0);
+        //     nodeDamping[i] = 0.7f;
+        // }
 
         // Reset the cooling factor when simulation is reset
         coolingFactor = 1.0f;
@@ -265,66 +265,66 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
 }
 
 void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
-    if (controlData.graph.searching.load(std::memory_order_relaxed)) {
-        globalLogger->info("Loading data for " + controlData.graph.searchString);
+    if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
+        globalLogger->info("Loading data for " + m_controlData.graph.searchString);
         writeGraph->Clear();
-        search(*writeGraph, controlData.graph.searchString);
+        search(*writeGraph, m_controlData.graph.searchString);
         setupGraph(*writeGraph, false);
-        graphBuf.PublishAll();
+        m_graphBuf.PublishAll();
         globalLogger->info("Published graph data");
-        readGraph = graphBuf.GetCurrent();
-        writeGraph = graphBuf.GetWriteBuffer();
-        controlData.graph.searching.store(false, std::memory_order_relaxed);
-        controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+        readGraph = m_graphBuf.GetCurrent();
+        writeGraph = m_graphBuf.GetWriteBuffer();
+        m_controlData.graph.searching.store(false, std::memory_order_relaxed);
+        m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
     }
 
-    if (pendingExpansion.has_value()) {
-        auto &expansion = pendingExpansion.value();
+    if (m_pendingExpansion.has_value()) {
+        auto &expansion = m_pendingExpansion.value();
 
-        if (expansion.future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        if (expansion.m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             try {
-                auto linkedPages = expansion.future.get();
+                auto linkedPages = expansion.m_future.get();
 
                 int i = 0;
                 for (const auto &page : linkedPages) {
                     i++;
                     globalLogger->info("Page" + page.title);
                     const uint32_t idx = writeGraph->AddNode(page.title);
-                    writeGraph->AddEdge(expansion.sourceNodeId, idx);
-                    // writeGraph->nodes.sizes[expansion.sourceNodeId]++;
-                    if (i > 20) {
+                    writeGraph->AddEdge(expansion.m_sourceNodeId, idx);
+                    // writeGraph->nodes.sizes[expansion.m_sourceNodeId]++;
+                    if (i > 25) {
                         break;
                     }
                 }
 
-                controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
-                graphBuf.PublishAll();
-                readGraph = graphBuf.GetCurrent();
-                writeGraph = graphBuf.GetWriteBuffer();
+                m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+                m_graphBuf.PublishAll();
+                readGraph = m_graphBuf.GetCurrent();
+                writeGraph = m_graphBuf.GetWriteBuffer();
                 dat.resetSimulation = true;
 
-                globalLogger->info("Completed async node expansion for: " + expansion.nodeName);
+                globalLogger->info("Completed async node expansion for: " + expansion.m_nodeName);
             } catch (const std::exception &e) {
                 globalLogger->error("Failed to expand node: " + std::string(e.what()));
             }
 
-            pendingExpansion.reset();
+            m_pendingExpansion.reset();
         }
     }
 
-    int32_t sourceNode = controlData.graph.sourceNode.load(std::memory_order_relaxed);
+    int32_t sourceNode = m_controlData.graph.sourceNode.load(std::memory_order_relaxed);
     if (sourceNode >= 0) {
-        controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
+        m_controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
 
-        if (!pendingExpansion.has_value()) {
+        if (!m_pendingExpansion.has_value()) {
             std::string nodeName = readGraph->nodes.titles.at(sourceNode);
 
             auto future = std::async(std::launch::async, [nodeName, this]() -> std::vector<LinkedPage> {
-                std::lock_guard<std::mutex> lock(dBInterfaceMutex);
-                return dBInterface->GetLinkedPages(toLower(nodeName));
+                std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+                return m_dB->GetLinkedPages(toLower(nodeName));
             });
 
-            pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
+            m_pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
 
             globalLogger->info("Started async node expansion for: " + nodeName);
         } else {
@@ -332,15 +332,15 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         }
     }
 
-    if (dat.resetSimulation) {
-        setupGraph(*writeGraph, false);
-        graphBuf.Publish();
-        readGraph = graphBuf.GetCurrent();
-        writeGraph = graphBuf.GetWriteBuffer();
-        dat.resetSimulation = false;
-        controlData.sim.store(dat, std::memory_order_relaxed);
-        globalLogger->info("Reset simulation");
-    }
+    // if (dat.resetSimulation) {
+    //     setupGraph(*writeGraph, false);
+    //     graphBuf.Publish();
+    //     readGraph = graphBuf.GetCurrent();
+    //     writeGraph = graphBuf.GetWriteBuffer();
+    //     dat.resetSimulation = false;
+    //     controlData.sim.store(dat, std::memory_order_relaxed);
+    //     globalLogger->info("Reset simulation");
+    // }
 }
 
 void GraphEngine::graphPositionSimulation() {
@@ -350,19 +350,19 @@ void GraphEngine::graphPositionSimulation() {
 
     auto frameStart = std::chrono::system_clock::now();
 
-    while (!shouldTerminate) {
-        GS::Graph *readGraph = graphBuf.GetCurrent();
-        GS::Graph *writeGraph = graphBuf.GetWriteBuffer();
+    while (!m_shouldTerminate) {
+        GS::Graph *readGraph = m_graphBuf.GetCurrent();
+        GS::Graph *writeGraph = m_graphBuf.GetWriteBuffer();
 
         auto frameEnd = std::chrono::system_clock::now();
         double elapsed_seconds = std::chrono::duration<double>(frameEnd - frameStart).count();
         frameStart = frameEnd;
 
-        SimulationControlData dat = controlData.sim.load(std::memory_order_relaxed);
+        SimulationControlData dat = m_controlData.sim.load(std::memory_order_relaxed);
         processControls(readGraph, writeGraph, dat);
         *writeGraph = *readGraph;
         updateGraphPositions(*writeGraph, elapsed_seconds, dat);
-        graphBuf.Publish();
+        m_graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);
     }
@@ -370,14 +370,14 @@ void GraphEngine::graphPositionSimulation() {
 
 void GraphEngine::generateRealData(GS::Graph &graph) {
 
-    graph.LoadBinary("data2.wiki"); // Use local data for demo
+    graph.LoadBinary("physics.wiki"); // Use local data for demo
     return;
 
     std::vector<LinkedPage> linkedPages;
 
-    std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+    std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
 
-    linkedPages = dBInterface->GetLinkedPages("physics");
+    linkedPages = m_dB->GetLinkedPages("physics");
 
     auto x = graph.AddNode("Physics");
 
@@ -392,7 +392,7 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
         }
     }
 
-    linkedPages = dBInterface->GetLinkedPages("multiverse");
+    linkedPages = m_dB->GetLinkedPages("multiverse");
 
     i = 0;
     for (const auto &page : linkedPages) {
@@ -408,7 +408,7 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
 
     i = 0;
 
-    linkedPages = dBInterface->GetLinkedPages("atom");
+    linkedPages = m_dB->GetLinkedPages("atom");
 
     for (const auto &page : linkedPages) {
         i++;
@@ -425,23 +425,23 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
     graph.AddEdge(7, 3);
     graph.AddEdge(8, 11);
 
-    // graph.SaveBinary("data2.wiki");
     // graph.Clear();
     // graph.LoadBinary("data2.wiki"); // Use local data for demo
+    graph.SaveBinary("data2.wiki");
 }
 
 void GraphEngine::search(GS::Graph &graph, std::string query) {
     std::vector<LinkedPage> linkedPages;
 
-    std::lock_guard<std::mutex> lock(dBInterfaceMutex);
-    linkedPages = dBInterface->GetLinkedPages(query);
+    std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+    linkedPages = m_dB->GetLinkedPages(query);
 
     auto x = graph.AddNode(query.c_str());
 
     for (const auto &page : linkedPages) {
         const uint32_t idx = graph.AddNode(page.title.c_str());
-        graph.AddEdge(0, idx);
-        graph.nodes.sizes[0]++;
+        graph.AddEdge(x, idx);
+        graph.nodes.sizes[x]++;
     }
 
     globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.titles.size());

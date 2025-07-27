@@ -11,9 +11,9 @@
 class GraphEngine {
   public:
     GraphEngine(GS::GraphTripleBuf &graphBuf, std::atomic<bool> &shouldTerminate, ControlData &controlData,
-                std::shared_ptr<HttpInterface> &dBInterface, std::mutex &dBInterfaceMutex)
-        : graphBuf(graphBuf), shouldTerminate(shouldTerminate), controlData(controlData), dBInterface(dBInterface),
-          dBInterfaceMutex(dBInterfaceMutex) {};
+                std::shared_ptr<dBInterface> &dBInterface, std::mutex &dBInterfaceMutex)
+        : m_graphBuf(graphBuf), m_shouldTerminate(shouldTerminate), m_controlData(controlData), m_dB(dBInterface),
+          m_dBInterfaceMutex(dBInterfaceMutex) {};
     ~GraphEngine() {};
 
     void graphPositionSimulation();
@@ -21,19 +21,19 @@ class GraphEngine {
 
   private:
     struct PendingNodeExpansion {
-        std::future<std::vector<LinkedPage>> future;
-        uint32_t sourceNodeId;
-        std::string nodeName;
+        std::future<std::vector<LinkedPage>> m_future;
+        uint32_t m_sourceNodeId;
+        std::string m_nodeName;
     };
 
-    std::optional<PendingNodeExpansion> pendingExpansion;
+    std::optional<PendingNodeExpansion> m_pendingExpansion;
 
-    GS::GraphTripleBuf &graphBuf;
-    std::atomic<bool> &shouldTerminate;
-    ControlData &controlData;
+    GS::GraphTripleBuf &m_graphBuf;
+    std::atomic<bool> &m_shouldTerminate;
+    ControlData &m_controlData;
 
-    std::shared_ptr<HttpInterface> &dBInterface;
-    std::mutex &dBInterfaceMutex;
+    std::shared_ptr<dBInterface> &m_dB;
+    std::mutex &m_dBInterfaceMutex;
 
     void updateGraphPositions(GS::Graph &writeG, const float dt, const SimulationControlData &simControlData);
     void processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat);

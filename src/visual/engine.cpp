@@ -186,9 +186,6 @@ void Engine::updateEdges(GS::Graph &graph) {
     m_edgeData.resize(edgeCount * 2);
 
     for (uint32_t i = 0; i < edgeCount; i++) {
-        auto EdgeStart = [&](size_t i) { return; };
-        auto EdgeEnd = [&](size_t i) { return; };
-
         const auto &s = graph.edges.startIdxs.at(i);
         const auto &e = graph.edges.endIdxs.at(i);
 
@@ -286,8 +283,6 @@ void Engine::updateParticles(GS::Graph &graph) {
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NodeData) * m_nodeData.size(), m_nodeData.data());
 
-    globalLogger->critical(m_nodeData.size());
-
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -364,7 +359,6 @@ Engine::~Engine() {
 uint32_t Engine::Run() {
     glfwSwapInterval(0);
 
-    bool textureGenTriggered = false;
     std::future<LabelAtlasData> fut;
 
     while (!glfwWindowShouldClose(m_window)) {
@@ -379,14 +373,11 @@ uint32_t Engine::Run() {
             fut = std::async(std::launch::async, [engine = m_text.get(), graph = graph->nodes.titles]() {
                 return engine->PrepareLabelAtlases(graph);
             });
-            textureGenTriggered = true;
         }
 
-        // textureGenTriggered;
         if (fut.valid() && fut.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             LabelAtlasData atlasData = fut.get();
             m_text->UploadLabelAtlasesToGPU(atlasData);
-            textureGenTriggered = false;
         }
 
         loop();

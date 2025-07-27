@@ -29,13 +29,15 @@ class dBInterface {
     dBInterface() = default;
     ~dBInterface() = default;
 
+    virtual bool Authenticate(const std::string username, const std::string password) = 0;
+
     virtual std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) = 0;
     virtual std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) = 0;
     virtual std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) = 0;
     virtual std::vector<LinkedPage> GetRandomPages(uint32_t count) = 0;
 };
 
-class Neo4jInterface : private dBInterface {
+class Neo4jInterface : public dBInterface {
   public:
     Neo4jInterface(const std::string url);
     ~Neo4jInterface() = default;
@@ -54,10 +56,12 @@ class Neo4jInterface : private dBInterface {
     std::unique_ptr<httplib::Client> m_httpClient;
 };
 
-class HttpInterface : private dBInterface {
+class HttpInterface : public dBInterface {
   public:
     HttpInterface(const std::string domain);
     ~HttpInterface() = default;
+
+    // bool Authenticate(const std::string username, const std::string password) {};
 
     std::vector<LinkedPage> GetLinkedPages(const std::string &pageName);
     std::vector<LinkedPage> GetLinkingPages(const std::string &pageName);

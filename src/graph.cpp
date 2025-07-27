@@ -92,9 +92,6 @@ void Graph::GenerateDefaultData() {
         nodes.fixed[i] = false;
         nodes.masses[i] = 1.0f;
     }
-
-    globalLogger->info("Generated default data: positions={}, velocities={}, forces={}", nodes.positions.size(),
-                       nodes.velocities.size(), nodes.forces.size());
 }
 
 void Graph::AddEdge(uint32_t idx1, uint32_t idx2) {

@@ -62,9 +62,9 @@ class Camera {
     float m_aspectRatio;
     float m_fov;
 
-    float m_thrustForce = 200.0f;
+    float m_thrustForce = 300.0f;
     float m_linearDamping = 3.0f;
-    float m_maxVelocity = 300.0f;
+    float m_maxVelocity = 600.0f;
 
     glm::vec3 m_inputForce = glm::vec3(0.0f);
     float m_sneakMultiplier = 1.f;
