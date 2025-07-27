@@ -8,6 +8,8 @@ A real-time 3D graph visualization tool for exploring Wikipedia page connections
 
  <img width="1937" height="1134" alt="WikiMapper Screenshot" src="https://github.com/user-attachments/assets/f7c7f4b2-435a-440b-917a-571d2dc7a67d" />
 
+[![Wideo Demo](https://img.youtube.com/vi/PC5q615khHg/0.jpg)](https://www.youtube.com/watch?v=PC5q615khHg)
+
 ## Installation
 
 ### Prerequisites
