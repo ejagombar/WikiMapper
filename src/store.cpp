@@ -58,7 +58,7 @@ std::vector<LinkedPage> ParsePagesFromResult(const json &data) {
     return pages;
 }
 
-bool Neo4jInterface::Authenticate(const std::string username, const std::string password) {
+bool Neo4jInterface::Authenticate(const std::string &username, const std::string &password) {
     const std::string basicToken = base64::to_base64(username + ":" + password);
 
     const httplib::Headers headers = {{"Authorization", "Basic " + basicToken}};

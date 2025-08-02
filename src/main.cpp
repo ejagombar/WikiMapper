@@ -73,12 +73,12 @@ int main() {
     {
         std::lock_guard<std::mutex> lock(dBInterfaceMutex);
         dBInterface = std::make_shared<HttpInterface>("http://eagombar.uk:6348");
-
         // dBInterface = std::make_shared<Neo4jInterface>("http://127.0.0.1:7474");
-        // if (!dBInterface->Authenticate("neo4j", "test1234")) {
-        //     globalLogger->info("Failed to Auth");
-        //     return 1;
-        // }
+
+        if (dBInterface->RequiresAuthentication() && !dBInterface->Authenticate("neo4j", "test1234")) {
+            globalLogger->info("Failed to Auth");
+            return 1;
+        }
     }
 
     GraphEngine graphEngine(graphBuf, shouldTerminate, controlData, dBInterface, dBInterfaceMutex);

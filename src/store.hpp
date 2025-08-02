@@ -29,7 +29,11 @@ class dBInterface {
     dBInterface() = default;
     ~dBInterface() = default;
 
-    virtual bool Authenticate(const std::string username, const std::string password) = 0;
+    virtual bool RequiresAuthentication() const = 0;
+    virtual bool Authenticate([[maybe_unused]] const std::string &username,
+                              [[maybe_unused]] const std::string &password) {
+        return true;
+    }
 
     virtual std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) = 0;
     virtual std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) = 0;
@@ -42,12 +46,13 @@ class Neo4jInterface : public dBInterface {
     Neo4jInterface(const std::string url);
     ~Neo4jInterface() = default;
 
-    bool Authenticate(const std::string username, const std::string password);
+    bool RequiresAuthentication() const override { return true; }
+    bool Authenticate(const std::string &username, const std::string &password) override;
 
-    std::vector<LinkedPage> GetLinkedPages(const std::string &pageName);
-    std::vector<LinkedPage> GetLinkingPages(const std::string &pageName);
-    std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage);
-    std::vector<LinkedPage> GetRandomPages(uint32_t count);
+    std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) override;
+    std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) override;
+    std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
+    std::vector<LinkedPage> GetRandomPages(uint32_t count) override;
 
   private:
     json ExecuteCypherQuery(const std::string &cypher, const json &parameters);
@@ -61,12 +66,12 @@ class HttpInterface : public dBInterface {
     HttpInterface(const std::string domain);
     ~HttpInterface() = default;
 
-    // bool Authenticate(const std::string username, const std::string password) {};
+    bool RequiresAuthentication() const override { return false; }
 
-    std::vector<LinkedPage> GetLinkedPages(const std::string &pageName);
-    std::vector<LinkedPage> GetLinkingPages(const std::string &pageName);
-    std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage);
-    std::vector<LinkedPage> GetRandomPages(uint32_t count);
+    std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) override;
+    std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) override;
+    std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
+    std::vector<LinkedPage> GetRandomPages(uint32_t count) override;
 
   private:
     json GetHttpResults(const std::string &endpoint);
