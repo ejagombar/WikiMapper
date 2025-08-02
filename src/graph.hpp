@@ -26,11 +26,49 @@ struct NodeData {
     std::vector<unsigned char> edgeSizes;
     std::vector<bool> fixed;
     std::vector<float> masses;
+
+    NodeData() = default;
+    NodeData(const NodeData &) = default;
+    NodeData &operator=(const NodeData &) = default;
+
+    NodeData(NodeData &&x) noexcept
+        : titles(std::move(x.titles)), positions(std::move(x.positions)), velocities(std::move(x.velocities)),
+          forces(std::move(x.forces)), colors(std::move(x.colors)), sizes(std::move(x.sizes)),
+          edgeSizes(std::move(x.edgeSizes)), fixed(std::move(x.fixed)), masses(std::move(x.masses)) {}
+
+    NodeData &operator=(NodeData &&x) noexcept {
+        if (this != &x) {
+            titles = std::move(x.titles);
+            positions = std::move(x.positions);
+            velocities = std::move(x.velocities);
+            forces = std::move(x.forces);
+            colors = std::move(x.colors);
+            sizes = std::move(x.sizes);
+            edgeSizes = std::move(x.edgeSizes);
+            fixed = std::move(x.fixed);
+            masses = std::move(x.masses);
+        }
+        return *this;
+    }
 };
 
 struct EdgeData {
     std::vector<uint32_t> startIdxs;
     std::vector<uint32_t> endIdxs;
+
+    EdgeData() = default;
+    EdgeData(const EdgeData &) = default;
+    EdgeData &operator=(const EdgeData &) = default;
+
+    EdgeData(EdgeData &&other) noexcept : startIdxs(std::move(other.startIdxs)), endIdxs(std::move(other.endIdxs)) {}
+
+    EdgeData &operator=(EdgeData &&other) noexcept {
+        if (this != &other) {
+            startIdxs = std::move(other.startIdxs);
+            endIdxs = std::move(other.endIdxs);
+        }
+        return *this;
+    }
 };
 
 // A graph storage class using Structure of Arrays (SoA) for better performance
@@ -38,8 +76,10 @@ class Graph {
   public:
     Graph() = default;
     ~Graph() = default;
-
+    Graph(const Graph &other) : nodes(other.nodes), edges(other.edges) {}
+    Graph(Graph &&other) noexcept : nodes(std::move(other.nodes)), edges(std::move(other.edges)) {}
     Graph &operator=(const Graph &other);
+    Graph &operator=(Graph &&other) noexcept;
 
     // Node management
     uint32_t AddNode(const std::string &title);
@@ -62,6 +102,7 @@ class Graph {
     bool LoadBinary(const std::string &filename);
 
     // Utility functions
+
     float GetRadius() const;
     glm::vec3 GetCenter() const;
     size_t GetNodeCount() const { return nodes.titles.size(); }

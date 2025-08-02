@@ -162,6 +162,14 @@ Graph &Graph::operator=(const Graph &other) {
     return *this;
 }
 
+Graph &Graph::operator=(Graph &&other) noexcept {
+    if (this != &other) {
+        nodes = std::move(other.nodes);
+        edges = std::move(other.edges);
+    }
+    return *this;
+}
+
 void Graph::Clear() {
     nodes.titles.clear();
     nodes.positions.clear();
