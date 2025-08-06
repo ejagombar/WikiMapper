@@ -69,7 +69,6 @@ int main() {
     // initializeLogger(false, false);
 
     globalLogger->info("WikiMapper starting");
-
     {
         std::lock_guard<std::mutex> lock(dBInterfaceMutex);
         dBInterface = std::make_shared<HttpInterface>("http://eagombar.uk:6348");

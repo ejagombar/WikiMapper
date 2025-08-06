@@ -19,7 +19,6 @@ uint32_t Graph::AddNode(const std::string &title) {
     nodes.forces.emplace_back(glm::vec3(0, 0, 0));
     nodes.sizes.push_back(20);
     nodes.edgeSizes.push_back(10);
-    nodes.fixed.push_back(false);
     nodes.masses.push_back(1.0f);
 
     auto col = hsv2rgb(getRandFloat(0, 1), 0.8f, 1.0f);
@@ -37,7 +36,6 @@ void Graph::ReserveNodes(const uint32_t N) {
     nodes.colors.reserve(N);
     nodes.sizes.reserve(N);
     nodes.edgeSizes.reserve(N);
-    nodes.fixed.reserve(N);
     nodes.masses.reserve(N);
 }
 
@@ -54,7 +52,6 @@ void Graph::ResizeNodes(const uint32_t N) {
     nodes.colors.resize(N, Color{200, 200, 200});
     nodes.sizes.resize(N, 20);
     nodes.edgeSizes.resize(N, 10);
-    nodes.fixed.resize(N, false);
     nodes.masses.resize(N, 1.0f);
 }
 
@@ -79,7 +76,6 @@ void Graph::GenerateDefaultData() {
     nodes.colors.resize(N);
     nodes.sizes.resize(N);
     nodes.edgeSizes.resize(N);
-    nodes.fixed.resize(N);
     nodes.masses.resize(N);
 
     for (size_t i = 0; i < N; ++i) {
@@ -89,7 +85,6 @@ void Graph::GenerateDefaultData() {
         nodes.colors[i] = Color{200, 200, 200};
         nodes.sizes[i] = 60;
         nodes.edgeSizes[i] = 10;
-        nodes.fixed[i] = false;
         nodes.masses[i] = 1.0f;
     }
 }
@@ -178,7 +173,6 @@ void Graph::Clear() {
     nodes.colors.clear();
     nodes.sizes.clear();
     nodes.edgeSizes.clear();
-    nodes.fixed.clear();
     nodes.masses.clear();
 
     edges.startIdxs.clear();

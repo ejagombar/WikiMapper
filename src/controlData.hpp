@@ -17,6 +17,7 @@ struct SimulationControlData {
     float maxForce = 5.0f; // Force clamping to avoid instability
     float targetDistance = 11.0f;
     float maxVelocity = 2.0f;
+    int32_t fixedNode = -1;
 };
 
 struct GraphControlData {

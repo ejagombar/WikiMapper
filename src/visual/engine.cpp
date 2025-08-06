@@ -578,6 +578,25 @@ void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, do
 
 void Engine::doubleClickCalled() { m_controlData.graph.sourceNode.store(m_hoveredNodeID, std::memory_order_relaxed); }
 
+void Engine::handleClickHold(int action) {
+    static bool pressed = false;
+    static bool pressed_last = false;
+
+    if (action == GLFW_PRESS) {
+        pressed = true;
+    } else if (action == GLFW_RELEASE) {
+        pressed = false;
+    }
+
+    if (pressed_last != pressed) {
+        pressed_last = pressed;
+
+        SimulationControlData localSim = m_controlData.sim.load(std::memory_order_acquire);
+        localSim.fixedNode = m_hoveredNodeID;
+        m_controlData.sim.store(localSim, std::memory_order_release);
+    }
+}
+
 void Engine::handleDoubleClick(int action) {
     static auto lastClickTime = std::chrono::system_clock::now();
     static bool waitingForSecondClick = false;
@@ -633,6 +652,7 @@ void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int butt
             }
         }
         handleDoubleClick(action);
+        handleClickHold(action);
     }
 }
 

@@ -24,7 +24,6 @@ struct NodeData {
     std::vector<Color> colors;
     std::vector<unsigned char> sizes;
     std::vector<unsigned char> edgeSizes;
-    std::vector<bool> fixed;
     std::vector<float> masses;
 
     NodeData() = default;
@@ -34,7 +33,7 @@ struct NodeData {
     NodeData(NodeData &&x) noexcept
         : titles(std::move(x.titles)), positions(std::move(x.positions)), velocities(std::move(x.velocities)),
           forces(std::move(x.forces)), colors(std::move(x.colors)), sizes(std::move(x.sizes)),
-          edgeSizes(std::move(x.edgeSizes)), fixed(std::move(x.fixed)), masses(std::move(x.masses)) {}
+          edgeSizes(std::move(x.edgeSizes)), masses(std::move(x.masses)) {}
 
     NodeData &operator=(NodeData &&x) noexcept {
         if (this != &x) {
@@ -45,7 +44,6 @@ struct NodeData {
             colors = std::move(x.colors);
             sizes = std::move(x.sizes);
             edgeSizes = std::move(x.edgeSizes);
-            fixed = std::move(x.fixed);
             masses = std::move(x.masses);
         }
         return *this;
@@ -120,14 +118,6 @@ class Graph {
     void SetNodePosition(size_t idx, const glm::vec3 &pos) {
         if (idx < nodes.positions.size()) {
             nodes.positions[idx] = pos;
-        }
-    }
-
-    bool IsNodeFixed(size_t idx) const { return idx < nodes.fixed.size() ? nodes.fixed[idx] : false; }
-
-    void SetNodeFixed(size_t idx, bool fixed) {
-        if (idx < nodes.fixed.size()) {
-            nodes.fixed[idx] = fixed;
         }
     }
 

@@ -60,6 +60,9 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     float safeTimeStep = dt * simControlData.timeStep;
 
     for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
+        if (static_cast<int32_t>(i) == simControlData.fixedNode)
+            continue;
+
         glm::vec3 currentMovement = writeG.nodes.positions[i] - prevPositions[i];
 
         float movementDot = glm::dot(currentMovement, prevMovements[i]);
@@ -86,7 +89,7 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     }
 
     for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (writeG.nodes.fixed[i])
+        if (static_cast<int32_t>(i) == simControlData.fixedNode)
             continue;
 
         std::vector<uint32_t> neighbors = writeG.GetNeighboursIdx(i);
@@ -168,8 +171,11 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     }
 
     for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (writeG.nodes.fixed[i])
+        if (static_cast<int32_t>(i) == simControlData.fixedNode) {
+            writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
+            globalLogger->info("{} | {}", simControlData.fixedNode, i);
             continue;
+        }
 
         float nodeDampingFactor = nodeDamping[i];
 
