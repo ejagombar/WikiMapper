@@ -3,6 +3,7 @@
 #include "../logger.hpp"
 #include "./shader.hpp"
 #include "camera.hpp"
+#include "glm/geometric.hpp"
 #include "gui.hpp"
 #include "texture.hpp"
 #include <GL/gl.h>
@@ -55,7 +56,8 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
+    // m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
+    m_camera.SetPosition(glm::vec3(0.f, 0.f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetAspectRatio(static_cast<float>(m_scrWidth) / static_cast<float>(m_scrHeight));
 
     m_gui = std::make_unique<GUI>(m_window, m_font, m_controlData);
@@ -484,6 +486,40 @@ void Engine::loop() {
     m_gui->EndFrame();
 }
 
+void Engine::handleDragging(double mouseX, double mouseY) {
+    if (m_hoveredNodeID == -1) {
+        return;
+    }
+
+    float ndc_x = (2.0f * static_cast<float>(mouseX)) / m_scrWidth - 1.0f;
+    float ndc_y = 1.0f - (2.0f * static_cast<float>(mouseY)) / m_scrHeight;
+    glm::vec4 ray_clip = glm::vec4(ndc_x, ndc_y, -1.0f, 1.0f);
+
+    // Step 2: Clip to Eye
+    glm::vec4 ray_eye = glm::inverse(m_camera.GetProjectionMatrix()) * ray_clip;
+    ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 0.0f);
+
+    // Step 3: Eye to World
+    glm::mat4 view = m_camera.GetViewMatrix();
+    glm::mat4 inv_view = glm::inverse(view);
+    glm::vec3 ray_world = glm::normalize(glm::vec3(inv_view * ray_eye));
+    glm::vec3 ray_origin = glm::vec3(inv_view[3]); // camera position in world space
+
+    // Step 4: Define the drag plane
+    glm::vec3 plane_point = m_draggingNodeStartPos;       // A point on the plane (initial sphere pos)
+    glm::vec3 plane_normal = m_camera.GetForwardVector(); // Plane normal = camera look direction
+
+    // Step 5: Ray-plane intersection
+    float denom = glm::dot(plane_normal, ray_world);
+    if (fabs(denom) > 1e-6f) { // Not parallel
+        float t = glm::dot(plane_point - ray_origin, plane_normal) / denom;
+        glm::vec3 intersection = ray_origin + t * ray_world;
+        m_draggingNode.position = intersection;
+    }
+
+    m_controlData.sim.draggingNode.store(m_draggingNode, std::memory_order_relaxed);
+}
+
 // -------------------------------- Static Callbacks --------------------------------
 // Static functions must be used for callbacks so these static functions wrap the functions used in the engine
 // object, so that the functions that are called are able to access engine member variables.
@@ -558,6 +594,8 @@ void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int 
 
 // Called when there is mouse movement
 void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, double ypos) {
+    handleDragging(xpos, ypos);
+
     if (m_state == stop || !m_mouseActive) {
         return;
     }
@@ -591,9 +629,11 @@ void Engine::handleClickHold(int action) {
     if (pressed_last != pressed) {
         pressed_last = pressed;
 
-        SimulationControlData localSim = m_controlData.sim.load(std::memory_order_acquire);
-        localSim.fixedNode = m_hoveredNodeID;
-        m_controlData.sim.store(localSim, std::memory_order_release);
+        m_draggingNode.id = m_hoveredNodeID;
+
+        if (m_hoveredNodeID >= 0 && pressed) {
+            m_draggingNodeStartPos = m_graph->nodes.positions.at(m_hoveredNodeID);
+        }
     }
 }
 

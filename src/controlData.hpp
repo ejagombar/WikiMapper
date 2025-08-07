@@ -3,12 +3,10 @@
 
 #include <atomic>
 #include <cstdint>
+#include <glm/glm.hpp>
 #include <string>
 
-struct SimulationControlData {
-    bool resetSimulation = false;
-
-    // Physics parameters
+struct SimParameters {
     float repulsionStrength = 4.0f;  // Strength of repulsive force
     float attractionStrength = 65.f; // Strength of attractive force
     float centeringForce = 40.f;     // Strength of centering force
@@ -17,7 +15,19 @@ struct SimulationControlData {
     float maxForce = 5.0f; // Force clamping to avoid instability
     float targetDistance = 11.0f;
     float maxVelocity = 2.0f;
-    int32_t fixedNode = -1;
+};
+
+struct DraggingNode {
+    int32_t id = -1;
+    glm::vec3 position;
+};
+
+struct SimulationControlData {
+    bool resetSimulation = false;
+
+    std::atomic<DraggingNode> draggingNode;
+
+    std::atomic<SimParameters> parameters;
 };
 
 struct GraphControlData {
@@ -37,7 +47,7 @@ struct EngineControlData {
 };
 
 struct ControlData {
-    std::atomic<SimulationControlData> sim;
+    SimulationControlData sim;
     GraphControlData graph;
     EngineControlData engine;
 };

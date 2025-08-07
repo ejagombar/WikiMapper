@@ -611,7 +611,7 @@ void GUI::RenderDebugMenu() {
     ImGui::PushItemWidth(300.0f);
     ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
 
-    SimulationControlData localSim = m_controlData.sim.load(std::memory_order_relaxed);
+    auto localSim = m_controlData.sim.parameters.load(std::memory_order_relaxed);
 
     if (ImGui::CollapsingHeader("Physics Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
         bool valUpdated[7];
@@ -632,7 +632,7 @@ void GUI::RenderDebugMenu() {
 
         if (valUpdated[0] | valUpdated[1] | valUpdated[2] | valUpdated[3] | valUpdated[4] | valUpdated[5] |
             valUpdated[6]) {
-            m_controlData.sim.store(localSim, std::memory_order_relaxed);
+            m_controlData.sim.parameters.store(localSim, std::memory_order_relaxed);
         }
     }
 

@@ -126,6 +126,8 @@ class Engine {
 
     void computeHoverTransition(float deltaTime);
 
+    void handleDragging(double mouseX, double mouseY);
+
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;
 
@@ -155,7 +157,11 @@ class Engine {
     std::unique_ptr<Skybox> m_skybox;
     std::unique_ptr<GUI> m_gui;
     std::unique_ptr<SelectorSystem> m_picking;
-    int m_hoveredNodeID = -1;
+
+    DraggingNode m_draggingNode = {};
+    glm::vec3 m_draggingNodeStartPos;
+
+    int32_t m_hoveredNodeID = -1;
 
     GS::GraphTripleBuf &m_graphBuf;
     uint32_t m_lastVersion = 0;

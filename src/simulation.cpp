@@ -1,6 +1,7 @@
 #include "../lib/rgb_hsv.hpp"
 #include "pointMaths.hpp"
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <future>
 #include <glm/detail/qualifier.hpp>
@@ -29,6 +30,9 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     static std::vector<glm::vec3> prevMovements;
     static std::vector<float> nodeDamping;
 
+    const auto parameters = simControlData.parameters.load(std::memory_order_relaxed);
+    const auto draggingNode = simControlData.draggingNode.load(std::memory_order_relaxed);
+
     if (prevPositions.size() != writeG.nodes.positions.size()) {
         prevPositions.resize(writeG.nodes.positions.size());
         prevMovements.resize(writeG.nodes.positions.size(), glm::vec3(0));
@@ -53,14 +57,14 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
 
     float nodeCountScaling = 1.0f / (1.0f + std::log10(std::max(1.0f, float(writeG.nodes.positions.size()))));
 
-    float effectiveRepulsionStrength = simControlData.repulsionStrength * nodeCountScaling * coolingFactor;
-    float effectiveAttractionStrength = simControlData.attractionStrength * coolingFactor;
-    float effectiveCenteringForce = simControlData.centeringForce * 0.1f;
+    float effectiveRepulsionStrength = parameters.repulsionStrength * nodeCountScaling * coolingFactor;
+    float effectiveAttractionStrength = parameters.attractionStrength * coolingFactor;
+    float effectiveCenteringForce = parameters.centeringForce * 0.1f;
 
-    float safeTimeStep = dt * simControlData.timeStep;
+    float safeTimeStep = dt * parameters.timeStep;
 
     for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (static_cast<int32_t>(i) == simControlData.fixedNode)
+        if (static_cast<int32_t>(i) == draggingNode.id)
             continue;
 
         glm::vec3 currentMovement = writeG.nodes.positions[i] - prevPositions[i];
@@ -89,7 +93,7 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     }
 
     for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (static_cast<int32_t>(i) == simControlData.fixedNode)
+        if (static_cast<int32_t>(i) == draggingNode.id)
             continue;
 
         std::vector<uint32_t> neighbors = writeG.GetNeighboursIdx(i);
@@ -126,7 +130,7 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
             float connectionFactor = 1.0f / std::sqrt(std::max(1, neighborCount));
 
             float attractionForce =
-                effectiveAttractionStrength * connectionFactor * (distance - simControlData.targetDistance);
+                effectiveAttractionStrength * connectionFactor * (distance - parameters.targetDistance);
 
             if (distance > 1e-10f) {
                 glm::vec3 attractForce = glm::normalize(delta) * attractionForce;
@@ -146,7 +150,7 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
             writeG.nodes.forces[i] += glm::normalize(toCenter) * centeringStrength;
         }
 
-        writeG.nodes.forces[i] *= simControlData.forceMultiplier;
+        writeG.nodes.forces[i] *= parameters.forceMultiplier;
 
         float totalAttractionMagnitude = glm::length(totalAttractionForce);
         float forceMagnitude = glm::length(writeG.nodes.forces[i]);
@@ -157,8 +161,8 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
         }
 
         forceMagnitude = glm::length(writeG.nodes.forces[i]);
-        if (forceMagnitude > simControlData.maxForce) {
-            writeG.nodes.forces[i] = (writeG.nodes.forces[i] / forceMagnitude) * simControlData.maxForce;
+        if (forceMagnitude > parameters.maxForce) {
+            writeG.nodes.forces[i] = (writeG.nodes.forces[i] / forceMagnitude) * parameters.maxForce;
         }
 
         if (std::isnan(writeG.nodes.forces[i].x) || std::isnan(writeG.nodes.forces[i].y) ||
@@ -171,9 +175,9 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     }
 
     for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (static_cast<int32_t>(i) == simControlData.fixedNode) {
+        if (static_cast<int32_t>(i) == draggingNode.id) {
             writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
-            globalLogger->info("{} | {}", simControlData.fixedNode, i);
+            writeG.nodes.positions[i] = draggingNode.position;
             continue;
         }
 
@@ -195,8 +199,8 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
         }
 
         float velocityMagnitude = glm::length(writeG.nodes.velocities[i]);
-        if (velocityMagnitude > simControlData.maxVelocity) {
-            writeG.nodes.velocities[i] = (writeG.nodes.velocities[i] / velocityMagnitude) * simControlData.maxVelocity;
+        if (velocityMagnitude > parameters.maxVelocity) {
+            writeG.nodes.velocities[i] = (writeG.nodes.velocities[i] / velocityMagnitude) * parameters.maxVelocity;
         }
 
         if (std::isnan(writeG.nodes.velocities[i].x) || std::isnan(writeG.nodes.velocities[i].y) ||
@@ -364,10 +368,9 @@ void GraphEngine::graphPositionSimulation() {
         double elapsed_seconds = std::chrono::duration<double>(frameEnd - frameStart).count();
         frameStart = frameEnd;
 
-        SimulationControlData dat = m_controlData.sim.load(std::memory_order_relaxed);
-        processControls(readGraph, writeGraph, dat);
+        processControls(readGraph, writeGraph, m_controlData.sim);
         *writeGraph = *readGraph;
-        updateGraphPositions(*writeGraph, elapsed_seconds, dat);
+        updateGraphPositions(*writeGraph, elapsed_seconds, m_controlData.sim);
         m_graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);

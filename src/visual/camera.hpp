@@ -37,6 +37,7 @@ class Camera {
     const glm::mat4 &GetProjectionMatrix() const { return m_projectionMatrix; }
     const glm::vec3 &GetCameraPosition() const { return m_position; }
     const glm::vec3 &GetVelocity() const { return m_velocity; }
+    const glm::vec3 GetForwardVector() const;
 
     glm::mat3 CalcNormalMatrix() const;
 

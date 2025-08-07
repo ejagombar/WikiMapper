@@ -82,6 +82,11 @@ glm::mat3 Camera::CalcNormalMatrix() const {
     return glm::transpose(submv);
 }
 
+const glm::vec3 Camera::GetForwardVector() const {
+    glm::mat4 view = GetViewMatrix();
+    return glm::normalize(glm::vec3(-view[0][2], -view[1][2], -view[2][2]));
+}
+
 void Camera::updateCameraVectors() {
     glm::vec3 direction(cos(m_yaw) * cos(m_pitch), sin(m_pitch), sin(m_yaw) * cos(m_pitch));
 
