@@ -178,7 +178,6 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
         if (static_cast<int32_t>(i) == draggingNode.id) {
             writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
             writeG.nodes.positions[i] = draggingNode.position;
-            globalLogger->critical("Node {} is frozen", i);
             continue;
         }
 
@@ -223,21 +222,21 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
         }
 
         // adaptive boundary handling - soft boundaries that push back
-        const float boundarySize = 200.f;
-        for (int d = 0; d < 3; d++) {
-            if (std::isnan(writeG.nodes.positions[i][d])) {
-                writeG.nodes.positions[i][d] = 0;
-                writeG.nodes.velocities[i][d] = 0;
-            } else if (writeG.nodes.positions[i][d] > boundarySize) {
-                float excess = writeG.nodes.positions[i][d] - boundarySize;
-                writeG.nodes.positions[i][d] = boundarySize - 5.0f * (1.0f - std::exp(-excess * 0.1f));
-                writeG.nodes.velocities[i][d] *= -0.5f;
-            } else if (writeG.nodes.positions[i][d] < -boundarySize) {
-                float excess = -boundarySize - writeG.nodes.positions[i][d];
-                writeG.nodes.positions[i][d] = -boundarySize + 5.0f * (1.0f - std::exp(-excess * 0.1f));
-                writeG.nodes.velocities[i][d] *= -0.5f;
-            }
-        }
+        // const float boundarySize = 200.f;
+        // for (int d = 0; d < 3; d++) {
+        //     if (std::isnan(writeG.nodes.positions[i][d])) {
+        //         writeG.nodes.positions[i][d] = 0;
+        //         writeG.nodes.velocities[i][d] = 0;
+        //     } else if (writeG.nodes.positions[i][d] > boundarySize) {
+        //         float excess = writeG.nodes.positions[i][d] - boundarySize;
+        //         writeG.nodes.positions[i][d] = boundarySize - 5.0f * (1.0f - std::exp(-excess * 0.1f));
+        //         writeG.nodes.velocities[i][d] *= -0.5f;
+        //     } else if (writeG.nodes.positions[i][d] < -boundarySize) {
+        //         float excess = -boundarySize - writeG.nodes.positions[i][d];
+        //         writeG.nodes.positions[i][d] = -boundarySize + 5.0f * (1.0f - std::exp(-excess * 0.1f));
+        //         writeG.nodes.velocities[i][d] *= -0.5f;
+        //     }
+        // }
     }
 
 #ifdef DEBUG_FORCES

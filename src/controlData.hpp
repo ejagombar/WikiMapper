@@ -7,12 +7,12 @@
 #include <string>
 
 struct SimParameters {
-    float repulsionStrength = 4.0f;  // Strength of repulsive force
-    float attractionStrength = 65.f; // Strength of attractive force
-    float centeringForce = 40.f;     // Strength of centering force
-    float timeStep = 200.f;          // Integration time step scaling
+    float repulsionStrength = 4.0f;
+    float attractionStrength = 65.f;
+    float centeringForce = 40.f;
+    float timeStep = 200.f;
     float forceMultiplier = 1.0f;
-    float maxForce = 5.0f; // Force clamping to avoid instability
+    float maxForce = 500.0f;
     float targetDistance = 11.0f;
     float maxVelocity = 2.0f;
 };

@@ -484,9 +484,6 @@ void RenderEngine::loop() {
     }
 
     m_gui->EndFrame();
-
-    globalLogger->info("m_hoveredNodeId: {}, m_draggingNodeStartPos.x: {}, m_dragging.id: {}, m_draggingNode.pos.x: {}",
-                       m_hoveredNodeID, m_draggingNodeStartPos.x, m_draggingNode.id, m_draggingNode.position.x);
 }
 
 void RenderEngine::handleDragging(const double mouseX, const double mouseY) {
@@ -498,23 +495,19 @@ void RenderEngine::handleDragging(const double mouseX, const double mouseY) {
     float ndc_y = 1.0f - (2.0f * static_cast<float>(mouseY)) / m_scrHeight;
     glm::vec4 ray_clip = glm::vec4(ndc_x, ndc_y, -1.0f, 1.0f);
 
-    // Step 2: Clip to Eye
     glm::vec4 ray_eye = glm::inverse(m_camera.GetProjectionMatrix()) * ray_clip;
     ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 0.0f);
 
-    // Step 3: Eye to World
     glm::mat4 view = m_camera.GetViewMatrix();
     glm::mat4 inv_view = glm::inverse(view);
     glm::vec3 ray_world = glm::normalize(glm::vec3(inv_view * ray_eye));
-    glm::vec3 ray_origin = glm::vec3(inv_view[3]); // camera position in world space
+    glm::vec3 ray_origin = glm::vec3(inv_view[3]);
 
-    // Step 4: Define the drag plane
-    glm::vec3 plane_point = m_draggingNodeStartPos;       // A point on the plane (initial sphere pos)
-    glm::vec3 plane_normal = m_camera.GetForwardVector(); // Plane normal = camera look direction
+    glm::vec3 plane_point = m_draggingNodeStartPos;
+    glm::vec3 plane_normal = m_camera.GetForwardVector();
 
-    // Step 5: Ray-plane intersection
     float denom = glm::dot(plane_normal, ray_world);
-    if (fabs(denom) > 1e-6f) { // Not parallel
+    if (fabs(denom) > 1e-6f) {
         float t = glm::dot(plane_point - ray_origin, plane_normal) / denom;
         glm::vec3 intersection = ray_origin + t * ray_world;
         m_draggingNode.position = intersection;
