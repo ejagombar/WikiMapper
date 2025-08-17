@@ -44,14 +44,6 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
     // Reset forces
     std::fill(writeG.nodes.forces.begin(), writeG.nodes.forces.end(), glm::vec3(0, 0, 0));
 
-#ifdef DEBUG_FORCES
-    std::cout << "Before update:" << std::endl;
-    for (size_t i = 0; i < 3 && i < writeG.nodes.positions.size(); i++) {
-        std::cout << "Node " << i << " pos: (" << writeG.nodes[i].pos.x << ", " << writeG.nodes[i].pos.y << ", "
-                  << writeG.nodes[i].pos.z << ")" << std::endl;
-    }
-#endif
-
     static float coolingFactor = 1.0f;
     // coolingFactor = std::max(0.0f, coolingFactor * 0.999f);
 
@@ -168,9 +160,6 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
         if (std::isnan(writeG.nodes.forces[i].x) || std::isnan(writeG.nodes.forces[i].y) ||
             std::isnan(writeG.nodes.forces[i].z)) {
             writeG.nodes.forces[i] = glm::vec3(0, 0, 0); // Reset NaN forces
-#ifdef DEBUG_FORCES
-            std::cout << "NaN force detected for node " << i << std::endl;
-#endif
         }
     }
 
@@ -237,40 +226,6 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
         //         writeG.nodes.velocities[i][d] *= -0.5f;
         //     }
         // }
-    }
-
-#ifdef DEBUG_FORCES
-    std::cout << "After update:" << std::endl;
-    for (size_t i = 0; i < 3 && i < writeG.nodes.positions.size(); i++) {
-        std::cout << "Node " << i << " pos: (" << writeG.nodes.positions[i].x << ", " << writeG.nodes.positions[i].y
-                  << ", " << writeG.nodes.positions[i].z << ")" << std::endl;
-    }
-#endif
-
-    // Reset simulation if requested
-    if (simControlData.resetSimulation) {
-
-        // std::fill(writeG.nodes.velocities.begin(), writeG.nodes.velocities.end(), glm::vec3(0.0f));
-        // std::fill(writeG.nodes.forces.begin(), writeG.nodes.forces.end(), glm::vec3(0.0f));
-        // std::fill(writeG.nodes.fixed.begin(), writeG.nodes.fixed.end(), false);
-        //
-        // std::random_device rd;
-        // std::mt19937 gen(rd());
-        // std::uniform_real_distribution<> dis(-10.0, 10.0); // Start much closer to center
-        //
-        // for (size_t i = 0; i < writeG.nodes.positions.size(); ++i) {
-        //     writeG.nodes.positions[i] = glm::vec3(dis(gen), dis(gen), dis(gen));
-        // }
-        //
-        // // Reset history data
-        // for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        //     prevPositions[i] = writeG.nodes.positions[i];
-        //     prevMovements[i] = glm::vec3(0);
-        //     nodeDamping[i] = 0.7f;
-        // }
-
-        // Reset the cooling factor when simulation is reset
-        coolingFactor = 1.0f;
     }
 }
 
