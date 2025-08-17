@@ -25,10 +25,10 @@
 
 // This Engine class encapsulates all the data and logic relating to creating a graphical window (with glfw), rendering
 // the 3d scene, and handling user input.
-class Engine {
+class RenderEngine {
   public:
-    Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData);
-    ~Engine();
+    RenderEngine(GS::GraphTripleBuf &graphBuf, ControlData &controlData);
+    ~RenderEngine();
     uint32_t Run();
 
   private:

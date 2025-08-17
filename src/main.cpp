@@ -86,7 +86,7 @@ int main() {
     graphEngine.setupGraph(*writeGraph);
     graphBuf.PublishAll();
 
-    Engine renderEngine(graphBuf, controlData);
+    RenderEngine renderEngine(graphBuf, controlData);
 
     std::thread t{&GraphEngine::graphPositionSimulation, std::ref(graphEngine)};
 

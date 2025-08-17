@@ -178,6 +178,7 @@ void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const 
         if (static_cast<int32_t>(i) == draggingNode.id) {
             writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
             writeG.nodes.positions[i] = draggingNode.position;
+            globalLogger->critical("Node {} is frozen", i);
             continue;
         }
 

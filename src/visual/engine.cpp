@@ -26,7 +26,7 @@
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
 // and associated mutex is quite messy and a temporary solution. This shall be changed eventually.
-Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
+RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
     : m_controlData(controlData), m_graphBuf(graphBuf) {
 
     globalLogger->info("Initialising Engine");
@@ -90,7 +90,7 @@ Engine::Engine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
 
 // Initialises all the shaders. Each shader is assigned its own shader class which would be inefficient if there were
 // many types of shaders, however as there are only a couple shaders, this does not have a big impact.
-void Engine::setupShaders() {
+void RenderEngine::setupShaders() {
     globalLogger->info("Setting up shaders");
     m_shader.skybox = std::make_unique<Shader>("skybox.vert", "skybox.frag");
     m_shader.screenBlur = std::make_unique<Shader>("framebuffer.vert", "framebufferblur.frag");
@@ -122,7 +122,7 @@ void Engine::setupShaders() {
     m_skybox = std::make_unique<Skybox>(*m_shader.skybox, cubemapTexture);
 }
 
-void Engine::initNodeBuffers() {
+void RenderEngine::initNodeBuffers() {
     glBindVertexArray(m_VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
 
@@ -140,7 +140,7 @@ void Engine::initNodeBuffers() {
     glBindVertexArray(0);
 }
 
-void Engine::initEdgeBuffers() {
+void RenderEngine::initEdgeBuffers() {
     glBindVertexArray(m_VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
 
@@ -159,7 +159,7 @@ void Engine::initEdgeBuffers() {
 }
 
 // Initialise buffer with node data on the GPU
-void Engine::updateNodes(GS::Graph &graph) {
+void RenderEngine::updateNodes(GS::Graph &graph) {
     globalLogger->info("Start updating nodes");
     uint32_t nodeCount = uint32_t(graph.nodes.titles.size());
     m_nodeData.resize(nodeCount);
@@ -182,7 +182,7 @@ void Engine::updateNodes(GS::Graph &graph) {
 }
 
 // Initialise buffer with edge data on the GPU.
-void Engine::updateEdges(GS::Graph &graph) {
+void RenderEngine::updateEdges(GS::Graph &graph) {
     globalLogger->info("Start updating edges");
     uint32_t edgeCount = uint32_t(graph.edges.startIdxs.size());
     m_edgeData.resize(edgeCount * 2);
@@ -212,7 +212,7 @@ void Engine::updateEdges(GS::Graph &graph) {
     globalLogger->info("Finish updating edges");
 }
 
-void Engine::updateSelectorBuffer() {
+void RenderEngine::updateSelectorBuffer() {
     m_picking->Begin();
     m_picking->pickingShader->Use();
     m_picking->pickingShader->SetUInt("nodeOffset", 0);
@@ -222,7 +222,7 @@ void Engine::updateSelectorBuffer() {
     m_picking->End();
 }
 
-void Engine::processMouseSelectorInput(GLFWwindow *window) {
+void RenderEngine::processMouseSelectorInput(GLFWwindow *window) {
     if (m_state == stop || m_gui->Active() || m_mouseActive) {
         if (m_hoveredNodeID >= 0) {
             m_previousHoveredNodeID = m_hoveredNodeID;
@@ -253,7 +253,7 @@ void Engine::processMouseSelectorInput(GLFWwindow *window) {
 
 // Update node and edge buffers with new position data. Future optimisation to keep in mind: pack the position data
 // together so it can be copied all at once as opposed to looping through each value.
-void Engine::updateParticles(GS::Graph &graph) {
+void RenderEngine::updateParticles(GS::Graph &graph) {
     uint32_t minNodeCount = std::min(m_nodeData.size(), graph.nodes.positions.size());
     for (uint32_t i = 0; i < minNodeCount; i++) {
         const auto &src = graph.nodes.positions.at(i);
@@ -290,7 +290,7 @@ void Engine::updateParticles(GS::Graph &graph) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Engine::computeHoverTransition(float deltaTime) {
+void RenderEngine::computeHoverTransition(float deltaTime) {
     if (m_inTransition) {
         m_hoverBrightness += deltaTime * m_transitionSpeed;
 
@@ -305,7 +305,7 @@ void Engine::computeHoverTransition(float deltaTime) {
     }
 }
 
-void Engine::computeLighting(glm::vec3 cameraPosition) {
+void RenderEngine::computeLighting(glm::vec3 cameraPosition) {
     EnvironmentLighting uniforms = {};
     uniforms.globalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     uniforms.globalLightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
@@ -351,14 +351,14 @@ void Engine::computeLighting(glm::vec3 cameraPosition) {
     m_shader.environmentUBO->Update(uniforms);
 }
 
-Engine::~Engine() {
+RenderEngine::~RenderEngine() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
 
     glfwTerminate();
 }
 
-uint32_t Engine::Run() {
+uint32_t RenderEngine::Run() {
     glfwSwapInterval(0);
 
     std::future<LabelAtlasData> fut;
@@ -393,7 +393,7 @@ uint32_t Engine::Run() {
 
 // The engine main loop. This is called to render each frame. It also processes any user inputs, and updates node
 // positions if required (if a new graph position frame has been generated).
-void Engine::loop() {
+void RenderEngine::loop() {
     m_gui->BeginFrame();
 
     m_camera.SetFov(m_controlData.engine.cameraFov);
@@ -484,10 +484,13 @@ void Engine::loop() {
     }
 
     m_gui->EndFrame();
+
+    globalLogger->info("m_hoveredNodeId: {}, m_draggingNodeStartPos.x: {}, m_dragging.id: {}, m_draggingNode.pos.x: {}",
+                       m_hoveredNodeID, m_draggingNodeStartPos.x, m_draggingNode.id, m_draggingNode.position.x);
 }
 
-void Engine::handleDragging(double mouseX, double mouseY) {
-    if (m_hoveredNodeID == -1) {
+void RenderEngine::handleDragging(const double mouseX, const double mouseY) {
+    if (m_draggingNode.id == -1) {
         return;
     }
 
@@ -524,29 +527,29 @@ void Engine::handleDragging(double mouseX, double mouseY) {
 // Static functions must be used for callbacks so these static functions wrap the functions used in the engine
 // object, so that the functions that are called are able to access engine member variables.
 
-void Engine::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
+void RenderEngine::key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    RenderEngine *instance = static_cast<RenderEngine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->key_callback(window, key, scancode, action, mods);
     }
 }
 
-void Engine::framebuffer_size_callback_static(GLFWwindow *window, int width, int height) {
-    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
+void RenderEngine::framebuffer_size_callback_static(GLFWwindow *window, int width, int height) {
+    RenderEngine *instance = static_cast<RenderEngine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->framebuffer_size_callback(window, width, height);
     }
 }
 
-void Engine::mouse_callback_static(GLFWwindow *window, double xpos, double ypos) {
-    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
+void RenderEngine::mouse_callback_static(GLFWwindow *window, double xpos, double ypos) {
+    RenderEngine *instance = static_cast<RenderEngine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->mouse_callback(window, xpos, ypos);
     }
 }
 
-void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int action, int mods) {
-    Engine *instance = static_cast<Engine *>(glfwGetWindowUserPointer(window));
+void RenderEngine::mouse_button_callback_static(GLFWwindow *window, int button, int action, int mods) {
+    RenderEngine *instance = static_cast<RenderEngine *>(glfwGetWindowUserPointer(window));
     if (instance) {
         instance->mouse_button_callback(window, button, action, mods);
     }
@@ -558,8 +561,8 @@ void Engine::mouse_button_callback_static(GLFWwindow *window, int button, int ac
 // function will return early. The "q" key is an exception to this as this opens and closes the menu so this should
 // work when the menu is active or not. This leads to a very small bug when typing into the search box, if you press
 // q and the menu is open, it will close the menu, but this will not happen for any other letter.
-void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
-                          [[maybe_unused]] int mods) {
+void RenderEngine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
+                                [[maybe_unused]] int mods) {
 
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play && !m_gui->Active()) {
@@ -581,7 +584,7 @@ void Engine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_
 }
 
 // Called when the window size changes
-void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height) {
+void RenderEngine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
@@ -593,7 +596,7 @@ void Engine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int 
 }
 
 // Called when there is mouse movement
-void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, double ypos) {
+void RenderEngine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, double ypos) {
     handleDragging(xpos, ypos);
 
     if (m_state == stop || !m_mouseActive) {
@@ -614,30 +617,20 @@ void Engine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xpos, do
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void Engine::doubleClickCalled() { m_controlData.graph.sourceNode.store(m_hoveredNodeID, std::memory_order_relaxed); }
+void RenderEngine::doubleClickCalled() {
+    m_controlData.graph.sourceNode.store(m_hoveredNodeID, std::memory_order_relaxed);
+}
 
-void Engine::handleClickHold(int action) {
-    static bool pressed = false;
-    static bool pressed_last = false;
-
-    if (action == GLFW_PRESS) {
-        pressed = true;
-    } else if (action == GLFW_RELEASE) {
-        pressed = false;
-    }
-
-    if (pressed_last != pressed) {
-        pressed_last = pressed;
-
+void RenderEngine::handleClickHold(int action) {
+    if (action == GLFW_PRESS && m_hoveredNodeID != -1) {
         m_draggingNode.id = m_hoveredNodeID;
-
-        if (m_hoveredNodeID >= 0 && pressed) {
-            m_draggingNodeStartPos = m_graph->nodes.positions.at(m_hoveredNodeID);
-        }
+        m_draggingNodeStartPos = m_graph->nodes.positions.at(m_hoveredNodeID);
+    } else if (action == GLFW_RELEASE) {
+        m_draggingNode.id = -1;
     }
 }
 
-void Engine::handleDoubleClick(int action) {
+void RenderEngine::handleDoubleClick(int action) {
     static auto lastClickTime = std::chrono::system_clock::now();
     static bool waitingForSecondClick = false;
     static bool doubleClickProcessed = false;
@@ -671,8 +664,8 @@ void Engine::handleDoubleClick(int action) {
     }
 }
 
-void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int button, int action,
-                                   [[maybe_unused]] int mods) {
+void RenderEngine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int button, int action,
+                                         [[maybe_unused]] int mods) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         m_firstMouse = true;
@@ -691,12 +684,14 @@ void Engine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int butt
                 m_selectedNode = -1;
             }
         }
+
+        m_controlData.sim.draggingNode.store({-1, glm::vec3(0, 0, 0)}, std::memory_order_relaxed);
         handleDoubleClick(action);
         handleClickHold(action);
     }
 }
 
-void Engine::processEngineInput(GLFWwindow *window) {
+void RenderEngine::processEngineInput(GLFWwindow *window) {
     if (m_gui->Active()) {
         return;
     }
