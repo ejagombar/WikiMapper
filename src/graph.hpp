@@ -15,7 +15,6 @@ struct Color {
     unsigned char r, g, b;
 };
 
-// Structure of Arrays for better cache performance and GPU compatibility
 struct NodeData {
     std::vector<std::string> titles;
     std::vector<glm::vec3> positions;
@@ -69,7 +68,6 @@ struct EdgeData {
     }
 };
 
-// A graph storage class using Structure of Arrays (SoA) for better performance
 class Graph {
   public:
     Graph() = default;
@@ -79,40 +77,31 @@ class Graph {
     Graph &operator=(const Graph &other);
     Graph &operator=(Graph &&other) noexcept;
 
-    // Node management
     uint32_t AddNode(const std::string &title);
     void ReserveNodes(const uint32_t N);
     void ReserveEdges(const uint32_t N);
     void ResizeNodes(const uint32_t N);
     void ResizeEdges(const uint32_t N);
-    void GenerateDefaultData(); // Generate positions, velocities, etc.
+    void GenerateDefaultData();
     void Clear();
 
-    // Edge management
     void AddEdge(uint32_t idx1, uint32_t idx2);
 
-    // Query functions
     std::vector<uint32_t> GetNeighboursIdx(uint32_t rootIdx) const;
     uint32_t GetTopNode();
 
-    // File I/O (only saves/loads titles and edges)
     bool SaveBinary(const std::string &filename) const;
     bool LoadBinary(const std::string &filename);
-
-    // Utility functions
 
     float GetRadius() const;
     glm::vec3 GetCenter() const;
     size_t GetNodeCount() const { return nodes.titles.size(); }
     size_t GetEdgeCount() const { return edges.startIdxs.size(); }
 
-    // Data access
     NodeData nodes;
     EdgeData edges;
 
-    // Helper functions for accessing specific node data
     const std::string &GetNodeTitle(size_t idx) const { return nodes.titles[idx]; }
-
     const glm::vec3 &GetNodePosition(size_t idx) const { return nodes.positions[idx]; }
 
     void SetNodePosition(size_t idx, const glm::vec3 &pos) {

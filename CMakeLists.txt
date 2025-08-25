@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-
-
 include(FetchContent)
 
 project(WikiMapperExplorer)
@@ -113,8 +111,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   spdlog::spdlog
 )
 
-# target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
-target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -O0 -fsanitize=address)
+target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O2 -Wall -Wextra -pedantic)
+# target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -O0 -fsanitize=address)
+#
+# target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan -pg)
 
+# target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan -Wall -Wextra -pedantic -g -O0 -pg)
 
-target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan)
+# target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -O0 -fsanitize=address)
+# target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan)
