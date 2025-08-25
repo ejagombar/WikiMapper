@@ -49,23 +49,37 @@ struct NodeData {
     }
 };
 
-struct EdgeData {
-    std::vector<uint32_t> startIdxs;
-    std::vector<uint32_t> endIdxs;
-
+class EdgeData {
+  public:
     EdgeData() = default;
     EdgeData(const EdgeData &) = default;
     EdgeData &operator=(const EdgeData &) = default;
+    EdgeData(EdgeData &&other) noexcept;
+    EdgeData &operator=(EdgeData &&other) noexcept;
 
-    EdgeData(EdgeData &&other) noexcept : startIdxs(std::move(other.startIdxs)), endIdxs(std::move(other.endIdxs)) {}
+    void AddEdge(uint32_t u, uint32_t v);
+    void Reserve(size_t N);
+    void Resize(size_t N);
+    void Clear();
 
-    EdgeData &operator=(EdgeData &&other) noexcept {
-        if (this != &other) {
-            startIdxs = std::move(other.startIdxs);
-            endIdxs = std::move(other.endIdxs);
-        }
-        return *this;
-    }
+    size_t EdgeCount() const { return startIdxs.size(); }
+
+    bool CSRValid() const { return csrValid; }
+    void InvalidateCSR() { csrValid = false; }
+
+    std::vector<uint32_t> GetNeighbours(uint32_t nodeIdx, uint32_t totalNodes) const;
+
+    std::vector<uint32_t> startIdxs;
+    std::vector<uint32_t> endIdxs;
+
+  private:
+    mutable std::vector<uint32_t> csrOffsets;
+    mutable std::vector<uint32_t> csrNeighbours;
+    mutable bool csrValid = false;
+
+    void MoveFrom(EdgeData &&other);
+    void EnsureCSRBuilt(uint32_t totalNodes) const;
+    void BuildCSR(uint32_t totalNodes) const;
 };
 
 class Graph {

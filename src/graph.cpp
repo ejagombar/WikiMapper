@@ -8,6 +8,113 @@
 #include <vector>
 
 namespace GS {
+// ------------------ EdgesData ------------------
+
+EdgeData &EdgeData::operator=(EdgeData &&other) noexcept {
+    if (this != &other)
+        MoveFrom(std::move(other));
+    return *this;
+}
+
+EdgeData::EdgeData(EdgeData &&other) noexcept { MoveFrom(std::move(other)); }
+
+void EdgeData::MoveFrom(EdgeData &&other) {
+    startIdxs = std::move(other.startIdxs);
+    endIdxs = std::move(other.endIdxs);
+    csrOffsets = std::move(other.csrOffsets);
+    csrNeighbours = std::move(other.csrNeighbours);
+    csrValid = other.csrValid;
+}
+
+void EdgeData::EnsureCSRBuilt(uint32_t totalNodes) const {
+    if (csrValid)
+        return;
+
+    BuildCSR(totalNodes);
+    csrValid = true;
+}
+
+void EdgeData::AddEdge(uint32_t u, uint32_t v) {
+    startIdxs.push_back(u);
+    endIdxs.push_back(v);
+    csrValid = false;
+}
+
+void EdgeData::Reserve(size_t N) {
+    startIdxs.reserve(N);
+    endIdxs.reserve(N);
+    csrValid = false;
+}
+
+void EdgeData::Resize(size_t N) {
+    startIdxs.resize(N);
+    endIdxs.resize(N);
+    csrValid = false;
+}
+
+void EdgeData::Clear() {
+    startIdxs.clear();
+    endIdxs.clear();
+    csrOffsets.clear();
+    csrNeighbours.clear();
+    csrValid = false;
+}
+
+std::vector<uint32_t> EdgeData::GetNeighbours(uint32_t nodeIdx, uint32_t totalNodes) const {
+    EnsureCSRBuilt(totalNodes);
+
+    if (nodeIdx >= csrOffsets.size() - 1) {
+        return {};
+    }
+
+    uint32_t start = csrOffsets[nodeIdx];
+    uint32_t end = csrOffsets[nodeIdx + 1];
+
+    return std::vector<uint32_t>(csrNeighbours.begin() + start, csrNeighbours.begin() + end);
+}
+
+void EdgeData::BuildCSR(uint32_t totalNodes) const {
+    csrOffsets.clear();
+    csrNeighbours.clear();
+
+    if (totalNodes == 0)
+        return;
+
+    csrOffsets.resize(totalNodes + 1, 0);
+
+    for (size_t i = 0; i < startIdxs.size(); ++i) {
+        uint32_t u = startIdxs[i];
+        uint32_t v = endIdxs[i];
+
+        if (u < totalNodes)
+            csrOffsets[u + 1]++;
+        if (v < totalNodes)
+            csrOffsets[v + 1]++;
+    }
+
+    for (uint32_t i = 1; i <= totalNodes; ++i) {
+        csrOffsets[i] += csrOffsets[i - 1];
+    }
+
+    if (!csrOffsets.empty()) {
+        csrNeighbours.resize(csrOffsets[totalNodes]);
+    }
+
+    std::vector<uint32_t> currentPos = csrOffsets;
+
+    for (size_t i = 0; i < startIdxs.size(); ++i) {
+        uint32_t u = startIdxs[i];
+        uint32_t v = endIdxs[i];
+
+        if (u < totalNodes && currentPos[u] < csrNeighbours.size()) {
+            csrNeighbours[currentPos[u]++] = v;
+        }
+
+        if (v < totalNodes && currentPos[v] < csrNeighbours.size()) {
+            csrNeighbours[currentPos[v]++] = u;
+        }
+    }
+}
 
 // ------------------ Graph ------------------
 
@@ -115,23 +222,11 @@ void Graph::AddEdge(uint32_t idx1, uint32_t idx2) {
         }
     }
 
-    edges.startIdxs.push_back(idx1);
-    edges.endIdxs.push_back(idx2);
+    edges.AddEdge(idx1, idx2);
 }
 
 std::vector<uint32_t> Graph::GetNeighboursIdx(uint32_t idx) const {
-    std::vector<uint32_t> out;
-
-    const size_t edgeCount = edges.startIdxs.size();
-    for (size_t i = 0; i < edgeCount; i++) {
-        if (edges.startIdxs[i] == idx) {
-            out.push_back(edges.endIdxs[i]);
-        } else if (edges.endIdxs[i] == idx) {
-            out.push_back(edges.startIdxs[i]);
-        }
-    }
-
-    return out;
+    return edges.GetNeighbours(idx, nodes.sizes.size());
 }
 
 uint32_t Graph::GetTopNode() {
