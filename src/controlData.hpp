@@ -7,13 +7,13 @@
 #include <string>
 
 struct SimParameters {
-    float repulsionStrength = 4.0f;
-    float attractionStrength = 65.f;
+    float repulsionStrength = 6.0f;
+    float attractionStrength = 100.f;
     float centeringForce = 40.f;
-    float timeStep = 200.f;
-    float forceMultiplier = 1.0f;
+    float timeStep = 50.f;
+    float forceMultiplier = 2.3f;
     float maxForce = 500.0f;
-    float targetDistance = 11.0f;
+    float targetDistance = 1.0f;
     float maxVelocity = 2.0f;
 };
 

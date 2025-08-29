@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <future>
 #include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
@@ -10,6 +11,7 @@
 #include <json/json.h>
 #include <optional>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "controlData.hpp"
@@ -56,9 +58,8 @@ void BarnesHutTree::computeBounds(const std::vector<glm::vec3> &positions, glm::
     minBounds = positions[0];
     maxBounds = positions[0];
 
-// Vectorization hint for compiler
-#pragma omp simd reduction(min : minBounds.x, minBounds.y, minBounds.z)                                                \
-    reduction(max : maxBounds.x, maxBounds.y, maxBounds.z)
+    // #pragma omp simd reduction(min : minBounds.x, minBounds.y, minBounds.z)                                                \
+//     reduction(max : maxBounds.x, maxBounds.y, maxBounds.z)
     for (size_t i = 1; i < positions.size(); ++i) {
         minBounds.x = std::min(minBounds.x, positions[i].x);
         minBounds.y = std::min(minBounds.y, positions[i].y);
@@ -69,11 +70,23 @@ void BarnesHutTree::computeBounds(const std::vector<glm::vec3> &positions, glm::
         maxBounds.z = std::max(maxBounds.z, positions[i].z);
     }
 
-    // Add small margin to avoid edge cases
     glm::vec3 margin = (maxBounds - minBounds) * 0.01f + glm::vec3(1.0f);
     minBounds -= margin;
     maxBounds += margin;
 }
+
+const std::string toStr(glm::vec3 vec) {
+    std::ostringstream oss;
+    oss << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
+    return oss.str();
+};
+
+// void BarnesHutTree::print() {
+//     for (const auto &node : m_nodes) {
+//         globalLogger->info("Index: {}, Center: {}, Mass: {}, Bodies: {}", node.bodyIndex, toStr(node.centerOfMass),
+//                            node.totalMass, node.bodyCount);
+//     }
+// }
 
 void BarnesHutTree::build(const std::vector<glm::vec3> &positions, const std::vector<float> &masses) {
     clear();
@@ -81,39 +94,116 @@ void BarnesHutTree::build(const std::vector<glm::vec3> &positions, const std::ve
     if (positions.empty())
         return;
 
-    // Compute bounding box
-    glm::vec3 minBounds, maxBounds;
-    computeBounds(positions, minBounds, maxBounds);
-
     // Create root node
     m_rootIndex = allocateNode();
     Node &root = m_nodes[m_rootIndex];
-    root.minBounds = minBounds;
-    root.maxBounds = maxBounds;
 
-    // Insert all bodies
+    computeBounds(positions, root.minBounds, root.maxBounds);
+
     for (size_t i = 0; i < positions.size(); ++i) {
         insertBody(m_rootIndex, i, positions[i], masses[i], 0);
     }
 }
 
-void BarnesHutTree::insertBody(int32_t nodeIndex, size_t bodyIndex, const glm::vec3 &pos, float mass, int depth) {
+void BarnesHutTree::printRecursive(int32_t nodeIndex, const std::string &prefix, bool isLast) const {
+    if (nodeIndex < 0 || nodeIndex >= m_nodes.size()) {
+        return; // Safety check
+    }
+
+    const Node &node = m_nodes[nodeIndex];
+
+    // Print the current node's information with a tree-like prefix
+    globalLogger->info("{}{}{}", prefix, (isLast ? "L-- " : "|-- "),
+                       fmt::format("Node Idx: {}, Bodies: {}, Mass: {:.2f}, CoM: {}", nodeIndex, node.bodyCount,
+                                   node.totalMass, toStr(node.centerOfMass)));
+
+    // If it's a leaf node, also print its body index
+    if (node.bodyIndex >= 0) {
+        globalLogger->info("{}{}", prefix + (isLast ? "    " : "|   "),
+                           fmt::format("   -> Leaf for Body Idx: {}", node.bodyIndex));
+    }
+
+    // Prepare for recursion into children
+    std::string childPrefix = prefix + (isLast ? "    " : "|   ");
+
+    // Find all valid children to determine the last one
+    std::vector<int32_t> validChildren;
+    for (int32_t childIdx : node.children) {
+        if (childIdx >= 0) {
+            validChildren.push_back(childIdx);
+        }
+    }
+
+    // Recursively call for each child
+    for (size_t i = 0; i < validChildren.size(); ++i) {
+        bool isLastChild = (i == validChildren.size() - 1);
+        printRecursive(validChildren[i], childPrefix, isLastChild);
+    }
+}
+
+/**
+ * @brief Public entry point to print the entire Barnes-Hut tree structure.
+ */
+void BarnesHutTree::print() {
+    if (m_rootIndex < 0) {
+        globalLogger->info("Barnes-Hut Tree is empty.");
+        return;
+    }
+    globalLogger->info("--- Barnes-Hut Tree Structure ---");
+    // Start the recursive printing from the root node
+    printRecursive(m_rootIndex, "", true);
+    globalLogger->info("---------------------------------");
+}
+
+bool BarnesHutTree::useNodeAsSingleBody(const Node &node, const glm::vec3 &bodyPos) const {
+    if (node.bodyCount <= 1)
+        return true;
+
+    glm::vec3 size = node.maxBounds - node.minBounds;
+    float maxSize = std::max({size.x, size.y, size.z});
+
+    glm::vec3 delta = node.centerOfMass - bodyPos;
+    float distanceSq = glm::dot(delta, delta);
+
+    // Barnes-Hut criterion: s/d < theta
+    // where s is the size of the region and d is the distance
+    float ratio = (maxSize * maxSize) / distanceSq;
+    return ratio < (THETA * THETA);
+}
+
+glm::vec3 BarnesHutTree::calculateForce(size_t bodyIndex, const std::vector<glm::vec3> &positions,
+                                        const std::vector<float> &masses, const std::vector<unsigned char> &sizes,
+                                        float repulsionStrength) const {
+    if (m_rootIndex < 0)
+        return glm::vec3(0.0f);
+
+    const glm::vec3 &pos = positions[bodyIndex];
+    float mass = masses[bodyIndex];
+    float sizeSq = sizes[bodyIndex] * sizes[bodyIndex];
+
+    return calculateForceRecursive(m_rootIndex, pos, mass, sizeSq, repulsionStrength);
+}
+
+BarnesHutTree::Stats BarnesHutTree::getStats() const {
+    Stats stats;
+    stats.nodeCount = m_nodeCount;
+    stats.maxDepth = 0;
+    stats.averageBodiesPerLeaf = 0;
+
+    return stats;
+}
+void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::vec3 &pos, float mass, int depth) {
     if (depth > MAX_DEPTH)
-        return; // Prevent infinite recursion
+        return;
 
     Node &node = m_nodes[nodeIndex];
 
-    // Update center of mass (incremental)
-    float newTotalMass = node.totalMass + mass;
-    if (newTotalMass > 0) {
-        node.centerOfMass = (node.centerOfMass * node.totalMass + pos * mass) / newTotalMass;
-        node.totalMass = newTotalMass;
-    }
-    node.bodyCount++;
-
-    // If this is an empty leaf, store the body
-    if (node.bodyCount == 1) {
-        node.bodyIndex = static_cast<int32_t>(bodyIndex);
+    // If this is an empty node, just store the body
+    if (node.bodyCount == 0) {
+        node.bodyIndex = bodyIndex;
+        node.centerOfMass = pos;
+        node.totalMass = mass;
+        node.bodyCount = 1;
         return;
     }
 
@@ -122,10 +212,15 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, size_t bodyIndex, const glm::v
         // Store the existing body temporarily
         int32_t existingBodyIndex = node.bodyIndex;
         glm::vec3 existingPos = node.centerOfMass;
-        float existingMass = node.totalMass - mass; // Remove the new body's contribution
+        float existingMass = node.totalMass;
 
         // Convert to internal node
         node.bodyIndex = -1;
+
+        // Reset mass and center of mass for recalculation
+        node.centerOfMass = glm::vec3(0.0f);
+        node.totalMass = 0.0f;
+        node.bodyCount = 0;
 
         // Reinsert existing body
         glm::vec3 center = (node.minBounds + node.maxBounds) * 0.5f;
@@ -147,10 +242,6 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, size_t bodyIndex, const glm::v
             }
         }
 
-        // Reinsert with correct mass (without the new body)
-        node.centerOfMass = existingPos;
-        node.totalMass = existingMass;
-        node.bodyCount = 1;
         insertBody(node.children[existingOctant], existingBodyIndex, existingPos, existingMass, depth + 1);
     }
 
@@ -175,24 +266,17 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, size_t bodyIndex, const glm::v
     }
 
     insertBody(node.children[octant], bodyIndex, pos, mass, depth + 1);
+
+    // Update center of mass AFTER inserting (important!)
+    float newTotalMass = node.totalMass + mass;
+    if (newTotalMass > 0) {
+        node.centerOfMass = (node.centerOfMass * node.totalMass + pos * mass) / newTotalMass;
+        node.totalMass = newTotalMass;
+    }
+    node.bodyCount++;
 }
 
-bool BarnesHutTree::useNodeAsSingleBody(const Node &node, const glm::vec3 &bodyPos) const {
-    if (node.bodyCount <= 1)
-        return true;
-
-    glm::vec3 size = node.maxBounds - node.minBounds;
-    float maxSize = std::max({size.x, size.y, size.z});
-
-    glm::vec3 delta = node.centerOfMass - bodyPos;
-    float distanceSq = glm::dot(delta, delta);
-
-    // Barnes-Hut criterion: s/d < theta
-    // where s is the size of the region and d is the distance
-    float ratio = (maxSize * maxSize) / distanceSq;
-    return ratio < (THETA * THETA);
-}
-
+// Fixed force calculation with proper distance handling
 glm::vec3 BarnesHutTree::calculateForceRecursive(int32_t nodeIndex, const glm::vec3 &bodyPos, float bodyMass,
                                                  float bodySizeSq, float repulsionStrength) const {
     if (nodeIndex < 0)
@@ -206,30 +290,30 @@ glm::vec3 BarnesHutTree::calculateForceRecursive(int32_t nodeIndex, const glm::v
     glm::vec3 delta = node.centerOfMass - bodyPos;
     float distSq = glm::dot(delta, delta);
 
-    float softening = 0.5f;
-    distSq += softening * softening;
-
-    // Skip if this is the same body (for leaf nodes)
-    if (distSq < MIN_DISTANCE_SQ && node.bodyCount == 1) {
+    // Check if this is the same body (for leaf nodes)
+    if (node.bodyCount == 1 && node.bodyIndex >= 0 && distSq < 1e-6f) {
         return glm::vec3(0.0f);
     }
 
+    // Apply minimum distance to prevent singularities
+    float minDist = 1.0f; // Increased minimum distance
+    distSq = std::max(distSq, minDist * minDist);
+
     // Use Barnes-Hut criterion
     if (useNodeAsSingleBody(node, bodyPos)) {
-        // Treat as single body
-        distSq = std::max(distSq, MIN_DISTANCE_SQ);
+        // Calculate repulsion force (simplified and stabilized)
+        float dist = std::sqrt(distSq);
+        float force = repulsionStrength * node.totalMass / distSq;
 
-        float repulsionForce = repulsionStrength * bodySizeSq * node.totalMass / distSq;
-        float invDist = 1.0f / std::sqrt(distSq);
+        // Cap maximum force to prevent instability
+        force = std::min(force, 100.0f);
 
         // Force points away from the other body
-        return -delta * (repulsionForce * invDist);
+        return -delta * (force / dist);
     } else {
         // Recursively calculate forces from children
         glm::vec3 totalForce(0.0f);
 
-// Unroll loop for better vectorization
-#pragma unroll
         for (int i = 0; i < 8; ++i) {
             if (node.children[i] >= 0) {
                 totalForce +=
@@ -241,227 +325,134 @@ glm::vec3 BarnesHutTree::calculateForceRecursive(int32_t nodeIndex, const glm::v
     }
 }
 
-glm::vec3 BarnesHutTree::calculateForce(size_t bodyIndex, const std::vector<glm::vec3> &positions,
-                                        const std::vector<float> &masses, const std::vector<unsigned char> &sizes,
-                                        float repulsionStrength) const {
-    if (m_rootIndex < 0)
-        return glm::vec3(0.0f);
-
-    const glm::vec3 &pos = positions[bodyIndex];
-    float mass = masses[bodyIndex];
-    float sizeSq = sizes[bodyIndex] * sizes[bodyIndex];
-
-    return calculateForceRecursive(m_rootIndex, pos, mass, sizeSq, repulsionStrength);
-}
-
-BarnesHutTree::Stats BarnesHutTree::getStats() const {
-    Stats stats;
-    stats.nodeCount = m_nodeCount;
-    stats.maxDepth = 0;
-    stats.averageBodiesPerLeaf = 0;
-
-    // Calculate stats if needed for debugging
-
-    return stats;
-}
-
-// ForceAccumulator implementation
-
-ForceAccumulator::ForceAccumulator(size_t capacity) {
-    m_forces.resize(capacity);
-    reset();
-}
-
-void ForceAccumulator::reset() {
-    // Vectorized memset
-    std::memset(m_forces.data(), 0, m_forces.size() * sizeof(AlignedVec3));
-}
-
-void ForceAccumulator::accumulate(size_t index, const glm::vec3 &force) {
-    m_forces[index].x += force.x;
-    m_forces[index].y += force.y;
-    m_forces[index].z += force.z;
-}
-
-void ForceAccumulator::applyTo(std::vector<glm::vec3> &forces) const {
-    size_t count = std::min(forces.size(), m_forces.size());
-
-// Vectorized copy with compiler hints
-#pragma omp simd
-    for (size_t i = 0; i < count; ++i) {
-        forces[i].x += m_forces[i].x;
-        forces[i].y += m_forces[i].y;
-        forces[i].z += m_forces[i].z;
-    }
-}
-
+// Simplified and stabilized main update function
 void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const SimulationControlData &simControlData) {
-    static std::vector<glm::vec3> prevPositions;
-    static std::vector<glm::vec3> prevMovements;
-    static std::vector<float> nodeDamping;
+    static std::vector<glm::vec3> smoothedVelocities;
     static BarnesHutTree bhTree;
-    static ForceAccumulator forceAccum(10000);
 
     const auto parameters = simControlData.parameters.load(std::memory_order_relaxed);
     const auto draggingNode = simControlData.draggingNode.load(std::memory_order_relaxed);
 
     size_t nodeCount = writeG.nodes.positions.size();
 
-    if (prevPositions.size() != nodeCount) {
-        prevPositions.resize(nodeCount);
-        prevMovements.resize(nodeCount, glm::vec3(0));
-        nodeDamping.resize(nodeCount, 0.7f);
-
-        prevPositions = writeG.nodes.positions;
+    if (smoothedVelocities.size() != nodeCount) {
+        smoothedVelocities.resize(nodeCount, glm::vec3(0));
     }
 
     // Reset forces
     std::fill(writeG.nodes.forces.begin(), writeG.nodes.forces.end(), glm::vec3(0, 0, 0));
-    forceAccum.reset();
 
-    static float coolingFactor = 1.0f;
-    // coolingFactor = std::max(0.0f, coolingFactor * 0.999f);
+    // Adaptive parameters based on graph size
+    float nodeCountScaling = 1.0f / std::sqrt(std::max(1.0f, float(nodeCount)));
 
-    float nodeCountScaling = 1.0f / (1.0f + std::log10(std::max(1.0f, float(nodeCount))));
+    float effectiveRepulsionStrength = parameters.repulsionStrength * nodeCountScaling * 50.0f;
+    float effectiveAttractionStrength = parameters.attractionStrength * 0.1f;
+    float effectiveCenteringForce = parameters.centeringForce * 0.01f;
 
-    float effectiveRepulsionStrength = parameters.repulsionStrength * nodeCountScaling * coolingFactor;
-    float effectiveAttractionStrength = parameters.attractionStrength * coolingFactor;
-    float effectiveCenteringForce = parameters.centeringForce * 0.1f;
+    // Fixed time step for stability
+    float safeTimeStep = std::min(dt, 0.016f) * parameters.timeStep;
 
-    float safeTimeStep = dt * parameters.timeStep;
-
+    // Build Barnes-Hut tree
     bhTree.build(writeG.nodes.positions, writeG.nodes.masses);
 
-#pragma omp simd
-    for (size_t i = 0; i < nodeCount; ++i) {
-        writeG.nodes.forces[i] += bhTree.calculateForce(i, writeG.nodes.positions, writeG.nodes.masses,
-                                                        writeG.nodes.sizes, effectiveRepulsionStrength);
-    }
+    bhTree.print();
 
+    // Calculate repulsion forces using Barnes-Hut
     for (size_t i = 0; i < nodeCount; ++i) {
         if (static_cast<int32_t>(i) == draggingNode.id)
             continue;
 
-        glm::vec3 currentMovement = writeG.nodes.positions[i] - prevPositions[i];
-        float movementDot = glm::dot(currentMovement, prevMovements[i]);
-        float currentMagnitude = glm::length(currentMovement);
-        float prevMagnitude = glm::length(prevMovements[i]);
+        writeG.nodes.forces[i] += bhTree.calculateForce(i, writeG.nodes.positions, writeG.nodes.masses,
+                                                        writeG.nodes.sizes, effectiveRepulsionStrength);
+    }
 
-        if (currentMagnitude > 0.01f && prevMagnitude > 0.01f) {
-            if (movementDot < 0) {
-                float reversalStrength = -movementDot / (currentMagnitude * prevMagnitude + 0.0001f);
-                nodeDamping[i] = std::min(0.95f, nodeDamping[i] + reversalStrength * 0);
+    // Calculate attraction forces and apply centering
+    for (size_t i = 0; i < nodeCount; ++i) {
+        if (static_cast<int32_t>(i) == draggingNode.id)
+            continue;
 
-                if (reversalStrength > 0.7f && currentMagnitude > 0.5f) {
-                    writeG.nodes.positions[i] = writeG.nodes.positions[i] * 0.7f + prevPositions[i] * 0.3f;
-                    writeG.nodes.velocities[i] *= 0.5f;
-                }
-            } else {
-                nodeDamping[i] = std::max(0.5f, nodeDamping[i] - 0.01f);
-            }
-        }
-
-        prevMovements[i] = currentMovement;
-        prevPositions[i] = writeG.nodes.positions[i];
-
+        // Attraction forces from edges
         std::vector<uint32_t> neighbors = writeG.GetNeighboursIdx(i);
-        int neighborCount = neighbors.size();
-        glm::vec3 totalAttractionForce(0, 0, 0);
 
         for (uint32_t neighborIdx : neighbors) {
             glm::vec3 delta = writeG.nodes.positions[neighborIdx] - writeG.nodes.positions[i];
             float distance = glm::length(delta);
 
-            if (distance < 0.1f)
+            if (distance < 0.01f)
                 continue;
 
-            float connectionFactor = 1.0f / std::sqrt(std::max(1, neighborCount));
-            float attractionForce =
-                effectiveAttractionStrength * connectionFactor * (distance - parameters.targetDistance);
+            // Spring force
+            float desiredDistance = parameters.targetDistance * 10.0f;
+            float springForce = effectiveAttractionStrength * (distance - desiredDistance);
+
+            // Limit spring force
+            springForce = std::max(-10.0f, std::min(10.0f, springForce));
 
             if (distance > 1e-10f) {
-                glm::vec3 attractForce = glm::normalize(delta) * attractionForce;
-                writeG.nodes.forces[i] += attractForce;
-                totalAttractionForce += attractForce;
+                writeG.nodes.forces[i] += (delta / distance) * springForce;
             }
         }
 
-        // Centering force
-        float centeringScale = 1.0f / (1.0f + neighborCount * 0.2f);
-        glm::vec3 center = glm::vec3(0, 0, 0);
-        glm::vec3 toCenter = center - writeG.nodes.positions[i];
+        // Gentle centering force
+        glm::vec3 toCenter = -writeG.nodes.positions[i];
         float distanceToCenter = glm::length(toCenter);
 
-        if (distanceToCenter > 50.0f) {
-            float centeringStrength = effectiveCenteringForce * centeringScale * (distanceToCenter - 50.0f) / 50.0f;
-            writeG.nodes.forces[i] += glm::normalize(toCenter) * centeringStrength;
+        if (distanceToCenter > 10.0f) {
+            float centeringStrength = effectiveCenteringForce * std::log(1.0f + distanceToCenter / 10.0f);
+            writeG.nodes.forces[i] += (toCenter / distanceToCenter) * centeringStrength;
         }
 
+        // Apply force multiplier
         writeG.nodes.forces[i] *= parameters.forceMultiplier;
 
-        // Force limiting
-        float totalAttractionMagnitude = glm::length(totalAttractionForce);
+        // Limit maximum force
         float forceMagnitude = glm::length(writeG.nodes.forces[i]);
-
-        if (totalAttractionMagnitude > forceMagnitude * 0.8f && totalAttractionMagnitude > 0.5f) {
-            float reductionFactor = (forceMagnitude * 0.8f) / totalAttractionMagnitude;
-            writeG.nodes.forces[i] -= totalAttractionForce * (1.0f - reductionFactor);
-        }
-
-        forceMagnitude = glm::length(writeG.nodes.forces[i]);
-        if (forceMagnitude > parameters.maxForce) {
-            writeG.nodes.forces[i] = (writeG.nodes.forces[i] / forceMagnitude) * parameters.maxForce;
-        }
-
-        if (std::isnan(writeG.nodes.forces[i].x) || std::isnan(writeG.nodes.forces[i].y) ||
-            std::isnan(writeG.nodes.forces[i].z)) {
-            writeG.nodes.forces[i] = glm::vec3(0, 0, 0);
+        float maxForce = parameters.maxForce * 10.0f;
+        if (forceMagnitude > maxForce) {
+            writeG.nodes.forces[i] = (writeG.nodes.forces[i] / forceMagnitude) * maxForce;
         }
     }
 
-    static std::vector<glm::vec3> prevVelocities;
-    if (prevVelocities.size() != nodeCount) {
-        prevVelocities.resize(nodeCount, glm::vec3(0));
-    }
+    // Update velocities and positions with improved damping
+    const float globalDamping = 0.85f;    // Consistent damping factor
+    const float velocitySmoothing = 0.8f; // Smoothing factor for velocities
 
-#pragma omp simd
     for (size_t i = 0; i < nodeCount; ++i) {
         if (static_cast<int32_t>(i) == draggingNode.id) {
             writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
             writeG.nodes.positions[i] = draggingNode.position;
+            smoothedVelocities[i] = glm::vec3(0, 0, 0);
             continue;
         }
 
-        float nodeDampingFactor = nodeDamping[i];
+        // Calculate acceleration
         glm::vec3 acceleration = writeG.nodes.forces[i] / std::max(0.1f, writeG.nodes.masses[i]);
 
-        writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * nodeDampingFactor + acceleration * safeTimeStep;
+        // Update velocity with damping
+        writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * globalDamping + acceleration * safeTimeStep;
 
-        if (nodeDampingFactor > 0.8f) {
-            writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * 0.6f + prevVelocities[i] * 0.4f;
-            prevVelocities[i] = writeG.nodes.velocities[i];
+        // Apply velocity smoothing to reduce jitter
+        smoothedVelocities[i] =
+            smoothedVelocities[i] * (1.0f - velocitySmoothing) + writeG.nodes.velocities[i] * velocitySmoothing;
+
+        // Limit velocity
+        float velocityMagnitude = glm::length(smoothedVelocities[i]);
+        float maxVel = parameters.maxVelocity * 5.0f;
+        if (velocityMagnitude > maxVel) {
+            smoothedVelocities[i] = (smoothedVelocities[i] / velocityMagnitude) * maxVel;
         }
 
-        float velocityMagnitude = glm::length(writeG.nodes.velocities[i]);
-        if (velocityMagnitude > parameters.maxVelocity) {
-            writeG.nodes.velocities[i] = (writeG.nodes.velocities[i] / velocityMagnitude) * parameters.maxVelocity;
-        }
-
-        if (std::isnan(writeG.nodes.velocities[i].x) || std::isnan(writeG.nodes.velocities[i].y) ||
-            std::isnan(writeG.nodes.velocities[i].z)) {
-            writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
-        }
-
+        // Update position using smoothed velocity
         glm::vec3 oldPos = writeG.nodes.positions[i];
-        writeG.nodes.positions[i] += writeG.nodes.velocities[i] * safeTimeStep;
+        writeG.nodes.positions[i] += smoothedVelocities[i] * safeTimeStep;
 
-        // Position change limiting
-        float positionChange = glm::length(writeG.nodes.positions[i] - oldPos);
-        float maxPositionChange = 2.0f;
-        if (positionChange > maxPositionChange) {
-            writeG.nodes.positions[i] =
-                oldPos + ((writeG.nodes.positions[i] - oldPos) / positionChange) * maxPositionChange;
-            writeG.nodes.velocities[i] *= 0.7f;
+        // Limit position change per frame
+        glm::vec3 posChange = writeG.nodes.positions[i] - oldPos;
+        float maxPosChange = 5.0f;
+        float posChangeMag = glm::length(posChange);
+        if (posChangeMag > maxPosChange) {
+            writeG.nodes.positions[i] = oldPos + (posChange / posChangeMag) * maxPosChange;
+            smoothedVelocities[i] *= 0.5f; // Reduce velocity if position was clamped
         }
     }
 }
@@ -472,209 +463,6 @@ std::string toLower(const std::string &input) {
     std::string result = input;
     std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return std::tolower(c); });
     return result;
-}
-
-void GraphEngine::updateGraphPositions(GS::Graph &writeG, const float dt, const SimulationControlData &simControlData) {
-    static std::vector<glm::vec3> prevPositions;
-    static std::vector<glm::vec3> prevMovements;
-    static std::vector<float> nodeDamping;
-
-    const auto parameters = simControlData.parameters.load(std::memory_order_relaxed);
-    const auto draggingNode = simControlData.draggingNode.load(std::memory_order_relaxed);
-
-    if (prevPositions.size() != writeG.nodes.positions.size()) {
-        prevPositions.resize(writeG.nodes.positions.size());
-        prevMovements.resize(writeG.nodes.positions.size(), glm::vec3(0));
-        nodeDamping.resize(writeG.nodes.positions.size(), 0.7f);
-
-        prevPositions = writeG.nodes.positions;
-    }
-
-    // Reset forces
-    std::fill(writeG.nodes.forces.begin(), writeG.nodes.forces.end(), glm::vec3(0, 0, 0));
-
-    static float coolingFactor = 1.0f;
-    // coolingFactor = std::max(0.0f, coolingFactor * 0.999f);
-
-    float nodeCountScaling = 1.0f / (1.0f + std::log10(std::max(1.0f, float(writeG.nodes.positions.size()))));
-
-    float effectiveRepulsionStrength = parameters.repulsionStrength * nodeCountScaling * coolingFactor;
-    float effectiveAttractionStrength = parameters.attractionStrength * coolingFactor;
-    float effectiveCenteringForce = parameters.centeringForce * 0.1f;
-
-    float safeTimeStep = dt * parameters.timeStep;
-
-    for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (static_cast<int32_t>(i) == draggingNode.id)
-            continue;
-
-        glm::vec3 currentMovement = writeG.nodes.positions[i] - prevPositions[i];
-
-        float movementDot = glm::dot(currentMovement, prevMovements[i]);
-        float currentMagnitude = glm::length(currentMovement);
-        float prevMagnitude = glm::length(prevMovements[i]);
-
-        if (currentMagnitude > 0.01f && prevMagnitude > 0.01f) {
-            if (movementDot < 0) {
-                float reversalStrength = -movementDot / (currentMagnitude * prevMagnitude + 0.0001f);
-
-                nodeDamping[i] = std::min(0.95f, nodeDamping[i] + reversalStrength * 0);
-
-                if (reversalStrength > 0.7f && currentMagnitude > 0.5f) {
-                    writeG.nodes.positions[i] = writeG.nodes.positions[i] * 0.7f + prevPositions[i] * 0.3f;
-                    writeG.nodes.velocities[i] *= 0.5f; // Reduce velocity
-                }
-            } else {
-                nodeDamping[i] = std::max(0.5f, nodeDamping[i] - 0.01f);
-            }
-        }
-
-        prevMovements[i] = currentMovement;
-        prevPositions[i] = writeG.nodes.positions[i];
-    }
-
-    for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (static_cast<int32_t>(i) == draggingNode.id)
-            continue;
-
-        for (size_t j = 0; j < writeG.nodes.positions.size(); j++) {
-            if (i == j)
-                continue;
-
-            glm::vec3 delta = writeG.nodes.positions[i] - writeG.nodes.positions[j];
-            float distSq = glm::dot(delta, delta);
-
-            const float safeMinDistance = 0.1f;
-            if (distSq < safeMinDistance * safeMinDistance) {
-                distSq = safeMinDistance * safeMinDistance;
-            }
-
-            float repulsionForce = effectiveRepulsionStrength * writeG.nodes.sizes[i] * writeG.nodes.sizes[j] / distSq;
-
-            if (glm::dot(delta, delta) > 1e-10f) {
-                writeG.nodes.forces[i] += glm::normalize(delta) * repulsionForce;
-            }
-        }
-
-        std::vector<uint32_t> neighbors = writeG.GetNeighboursIdx(i);
-        int neighborCount = neighbors.size();
-        glm::vec3 totalAttractionForce(0, 0, 0);
-
-        for (uint32_t neighborIdx : neighbors) {
-            glm::vec3 delta = writeG.nodes.positions[neighborIdx] - writeG.nodes.positions[i];
-            float distance = glm::length(delta);
-
-            if (distance < 0.1f)
-                continue;
-
-            float connectionFactor = 1.0f / std::sqrt(std::max(1, neighborCount));
-
-            float attractionForce =
-                effectiveAttractionStrength * connectionFactor * (distance - parameters.targetDistance);
-
-            if (distance > 1e-10f) {
-                glm::vec3 attractForce = glm::normalize(delta) * attractionForce;
-                writeG.nodes.forces[i] += attractForce;
-                totalAttractionForce += attractForce;
-            }
-        }
-
-        float centeringScale = 1.0f / (1.0f + neighborCount * 0.2f);
-
-        glm::vec3 center = glm::vec3(0, 0, 0); // Use origin as center instead of graph center
-        glm::vec3 toCenter = center - writeG.nodes.positions[i];
-        float distanceToCenter = glm::length(toCenter);
-
-        if (distanceToCenter > 50.0f) {
-            float centeringStrength = effectiveCenteringForce * centeringScale * (distanceToCenter - 50.0f) / 50.0f;
-            writeG.nodes.forces[i] += glm::normalize(toCenter) * centeringStrength;
-        }
-
-        writeG.nodes.forces[i] *= parameters.forceMultiplier;
-
-        float totalAttractionMagnitude = glm::length(totalAttractionForce);
-        float forceMagnitude = glm::length(writeG.nodes.forces[i]);
-
-        if (totalAttractionMagnitude > forceMagnitude * 0.8f && totalAttractionMagnitude > 0.5f) {
-            float reductionFactor = (forceMagnitude * 0.8f) / totalAttractionMagnitude;
-            writeG.nodes.forces[i] -= totalAttractionForce * (1.0f - reductionFactor);
-        }
-
-        forceMagnitude = glm::length(writeG.nodes.forces[i]);
-        if (forceMagnitude > parameters.maxForce) {
-            writeG.nodes.forces[i] = (writeG.nodes.forces[i] / forceMagnitude) * parameters.maxForce;
-        }
-
-        if (std::isnan(writeG.nodes.forces[i].x) || std::isnan(writeG.nodes.forces[i].y) ||
-            std::isnan(writeG.nodes.forces[i].z)) {
-            writeG.nodes.forces[i] = glm::vec3(0, 0, 0); // Reset NaN forces
-        }
-    }
-
-    for (size_t i = 0; i < writeG.nodes.positions.size(); i++) {
-        if (static_cast<int32_t>(i) == draggingNode.id) {
-            writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
-            writeG.nodes.positions[i] = draggingNode.position;
-            continue;
-        }
-
-        float nodeDampingFactor = nodeDamping[i];
-
-        glm::vec3 acceleration = writeG.nodes.forces[i] / std::max(0.1f, writeG.nodes.masses[i]);
-
-        writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * nodeDampingFactor + acceleration * safeTimeStep;
-
-        if (nodeDampingFactor > 0.8f) { // Node is likely oscillating
-            // Blend new velocity with average of old velocities for smoother transitions
-            static std::vector<glm::vec3> prevVelocities;
-            if (prevVelocities.size() != writeG.nodes.positions.size()) {
-                prevVelocities.resize(writeG.nodes.positions.size(), glm::vec3(0));
-            }
-
-            writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * 0.6f + prevVelocities[i] * 0.4f;
-            prevVelocities[i] = writeG.nodes.velocities[i];
-        }
-
-        float velocityMagnitude = glm::length(writeG.nodes.velocities[i]);
-        if (velocityMagnitude > parameters.maxVelocity) {
-            writeG.nodes.velocities[i] = (writeG.nodes.velocities[i] / velocityMagnitude) * parameters.maxVelocity;
-        }
-
-        if (std::isnan(writeG.nodes.velocities[i].x) || std::isnan(writeG.nodes.velocities[i].y) ||
-            std::isnan(writeG.nodes.velocities[i].z)) {
-            writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
-        }
-
-        glm::vec3 oldPos = writeG.nodes.positions[i];
-
-        writeG.nodes.positions[i] += writeG.nodes.velocities[i] * safeTimeStep;
-
-        // Position change limiting - prevent large jumps
-        float positionChange = glm::length(writeG.nodes.positions[i] - oldPos);
-        float maxPositionChange = 2.0f;
-        if (positionChange > maxPositionChange) {
-            writeG.nodes.positions[i] =
-                oldPos + ((writeG.nodes.positions[i] - oldPos) / positionChange) * maxPositionChange;
-            writeG.nodes.velocities[i] *= 0.7f;
-        }
-
-        // adaptive boundary handling - soft boundaries that push back
-        // const float boundarySize = 200.f;
-        // for (int d = 0; d < 3; d++) {
-        //     if (std::isnan(writeG.nodes.positions[i][d])) {
-        //         writeG.nodes.positions[i][d] = 0;
-        //         writeG.nodes.velocities[i][d] = 0;
-        //     } else if (writeG.nodes.positions[i][d] > boundarySize) {
-        //         float excess = writeG.nodes.positions[i][d] - boundarySize;
-        //         writeG.nodes.positions[i][d] = boundarySize - 5.0f * (1.0f - std::exp(-excess * 0.1f));
-        //         writeG.nodes.velocities[i][d] *= -0.5f;
-        //     } else if (writeG.nodes.positions[i][d] < -boundarySize) {
-        //         float excess = -boundarySize - writeG.nodes.positions[i][d];
-        //         writeG.nodes.positions[i][d] = -boundarySize + 5.0f * (1.0f - std::exp(-excess * 0.1f));
-        //         writeG.nodes.velocities[i][d] *= -0.5f;
-        //     }
-        // }
-    }
 }
 
 void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
@@ -704,10 +492,10 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
                     globalLogger->info("Page" + page.title);
                     const uint32_t idx = writeGraph->AddNode(page.title);
                     writeGraph->AddEdge(expansion.m_sourceNodeId, idx);
-                    // writeGraph->nodes.sizes[expansion.m_sourceNodeId]++;
-                    // if (i > 25) {
-                    //     break;
-                    // }
+                    writeGraph->nodes.sizes[expansion.m_sourceNodeId]++;
+                    if (i > 25) {
+                        break;
+                    }
                 }
 
                 m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);

@@ -43,9 +43,9 @@ class GraphEngine {
 
 class BarnesHutTree {
   public:
-    static constexpr float THETA = 0.8f;
-    static constexpr float MIN_DISTANCE_SQ = 0.1f;
-    static constexpr int MAX_DEPTH = 20;
+    static constexpr float THETA = 0.7f;
+    static constexpr float MIN_DISTANCE_SQ = 0.01f;
+    static constexpr int MAX_DEPTH = 25;
 
     struct Node {
         glm::vec3 centerOfMass;
@@ -81,6 +81,8 @@ class BarnesHutTree {
     // Clear the tree
     void clear();
 
+    void print();
+
     // Get tree statistics for debugging/optimization
     struct Stats {
         size_t nodeCount;
@@ -101,7 +103,7 @@ class BarnesHutTree {
     static int getOctant(const glm::vec3 &pos, const glm::vec3 &center);
 
     // Recursive tree building
-    void insertBody(int32_t nodeIndex, size_t bodyIndex, const glm::vec3 &pos, float mass, int depth);
+    void insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::vec3 &pos, float mass, int depth);
 
     // Recursive force calculation
     glm::vec3 calculateForceRecursive(int32_t nodeIndex, const glm::vec3 &bodyPos, float bodyMass, float bodySizeSq,
@@ -112,22 +114,8 @@ class BarnesHutTree {
 
     // Compute bounding box for initial tree setup
     void computeBounds(const std::vector<glm::vec3> &positions, glm::vec3 &minBounds, glm::vec3 &maxBounds) const;
-};
 
-class ForceAccumulator {
-  public:
-    ForceAccumulator(size_t capacity);
-
-    void reset();
-    void accumulate(size_t index, const glm::vec3 &force);
-    void applyTo(std::vector<glm::vec3> &forces) const;
-
-  private:
-    struct alignas(16) AlignedVec3 {
-        float x, y, z, pad;
-    };
-
-    std::vector<AlignedVec3> m_forces;
+    void printRecursive(int32_t nodeIndex, const std::string &prefix, bool isLast) const;
 };
 
 #endif // SIMULATION_H
