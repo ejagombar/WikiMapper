@@ -19,8 +19,6 @@
 
 #include "simulation.hpp"
 
-// #define DEBUG_FORCES
-
 BarnesHutTree::BarnesHutTree() : m_rootIndex(-1), m_nodeCount(0) { m_nodes.reserve(1000); }
 
 void BarnesHutTree::clear() {
@@ -58,8 +56,6 @@ void BarnesHutTree::computeBounds(const std::vector<glm::vec3> &positions, glm::
     minBounds = positions[0];
     maxBounds = positions[0];
 
-    // #pragma omp simd reduction(min : minBounds.x, minBounds.y, minBounds.z)                                                \
-//     reduction(max : maxBounds.x, maxBounds.y, maxBounds.z)
     for (size_t i = 1; i < positions.size(); ++i) {
         minBounds.x = std::min(minBounds.x, positions[i].x);
         minBounds.y = std::min(minBounds.y, positions[i].y);
@@ -75,26 +71,12 @@ void BarnesHutTree::computeBounds(const std::vector<glm::vec3> &positions, glm::
     maxBounds += margin;
 }
 
-const std::string toStr(glm::vec3 vec) {
-    std::ostringstream oss;
-    oss << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
-    return oss.str();
-};
-
-// void BarnesHutTree::print() {
-//     for (const auto &node : m_nodes) {
-//         globalLogger->info("Index: {}, Center: {}, Mass: {}, Bodies: {}", node.bodyIndex, toStr(node.centerOfMass),
-//                            node.totalMass, node.bodyCount);
-//     }
-// }
-
 void BarnesHutTree::build(const std::vector<glm::vec3> &positions, const std::vector<float> &masses) {
     clear();
 
     if (positions.empty())
         return;
 
-    // Create root node
     m_rootIndex = allocateNode();
     Node &root = m_nodes[m_rootIndex];
 
@@ -103,56 +85,6 @@ void BarnesHutTree::build(const std::vector<glm::vec3> &positions, const std::ve
     for (size_t i = 0; i < positions.size(); ++i) {
         insertBody(m_rootIndex, i, positions[i], masses[i], 0);
     }
-}
-
-void BarnesHutTree::printRecursive(int32_t nodeIndex, const std::string &prefix, bool isLast) const {
-    if (nodeIndex < 0 || nodeIndex >= m_nodes.size()) {
-        return; // Safety check
-    }
-
-    const Node &node = m_nodes[nodeIndex];
-
-    // Print the current node's information with a tree-like prefix
-    globalLogger->info("{}{}{}", prefix, (isLast ? "L-- " : "|-- "),
-                       fmt::format("Node Idx: {}, Bodies: {}, Mass: {:.2f}, CoM: {}", nodeIndex, node.bodyCount,
-                                   node.totalMass, toStr(node.centerOfMass)));
-
-    // If it's a leaf node, also print its body index
-    if (node.bodyIndex >= 0) {
-        globalLogger->info("{}{}", prefix + (isLast ? "    " : "|   "),
-                           fmt::format("   -> Leaf for Body Idx: {}", node.bodyIndex));
-    }
-
-    // Prepare for recursion into children
-    std::string childPrefix = prefix + (isLast ? "    " : "|   ");
-
-    // Find all valid children to determine the last one
-    std::vector<int32_t> validChildren;
-    for (int32_t childIdx : node.children) {
-        if (childIdx >= 0) {
-            validChildren.push_back(childIdx);
-        }
-    }
-
-    // Recursively call for each child
-    for (size_t i = 0; i < validChildren.size(); ++i) {
-        bool isLastChild = (i == validChildren.size() - 1);
-        printRecursive(validChildren[i], childPrefix, isLastChild);
-    }
-}
-
-/**
- * @brief Public entry point to print the entire Barnes-Hut tree structure.
- */
-void BarnesHutTree::print() {
-    if (m_rootIndex < 0) {
-        globalLogger->info("Barnes-Hut Tree is empty.");
-        return;
-    }
-    globalLogger->info("--- Barnes-Hut Tree Structure ---");
-    // Start the recursive printing from the root node
-    printRecursive(m_rootIndex, "", true);
-    globalLogger->info("---------------------------------");
 }
 
 bool BarnesHutTree::useNodeAsSingleBody(const Node &node, const glm::vec3 &bodyPos) const {
@@ -165,8 +97,6 @@ bool BarnesHutTree::useNodeAsSingleBody(const Node &node, const glm::vec3 &bodyP
     glm::vec3 delta = node.centerOfMass - bodyPos;
     float distanceSq = glm::dot(delta, delta);
 
-    // Barnes-Hut criterion: s/d < theta
-    // where s is the size of the region and d is the distance
     float ratio = (maxSize * maxSize) / distanceSq;
     return ratio < (THETA * THETA);
 }
@@ -192,6 +122,44 @@ BarnesHutTree::Stats BarnesHutTree::getStats() const {
 
     return stats;
 }
+
+void BarnesHutTree::verifyTree() const {
+    if (m_rootIndex < 0)
+        return;
+
+    std::function<float(int32_t)> verifyNode = [&](int32_t nodeIndex) -> float {
+        if (nodeIndex < 0)
+            return 0.0f;
+
+        const Node &node = m_nodes[nodeIndex];
+
+        if (node.bodyIndex >= 0) {
+            if (node.bodyCount != 1) {
+                globalLogger->error("Leaf node {} has bodyCount={} (should be 1)", nodeIndex, node.bodyCount);
+            }
+            return node.totalMass;
+        }
+
+        float childMassSum = 0.0f;
+
+        for (int i = 0; i < 8; ++i) {
+            if (node.children[i] >= 0) {
+                childMassSum += verifyNode(node.children[i]);
+            }
+        }
+
+        if (std::abs(node.totalMass - childMassSum) > 1e-5f) {
+            globalLogger->error("Node {} mass mismatch: has {:.2f}, children sum to {:.2f}", nodeIndex, node.totalMass,
+                                childMassSum);
+        }
+
+        return node.totalMass;
+    };
+
+    globalLogger->info("Verifying Barnes-Hut tree integrity...");
+    verifyNode(m_rootIndex);
+    globalLogger->info("Tree verification complete");
+}
 void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::vec3 &pos, float mass, int depth) {
     if (depth > MAX_DEPTH)
         return;
@@ -207,22 +175,15 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::
         return;
     }
 
-    // If this was a leaf with one body, we need to subdivide
+    // If this was a leaf with one body, we need to subdivide, by converting the node to internal node and then
+    // reinserting the body into the node children.
     if (node.bodyIndex >= 0) {
-        // Store the existing body temporarily
         int32_t existingBodyIndex = node.bodyIndex;
         glm::vec3 existingPos = node.centerOfMass;
         float existingMass = node.totalMass;
 
-        // Convert to internal node
         node.bodyIndex = -1;
 
-        // Reset mass and center of mass for recalculation
-        node.centerOfMass = glm::vec3(0.0f);
-        node.totalMass = 0.0f;
-        node.bodyCount = 0;
-
-        // Reinsert existing body
         glm::vec3 center = (node.minBounds + node.maxBounds) * 0.5f;
         int existingOctant = getOctant(existingPos, center);
 
@@ -230,7 +191,6 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::
             node.children[existingOctant] = allocateNode();
             Node &child = m_nodes[node.children[existingOctant]];
 
-            // Calculate child bounds
             for (int i = 0; i < 3; ++i) {
                 if (existingOctant & (1 << i)) {
                     child.minBounds[i] = center[i];
@@ -245,7 +205,6 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::
         insertBody(node.children[existingOctant], existingBodyIndex, existingPos, existingMass, depth + 1);
     }
 
-    // Insert new body into appropriate child
     glm::vec3 center = (node.minBounds + node.maxBounds) * 0.5f;
     int octant = getOctant(pos, center);
 
@@ -253,7 +212,6 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::
         node.children[octant] = allocateNode();
         Node &child = m_nodes[node.children[octant]];
 
-        // Calculate child bounds
         for (int i = 0; i < 3; ++i) {
             if (octant & (1 << i)) {
                 child.minBounds[i] = center[i];
@@ -267,7 +225,6 @@ void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::
 
     insertBody(node.children[octant], bodyIndex, pos, mass, depth + 1);
 
-    // Update center of mass AFTER inserting (important!)
     float newTotalMass = node.totalMass + mass;
     if (newTotalMass > 0) {
         node.centerOfMass = (node.centerOfMass * node.totalMass + pos * mass) / newTotalMass;
@@ -290,28 +247,21 @@ glm::vec3 BarnesHutTree::calculateForceRecursive(int32_t nodeIndex, const glm::v
     glm::vec3 delta = node.centerOfMass - bodyPos;
     float distSq = glm::dot(delta, delta);
 
-    // Check if this is the same body (for leaf nodes)
     if (node.bodyCount == 1 && node.bodyIndex >= 0 && distSq < 1e-6f) {
         return glm::vec3(0.0f);
     }
 
-    // Apply minimum distance to prevent singularities
-    float minDist = 1.0f; // Increased minimum distance
+    float minDist = 1.0f;
     distSq = std::max(distSq, minDist * minDist);
 
-    // Use Barnes-Hut criterion
     if (useNodeAsSingleBody(node, bodyPos)) {
-        // Calculate repulsion force (simplified and stabilized)
         float dist = std::sqrt(distSq);
         float force = repulsionStrength * node.totalMass / distSq;
 
-        // Cap maximum force to prevent instability
         force = std::min(force, 100.0f);
 
-        // Force points away from the other body
         return -delta * (force / dist);
     } else {
-        // Recursively calculate forces from children
         glm::vec3 totalForce(0.0f);
 
         for (int i = 0; i < 8; ++i) {
@@ -325,7 +275,6 @@ glm::vec3 BarnesHutTree::calculateForceRecursive(int32_t nodeIndex, const glm::v
     }
 }
 
-// Simplified and stabilized main update function
 void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const SimulationControlData &simControlData) {
     static std::vector<glm::vec3> smoothedVelocities;
     static BarnesHutTree bhTree;
@@ -339,23 +288,18 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
         smoothedVelocities.resize(nodeCount, glm::vec3(0));
     }
 
-    // Reset forces
     std::fill(writeG.nodes.forces.begin(), writeG.nodes.forces.end(), glm::vec3(0, 0, 0));
 
-    // Adaptive parameters based on graph size
     float nodeCountScaling = 1.0f / std::sqrt(std::max(1.0f, float(nodeCount)));
 
     float effectiveRepulsionStrength = parameters.repulsionStrength * nodeCountScaling * 50.0f;
     float effectiveAttractionStrength = parameters.attractionStrength * 0.1f;
     float effectiveCenteringForce = parameters.centeringForce * 0.01f;
 
-    // Fixed time step for stability
+    // Fixed time step
     float safeTimeStep = std::min(dt, 0.016f) * parameters.timeStep;
 
-    // Build Barnes-Hut tree
     bhTree.build(writeG.nodes.positions, writeG.nodes.masses);
-
-    bhTree.print();
 
     // Calculate repulsion forces using Barnes-Hut
     for (size_t i = 0; i < nodeCount; ++i) {
@@ -393,7 +337,7 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
             }
         }
 
-        // Gentle centering force
+        // centering force
         glm::vec3 toCenter = -writeG.nodes.positions[i];
         float distanceToCenter = glm::length(toCenter);
 
@@ -402,10 +346,8 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
             writeG.nodes.forces[i] += (toCenter / distanceToCenter) * centeringStrength;
         }
 
-        // Apply force multiplier
         writeG.nodes.forces[i] *= parameters.forceMultiplier;
 
-        // Limit maximum force
         float forceMagnitude = glm::length(writeG.nodes.forces[i]);
         float maxForce = parameters.maxForce * 10.0f;
         if (forceMagnitude > maxForce) {
@@ -413,9 +355,8 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
         }
     }
 
-    // Update velocities and positions with improved damping
-    const float globalDamping = 0.85f;    // Consistent damping factor
-    const float velocitySmoothing = 0.8f; // Smoothing factor for velocities
+    const float globalDamping = 0.85f;
+    const float velocitySmoothing = 0.8f;
 
     for (size_t i = 0; i < nodeCount; ++i) {
         if (static_cast<int32_t>(i) == draggingNode.id) {
@@ -425,28 +366,22 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
             continue;
         }
 
-        // Calculate acceleration
         glm::vec3 acceleration = writeG.nodes.forces[i] / std::max(0.1f, writeG.nodes.masses[i]);
 
-        // Update velocity with damping
         writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * globalDamping + acceleration * safeTimeStep;
 
-        // Apply velocity smoothing to reduce jitter
         smoothedVelocities[i] =
             smoothedVelocities[i] * (1.0f - velocitySmoothing) + writeG.nodes.velocities[i] * velocitySmoothing;
 
-        // Limit velocity
         float velocityMagnitude = glm::length(smoothedVelocities[i]);
         float maxVel = parameters.maxVelocity * 5.0f;
         if (velocityMagnitude > maxVel) {
             smoothedVelocities[i] = (smoothedVelocities[i] / velocityMagnitude) * maxVel;
         }
 
-        // Update position using smoothed velocity
         glm::vec3 oldPos = writeG.nodes.positions[i];
         writeG.nodes.positions[i] += smoothedVelocities[i] * safeTimeStep;
 
-        // Limit position change per frame
         glm::vec3 posChange = writeG.nodes.positions[i] - oldPos;
         float maxPosChange = 5.0f;
         float posChangeMag = glm::length(posChange);
@@ -493,9 +428,9 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
                     const uint32_t idx = writeGraph->AddNode(page.title);
                     writeGraph->AddEdge(expansion.m_sourceNodeId, idx);
                     writeGraph->nodes.sizes[expansion.m_sourceNodeId]++;
-                    if (i > 25) {
-                        break;
-                    }
+                    // if (i > 25) {
+                    //     break;
+                    // }
                 }
 
                 m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);

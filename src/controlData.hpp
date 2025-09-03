@@ -10,7 +10,7 @@ struct SimParameters {
     float repulsionStrength = 6.0f;
     float attractionStrength = 100.f;
     float centeringForce = 40.f;
-    float timeStep = 50.f;
+    float timeStep = 100.f;
     float forceMultiplier = 2.3f;
     float maxForce = 500.0f;
     float targetDistance = 1.0f;

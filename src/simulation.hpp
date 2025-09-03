@@ -78,6 +78,8 @@ class BarnesHutTree {
                              const std::vector<float> &masses, const std::vector<unsigned char> &sizes,
                              float repulsionStrength) const;
 
+    void verifyTree() const;
+
     // Clear the tree
     void clear();
 
@@ -114,8 +116,6 @@ class BarnesHutTree {
 
     // Compute bounding box for initial tree setup
     void computeBounds(const std::vector<glm::vec3> &positions, glm::vec3 &minBounds, glm::vec3 &maxBounds) const;
-
-    void printRecursive(int32_t nodeIndex, const std::string &prefix, bool isLast) const;
 };
 
 #endif // SIMULATION_H
