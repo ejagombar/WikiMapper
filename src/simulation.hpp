@@ -53,13 +53,8 @@ class BarnesHutTree {
         glm::vec3 minBounds;
         glm::vec3 maxBounds;
 
-        // Child indices in the node pool (-1 if none)
         std::array<int32_t, 8> children;
-
-        // Body index if this is a leaf node (-1 if internal node)
         int32_t bodyIndex;
-
-        // Number of bodies in this node
         uint32_t bodyCount;
 
         Node() : centerOfMass(0.0f), totalMass(0.0f), minBounds(0.0f), maxBounds(0.0f), bodyIndex(-1), bodyCount(0) {
@@ -70,27 +65,19 @@ class BarnesHutTree {
     BarnesHutTree();
     ~BarnesHutTree() = default;
 
-    // Build the tree from positions and masses
+    void clear();
+    void verifyTree() const;
     void build(const std::vector<glm::vec3> &positions, const std::vector<float> &masses);
-
-    // Calculate force on a body using Barnes-Hut algorithm
     glm::vec3 calculateForce(size_t bodyIndex, const std::vector<glm::vec3> &positions,
                              const std::vector<float> &masses, const std::vector<unsigned char> &sizes,
                              float repulsionStrength) const;
 
-    void verifyTree() const;
-
-    // Clear the tree
-    void clear();
-
-    void print();
-
-    // Get tree statistics for debugging/optimization
     struct Stats {
         size_t nodeCount;
         size_t maxDepth;
         float averageBodiesPerLeaf;
     };
+
     Stats getStats() const;
 
   private:
@@ -98,23 +85,12 @@ class BarnesHutTree {
     int32_t m_rootIndex;
     size_t m_nodeCount;
 
-    // Node pool management
     int32_t allocateNode();
-
-    // Octree child index calculation
     static int getOctant(const glm::vec3 &pos, const glm::vec3 &center);
-
-    // Recursive tree building
     void insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::vec3 &pos, float mass, int depth);
-
-    // Recursive force calculation
     glm::vec3 calculateForceRecursive(int32_t nodeIndex, const glm::vec3 &bodyPos, float bodyMass, float bodySizeSq,
                                       float repulsionStrength) const;
-
-    // Helper to check if we should use node as single body (Barnes-Hut criterion)
     bool useNodeAsSingleBody(const Node &node, const glm::vec3 &bodyPos) const;
-
-    // Compute bounding box for initial tree setup
     void computeBounds(const std::vector<glm::vec3> &positions, glm::vec3 &minBounds, glm::vec3 &maxBounds) const;
 };
 

@@ -111,7 +111,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   spdlog::spdlog
 )
 
-target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O2 -Wall -Wextra -pedantic)
+target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
 # target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -O0 -fsanitize=address)
 #
 # target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan -pg)

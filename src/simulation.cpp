@@ -160,77 +160,75 @@ void BarnesHutTree::verifyTree() const {
     verifyNode(m_rootIndex);
     globalLogger->info("Tree verification complete");
 }
+
 void BarnesHutTree::insertBody(int32_t nodeIndex, int32_t bodyIndex, const glm::vec3 &pos, float mass, int depth) {
     if (depth > MAX_DEPTH)
         return;
 
-    Node &node = m_nodes[nodeIndex];
-
-    // If this is an empty node, just store the body
-    if (node.bodyCount == 0) {
-        node.bodyIndex = bodyIndex;
-        node.centerOfMass = pos;
-        node.totalMass = mass;
-        node.bodyCount = 1;
+    if (m_nodes[nodeIndex].bodyCount == 0) {
+        m_nodes[nodeIndex].bodyIndex = bodyIndex;
+        m_nodes[nodeIndex].centerOfMass = pos;
+        m_nodes[nodeIndex].totalMass = mass;
+        m_nodes[nodeIndex].bodyCount = 1;
         return;
     }
 
-    // If this was a leaf with one body, we need to subdivide, by converting the node to internal node and then
-    // reinserting the body into the node children.
-    if (node.bodyIndex >= 0) {
-        int32_t existingBodyIndex = node.bodyIndex;
-        glm::vec3 existingPos = node.centerOfMass;
-        float existingMass = node.totalMass;
+    // Handle subdivision
+    if (m_nodes[nodeIndex].bodyIndex >= 0) {
+        int32_t existingBodyIndex = m_nodes[nodeIndex].bodyIndex;
+        glm::vec3 existingPos = m_nodes[nodeIndex].centerOfMass;
+        float existingMass = m_nodes[nodeIndex].totalMass;
 
-        node.bodyIndex = -1;
+        m_nodes[nodeIndex].bodyIndex = -1;
 
-        glm::vec3 center = (node.minBounds + node.maxBounds) * 0.5f;
+        glm::vec3 center = (m_nodes[nodeIndex].minBounds + m_nodes[nodeIndex].maxBounds) * 0.5f;
         int existingOctant = getOctant(existingPos, center);
 
-        if (node.children[existingOctant] < 0) {
-            node.children[existingOctant] = allocateNode();
-            Node &child = m_nodes[node.children[existingOctant]];
+        if (m_nodes[nodeIndex].children[existingOctant] < 0) {
+            m_nodes[nodeIndex].children[existingOctant] = allocateNode();
 
+            // Reaccess after potential reallocation
             for (int i = 0; i < 3; ++i) {
                 if (existingOctant & (1 << i)) {
-                    child.minBounds[i] = center[i];
-                    child.maxBounds[i] = node.maxBounds[i];
+                    m_nodes[m_nodes[nodeIndex].children[existingOctant]].minBounds[i] = center[i];
+                    m_nodes[m_nodes[nodeIndex].children[existingOctant]].maxBounds[i] = m_nodes[nodeIndex].maxBounds[i];
                 } else {
-                    child.minBounds[i] = node.minBounds[i];
-                    child.maxBounds[i] = center[i];
+                    m_nodes[m_nodes[nodeIndex].children[existingOctant]].minBounds[i] = m_nodes[nodeIndex].minBounds[i];
+                    m_nodes[m_nodes[nodeIndex].children[existingOctant]].maxBounds[i] = center[i];
                 }
             }
         }
 
-        insertBody(node.children[existingOctant], existingBodyIndex, existingPos, existingMass, depth + 1);
+        insertBody(m_nodes[nodeIndex].children[existingOctant], existingBodyIndex, existingPos, existingMass,
+                   depth + 1);
     }
 
-    glm::vec3 center = (node.minBounds + node.maxBounds) * 0.5f;
+    glm::vec3 center = (m_nodes[nodeIndex].minBounds + m_nodes[nodeIndex].maxBounds) * 0.5f;
     int octant = getOctant(pos, center);
-
-    if (node.children[octant] < 0) {
-        node.children[octant] = allocateNode();
-        Node &child = m_nodes[node.children[octant]];
+    if (m_nodes[nodeIndex].children[octant] < 0) {
+        m_nodes[nodeIndex].children[octant] = allocateNode();
+        Node &child = m_nodes[m_nodes[nodeIndex].children[octant]];
 
         for (int i = 0; i < 3; ++i) {
             if (octant & (1 << i)) {
                 child.minBounds[i] = center[i];
-                child.maxBounds[i] = node.maxBounds[i];
+                child.maxBounds[i] = m_nodes[nodeIndex].maxBounds[i];
             } else {
-                child.minBounds[i] = node.minBounds[i];
+                child.minBounds[i] = m_nodes[nodeIndex].minBounds[i];
                 child.maxBounds[i] = center[i];
             }
         }
     }
 
-    insertBody(node.children[octant], bodyIndex, pos, mass, depth + 1);
+    insertBody(m_nodes[nodeIndex].children[octant], bodyIndex, pos, mass, depth + 1);
 
-    float newTotalMass = node.totalMass + mass;
+    float newTotalMass = m_nodes[nodeIndex].totalMass + mass;
     if (newTotalMass > 0) {
-        node.centerOfMass = (node.centerOfMass * node.totalMass + pos * mass) / newTotalMass;
-        node.totalMass = newTotalMass;
+        m_nodes[nodeIndex].centerOfMass =
+            (m_nodes[nodeIndex].centerOfMass * m_nodes[nodeIndex].totalMass + pos * mass) / newTotalMass;
+        m_nodes[nodeIndex].totalMass = newTotalMass;
     }
-    node.bodyCount++;
+    m_nodes[nodeIndex].bodyCount++;
 }
 
 // Fixed force calculation with proper distance handling
@@ -358,6 +356,15 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
     const float globalDamping = 0.85f;
     const float velocitySmoothing = 0.8f;
 
+    std::vector<float> nodeDamping(nodeCount);
+    for (size_t i = 0; i < nodeCount; ++i) {
+        std::vector<uint32_t> neighbors = writeG.GetNeighboursIdx(i);
+        int connectionCount = neighbors.size();
+
+        float connectivityDamping = 0.7f + 0.25f * std::tanh(connectionCount / 5.0f);
+        nodeDamping[i] = std::min(0.98f, connectivityDamping);
+    }
+
     for (size_t i = 0; i < nodeCount; ++i) {
         if (static_cast<int32_t>(i) == draggingNode.id) {
             writeG.nodes.velocities[i] = glm::vec3(0, 0, 0);
@@ -368,7 +375,8 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
 
         glm::vec3 acceleration = writeG.nodes.forces[i] / std::max(0.1f, writeG.nodes.masses[i]);
 
-        writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * globalDamping + acceleration * safeTimeStep;
+        float damping = globalDamping * nodeDamping[i];
+        writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * damping + acceleration * safeTimeStep;
 
         smoothedVelocities[i] =
             smoothedVelocities[i] * (1.0f - velocitySmoothing) + writeG.nodes.velocities[i] * velocitySmoothing;
