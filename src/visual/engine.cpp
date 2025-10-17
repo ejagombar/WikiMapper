@@ -359,11 +359,15 @@ RenderEngine::~RenderEngine() {
 }
 
 uint32_t RenderEngine::Run() {
-    glfwSwapInterval(0);
-
     std::future<LabelAtlasData> fut;
 
+    bool vSyncOld = m_controlData.engine.vSync;
     while (!glfwWindowShouldClose(m_window)) {
+
+        if (vSyncOld != m_controlData.engine.vSync) {
+            glfwSwapInterval(m_controlData.engine.vSync);
+            vSyncOld = m_controlData.engine.vSync;
+        }
 
         if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {
             m_controlData.engine.initGraphData.store(false, std::memory_order_relaxed);
@@ -604,6 +608,7 @@ void RenderEngine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xp
 
     float xoffset = xpos - m_lastX;
     float yoffset = m_lastY - ypos;
+
     m_lastX = xpos;
     m_lastY = ypos;
 
