@@ -1,5 +1,6 @@
 #include "store.hpp"
 #include "../lib/base64.hpp"
+#include "logger.hpp"
 #include <cstdint>
 #include <httplib.h>
 #include <memory>
@@ -44,12 +45,26 @@ json Neo4jInterface::ExecuteCypherQuery(const std::string &cypher, const json &p
 std::vector<LinkedPage> ParsePagesFromResult(const json &data) {
     std::vector<LinkedPage> pages;
 
-    if (!data.is_array())
+    // Check for the top-level "results" array
+    if (!data.contains("results") || !data["results"].is_array())
         return pages;
 
     try {
-        for (const auto &node : data) {
-            pages.emplace_back(LinkedPage{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
+        for (const auto &result : data["results"]) {
+            if (!result.contains("data") || !result["data"].is_array())
+                continue;
+
+            for (const auto &entry : result["data"]) {
+                if (!entry.contains("row") || !entry["row"].is_array())
+                    continue;
+
+                const auto &row = entry["row"];
+                if (row.size() >= 1) {
+                    std::string pageName = row[0].value("pageName", "");
+                    std::string title = row[0].value("title", "");
+                    pages.emplace_back(LinkedPage{pageName, title});
+                }
+            }
         }
     } catch (const json::exception &e) {
         throw std::runtime_error("Failed to parse node: " + std::string(e.what()));
@@ -77,6 +92,7 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &pageNa
 
     try {
         json data = ExecuteCypherQuery(cypher, {{"name", pageName}});
+        globalLogger->error("{} ", data.dump());
         return ParsePagesFromResult(data);
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkedPages failed: " + std::string(e.what()));
@@ -137,6 +153,23 @@ std::vector<LinkedPage> Neo4jInterface::GetRandomPages(uint32_t count) {
 
 // ------------------ HTTP Interface ------------------
 
+std::vector<LinkedPage> HttpParsePagesFromResult(const json &data) {
+    std::vector<LinkedPage> pages;
+
+    if (!data.is_array())
+        return pages;
+
+    try {
+        for (const auto &node : data) {
+            pages.emplace_back(LinkedPage{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
+        }
+    } catch (const json::exception &e) {
+        throw std::runtime_error("Failed to parse node: " + std::string(e.what()));
+    }
+
+    return pages;
+}
+
 HttpInterface::HttpInterface(const std::string domain) {
     std::string dom = domain;
     if (dom.ends_with("/")) {
@@ -177,7 +210,7 @@ json HttpInterface::GetHttpResults(const std::string &endpoint) {
 
 std::vector<LinkedPage> HttpInterface::GetLinkedPages(const std::string &pageName) {
     try {
-        return ParsePagesFromResult(GetHttpResults("/linked-pages/" + pageName));
+        return HttpParsePagesFromResult(GetHttpResults("/linked-pages/" + pageName));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkedPages failed for '" + pageName + "': " + std::string(e.what()));
         return {};
@@ -186,7 +219,7 @@ std::vector<LinkedPage> HttpInterface::GetLinkedPages(const std::string &pageNam
 
 std::vector<LinkedPage> HttpInterface::GetLinkingPages(const std::string &pageName) {
     try {
-        return ParsePagesFromResult(GetHttpResults("/linking-pages/" + pageName));
+        return HttpParsePagesFromResult(GetHttpResults("/linking-pages/" + pageName));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkingPages failed for '" + pageName + "': " + std::string(e.what()));
         return {};
@@ -195,7 +228,7 @@ std::vector<LinkedPage> HttpInterface::GetLinkingPages(const std::string &pageNa
 
 std::vector<LinkedPage> HttpInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
     try {
-        return ParsePagesFromResult(GetHttpResults("/shortest-path?start=" + startPage + "&end=" + endPage));
+        return HttpParsePagesFromResult(GetHttpResults("/shortest-path?start=" + startPage + "&end=" + endPage));
     } catch (const std::exception &e) {
         throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage +
                                  "': " + std::string(e.what()));
@@ -205,7 +238,7 @@ std::vector<LinkedPage> HttpInterface::FindShortestPath(const std::string &start
 
 std::vector<LinkedPage> HttpInterface::GetRandomPages(uint32_t count) {
     try {
-        return ParsePagesFromResult(GetHttpResults("/random-pages/" + std::to_string(count)));
+        return HttpParsePagesFromResult(GetHttpResults("/random-pages/" + std::to_string(count)));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetRandomPages failed : " + std::string(e.what()));
         return {};
