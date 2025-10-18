@@ -1,6 +1,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include <array>
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
@@ -179,6 +180,8 @@ class RenderEngine {
     bool m_inTransition = false;
 
     int32_t m_selectedNode = -1;
+
+    constexpr static const std::array<std::string, 3> backgroundAssets{"stars.jpg", "starless.jpg", "blue.jpg"};
 };
 
 #endif

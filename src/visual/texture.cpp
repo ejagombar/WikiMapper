@@ -1,28 +1,23 @@
 #include "./texture.hpp"
-#include <cstdint>
 #include <stdexcept>
 
 // This function loads textures to be used as a cube map. Up to 6 images can be passed to the function.
-GLuint LoadCubemap(std::vector<std::string> faces) {
-    const uint32_t cubeFaceCount = 6;
+GLuint LoadCubemap(const std::array<std::string, 6> &faces) {
     GLuint textureID;
-    int width, height, nrChannels;
 
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-    for (uint32_t i = 0; i < cubeFaceCount; i++) {
-        uint32_t idx = std::min(i, static_cast<uint32_t>(faces.size() - 1));
-        unsigned char *data = stbi_load(faces[idx].c_str(), &width, &height, &nrChannels, 0);
-        if (data) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
-                         data);
-            stbi_image_free(data);
-        } else {
-            throw std::runtime_error("Cubemap tex failed to load at path: " + faces[i]);
-            stbi_image_free(data);
-        }
+    for (GLuint i = 0; i < faces.size(); ++i) {
+        int width, height, nrChannels;
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (!data)
+            throw std::runtime_error("Failed to load cubemap face: " + faces[i]);
+
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        stbi_image_free(data);
     }
+
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -30,6 +25,11 @@ GLuint LoadCubemap(std::vector<std::string> faces) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     return textureID;
+}
+
+GLuint LoadCubemap(const std::string &singleFacePath) {
+    return LoadCubemap(std::array<std::string, 6>{singleFacePath, singleFacePath, singleFacePath, singleFacePath,
+                                                  singleFacePath, singleFacePath});
 }
 
 GLuint LoadTexture(char const *path) {

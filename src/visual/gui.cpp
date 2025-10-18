@@ -215,10 +215,10 @@ void GUI::RenderMenu() {
     ImGuiViewport *mainViewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowViewport(mainViewport->ID);
 
-    ImVec2 settingsSize(1050, 875);
+    ImVec2 settingsSize(1060, 901);
 
-    ImVec2 settingsPos = ImVec2(mainViewport->Pos.x + (mainViewport->Size.x - settingsSize.x) * 0.5f,
-                                mainViewport->Pos.y + (mainViewport->Size.y - settingsSize.y) * 0.5f);
+    ImVec2 settingsPos = ImVec2(mainViewport->Pos.x + (mainViewport->Size.x - settingsSize.x) * 0.5f + 5,
+                                mainViewport->Pos.y + (mainViewport->Size.y - settingsSize.y) * 0.5f + 27);
     ImGui::SetNextWindowPos(settingsPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(settingsSize, ImGuiCond_Always);
 
@@ -281,16 +281,16 @@ void GUI::RenderMenu() {
     ImGui::Spacing();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.3f, 0.3f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.4f, 0.4f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-
-    if (ImGui::Button("Reset Simulation", ImVec2(205, 50))) {
-    }
-
-    ImGui::PopStyleVar();
-    ImGui::PopStyleColor(3);
+    // ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.3f, 0.3f, 1.0f));
+    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.4f, 0.4f, 1.0f));
+    // ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
+    // ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    //
+    // if (ImGui::Button("Reset Simulation", ImVec2(205, 50))) {
+    // }
+    //
+    // ImGui::PopStyleVar();
+    // ImGui::PopStyleColor(3);
 
     separator();
     subtitle("Graph Data Source");
@@ -573,7 +573,7 @@ void GUI::RenderSearchBar() {
     ImGui::SameLine(0, spacing);
 
     if (ImGui::ImageButton("##background", (ImTextureID)m_backgroundIconTexture, ImVec2(32, 32))) {
-        std::cout << "Graph overview button clicked!" << std::endl;
+        m_controlData.engine.backgroundButtonToggle = !m_controlData.engine.backgroundButtonToggle;
     }
 
     if (ImGui::IsItemHovered()) {

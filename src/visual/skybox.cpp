@@ -21,6 +21,13 @@ Skybox::Skybox(Shader &skyboxshader, const GLuint cubemapTexture)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
 }
 
+void Skybox::SetCubemapTexture(const GLuint newCubemapTexture) {
+    if (m_cubemapTexture != 0 && m_cubemapTexture != newCubemapTexture) {
+        glDeleteTextures(1, &m_cubemapTexture);
+    }
+    m_cubemapTexture = newCubemapTexture;
+}
+
 Skybox::~Skybox() {
     glDeleteBuffers(1, &m_skyboxVAO);
     glDeleteBuffers(1, &m_skyboxVBO);

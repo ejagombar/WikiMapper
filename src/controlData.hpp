@@ -38,10 +38,12 @@ struct GraphControlData {
 };
 
 struct EngineControlData {
-    std::atomic<bool> initGraphData = false;
     bool vSync = true;
+    bool backgroundButtonToggle = false;
     float cameraFov = 45;
     float mouseSensitivity = 2.f;
+
+    std::atomic<bool> initGraphData = false;
 
     float customVals[6] = {0.9f, 128.f, 0.2f, 0.007, 0.07, 0.017};
 };

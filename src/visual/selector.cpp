@@ -3,7 +3,7 @@
 
 SelectorSystem::SelectorSystem(int width, int height) : m_width(width), m_height(height) {
 
-    globalLogger->info("Initializing Picking System");
+    globalLogger->info("Initialising Picking System");
 
     InitFramebuffer(width, height);
 }

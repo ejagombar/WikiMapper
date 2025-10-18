@@ -99,7 +99,7 @@ void RenderEngine::setupShaders() {
     m_picking->pickingShader = std::make_unique<Shader>("selector.vert", "selector.frag", "selector.geom");
 
     m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight),
-                                            glm::ivec2(1000, 800), 50, false, .5f, 14, 0.92f);
+                                            glm::ivec2(1000, 800), 20, false, .5f, 14, 0.92f);
 
     m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom");
 
@@ -117,9 +117,7 @@ void RenderEngine::setupShaders() {
     m_shader.cylinder->LinkUBO("EnvironmentUniforms", m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
     m_picking->pickingShader->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
 
-    GLuint cubemapTexture = LoadCubemap(std::vector<std::string>{"stars.jpg"});
-
-    m_skybox = std::make_unique<Skybox>(*m_shader.skybox, cubemapTexture);
+    m_skybox = std::make_unique<Skybox>(*m_shader.skybox, LoadCubemap(backgroundAssets.at(0)));
 }
 
 void RenderEngine::initNodeBuffers() {
@@ -362,11 +360,22 @@ uint32_t RenderEngine::Run() {
     std::future<LabelAtlasData> fut;
 
     bool vSyncOld = m_controlData.engine.vSync;
+    bool backgroundButtonToggleOld = m_controlData.engine.backgroundButtonToggle;
+    uint32_t backgroundOption = 0;
     while (!glfwWindowShouldClose(m_window)) {
 
         if (vSyncOld != m_controlData.engine.vSync) {
             glfwSwapInterval(m_controlData.engine.vSync);
             vSyncOld = m_controlData.engine.vSync;
+        }
+
+        if (backgroundButtonToggleOld != m_controlData.engine.backgroundButtonToggle) {
+            if (++backgroundOption >= backgroundAssets.size()) {
+                backgroundOption = 0;
+            }
+
+            m_skybox->SetCubemapTexture(LoadCubemap(backgroundAssets.at(backgroundOption)));
+            backgroundButtonToggleOld = m_controlData.engine.backgroundButtonToggle;
         }
 
         if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {

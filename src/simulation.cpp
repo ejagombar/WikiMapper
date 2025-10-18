@@ -429,9 +429,7 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             try {
                 auto linkedPages = expansion.m_future.get();
 
-                int i = 0;
                 for (const auto &page : linkedPages) {
-                    i++;
                     globalLogger->info("Page" + page.title);
                     const uint32_t idx = writeGraph->AddNode(page.title);
                     writeGraph->AddEdge(expansion.m_sourceNodeId, idx);
@@ -570,7 +568,7 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
 
     // graph.Clear();
     // graph.LoadBinary("data2.wiki"); // Use local data for demo
-    graph.SaveBinary("data2.wiki");
+    graph.SaveBinary("physics.wiki");
 }
 
 void GraphEngine::search(GS::Graph &graph, std::string query) {

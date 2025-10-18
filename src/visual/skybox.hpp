@@ -11,6 +11,8 @@ class Skybox {
 
     void Display(const glm::mat4 camera_direction);
 
+    void SetCubemapTexture(const GLuint newCubemapTexture);
+
     void SetEnabled(const bool enabled) { m_enabled = enabled; }
     bool GetEnabled() const { return m_enabled; }
 
