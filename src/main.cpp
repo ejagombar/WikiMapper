@@ -24,8 +24,6 @@
 
 std::shared_ptr<spdlog::logger> globalLogger;
 
-bool isTerminalAttached() { return isatty(STDOUT_FILENO) != 0; }
-
 void initializeLogger(bool enableConsole, bool autoDetectTerminal) {
     std::vector<spdlog::sink_ptr> sinks;
 
@@ -33,12 +31,7 @@ void initializeLogger(bool enableConsole, bool autoDetectTerminal) {
     file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [thread %t] %v");
     sinks.push_back(file_sink);
 
-    bool shouldAddConsole = enableConsole;
-    if (autoDetectTerminal) {
-        shouldAddConsole = shouldAddConsole && isTerminalAttached();
-    }
-
-    if (shouldAddConsole) {
+    if (enableConsole) {
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         console_sink->set_pattern("[%H:%M:%S %z] [%n] [%^%L%$] [thread %t] %v");
         sinks.push_back(console_sink);
@@ -46,7 +39,7 @@ void initializeLogger(bool enableConsole, bool autoDetectTerminal) {
 
     globalLogger = std::make_shared<spdlog::logger>("global", sinks.begin(), sinks.end());
 
-    if (shouldAddConsole) {
+    if (enableConsole) {
         globalLogger->flush_on(spdlog::level::info);
     } else {
         globalLogger->flush_on(spdlog::level::err);

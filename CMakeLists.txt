@@ -38,15 +38,16 @@ FetchContent_Declare(
   GIT_TAG        1.0.1
 )
 
-FetchContent_Declare(
-  jsoncpp
-  GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp.git
-  GIT_TAG        1.9.6
-)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+
+#FetchContent_MakeAvailable(jsoncpp)
 
 FetchContent_Declare(
   imgui
-  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+  GIT_REPOSITORY https://github.com/ocornut/imgui.gith
   GIT_TAG        v1.91.9b-docking
 )
 
@@ -56,7 +57,11 @@ FetchContent_Declare(
   GIT_TAG        v1.15.3
 )
 
-FetchContent_MakeAvailable(imgui jsoncpp glm glfw glad cpp_httplib freetype spdlog)
+#set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(imgui glm glfw glad cpp_httplib freetype spdlog)
+
+#message(STATUS "Available targets: ${jsoncpp_TARGETS}")
+
 
 find_package(OpenGL REQUIRED)
 
@@ -78,11 +83,11 @@ target_include_directories(imgui_lib PUBLIC
 
 file(GLOB_RECURSE Src_Sources "./src/**.cpp" "./src/*.hpp" "./lib/*.cpp" "./lib/*.hpp")
 
-file(GLOB SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*")
-file(COPY ${SHADERS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-# Ensure that CMake reruns if any shaders are updated. This means that they are copied across to the build dir
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+    file(GLOB SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*")
+    file(COPY ${SHADERS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
+endif()
 
 file(GLOB_RECURSE SKYBOX_IMAGES "${CMAKE_CURRENT_SOURCE_DIR}/assets/*")
 file(COPY ${SKYBOX_IMAGES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
@@ -102,21 +107,19 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   glad
   glfw
   imgui_lib
-  jsoncpp_lib
+  nlohmann_json::nlohmann_json
   freetype
   OpenGL::GL
-  atomic
-  -static-libasan
-  -static-libstdc++
   spdlog::spdlog
 )
 
-target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
-# target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -O0 -fsanitize=address)
-#
-# target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan -pg)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE atomic -static-libasan -static-libstdc++)
+endif()
 
-# target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan -Wall -Wextra -pedantic -g -O0 -pg)
+if(MSVC)
+  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W4 /Zi)
+else()
+  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
+endif()
 
-# target_compile_options(${CMAKE_PROJECT_NAME}  PRIVATE -g -O0 -fsanitize=address)
-# target_link_options(${CMAKE_PROJECT_NAME}  PRIVATE -fsanitize=address -static-libasan)

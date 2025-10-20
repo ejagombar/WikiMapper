@@ -4,7 +4,6 @@
 #include <imgui.h>
 #include <iostream>
 #include <string>
-#include <sys/ucontext.h>
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"

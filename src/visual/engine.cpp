@@ -7,7 +7,8 @@
 #include "gui.hpp"
 #include "texture.hpp"
 #include <GL/gl.h>
-#include <GL/glext.h>
+#include <glad/glad.h>
+// #include <GL/glext.h>
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <atomic>
@@ -117,7 +118,7 @@ void RenderEngine::setupShaders() {
     m_shader.cylinder->LinkUBO("EnvironmentUniforms", m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
     m_picking->pickingShader->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
 
-    m_skybox = std::make_unique<Skybox>(*m_shader.skybox, LoadCubemap(backgroundAssets.at(0)));
+    m_skybox = std::make_unique<Skybox>(*m_shader.skybox, LoadCubemap(std::string(backgroundAssets.at(0))));
 }
 
 void RenderEngine::initNodeBuffers() {
@@ -374,7 +375,7 @@ uint32_t RenderEngine::Run() {
                 backgroundOption = 0;
             }
 
-            m_skybox->SetCubemapTexture(LoadCubemap(backgroundAssets.at(backgroundOption)));
+            m_skybox->SetCubemapTexture(LoadCubemap(std::string(backgroundAssets.at(backgroundOption))));
             backgroundButtonToggleOld = m_controlData.engine.backgroundButtonToggle;
         }
 
