@@ -19,7 +19,7 @@ struct SimParameters {
 
 struct DraggingNode {
     int32_t id = -1;
-    glm::vec3 position;
+    glm::vec3 position{0, 0, 0};
 };
 
 struct SimulationControlData {
@@ -48,10 +48,14 @@ struct EngineControlData {
     float customVals[6] = {0.9f, 128.f, 0.2f, 0.007, 0.07, 0.017};
 };
 
-struct ControlData {
+class ControlData {
+  public:
     SimulationControlData sim;
     GraphControlData graph;
     EngineControlData engine;
+
+    bool LoadControlData(const std::string &filename);
+    bool SaveControlData(const std::string &filename);
 };
 
 #endif

@@ -22,9 +22,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../lib/std_image.h"
 
+constexpr std::string SETTINGS_FILE = "settings.json";
+
 std::shared_ptr<spdlog::logger> globalLogger;
 
-void initializeLogger(bool enableConsole, bool autoDetectTerminal) {
+void initializeLogger(bool enableConsole) {
     std::vector<spdlog::sink_ptr> sinks;
 
     auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("wikimapper.log", true);
@@ -51,17 +53,18 @@ void initializeLogger(bool enableConsole, bool autoDetectTerminal) {
 
 int main() {
     ControlData controlData;
-    GS::GraphTripleBuf graphBuf;
 
     std::mutex dBInterfaceMutex;
     std::shared_ptr<dBInterface> dBInterface;
 
-    std::atomic<bool> shouldTerminate(false);
-
-    initializeLogger(true, true);
-    // initializeLogger(false, false);
+    initializeLogger(true);
 
     globalLogger->info("WikiMapper starting");
+
+    if (controlData.LoadControlData(SETTINGS_FILE)) {
+        globalLogger->info("Loaded settings");
+    }
+
     {
         std::lock_guard<std::mutex> lock(dBInterfaceMutex);
         dBInterface = std::make_shared<HttpInterface>("http://eagombar.uk:6348");
@@ -72,6 +75,9 @@ int main() {
             return 1;
         }
     }
+
+    GS::GraphTripleBuf graphBuf;
+    std::atomic<bool> shouldTerminate(false);
 
     GraphEngine graphEngine(graphBuf, shouldTerminate, controlData, dBInterface, dBInterfaceMutex);
 
@@ -94,6 +100,8 @@ int main() {
         std::lock_guard<std::mutex> lock(dBInterfaceMutex);
         dBInterface.reset();
     }
+
+    controlData.SaveControlData(SETTINGS_FILE);
 
     globalLogger->info("WikiMapper exited.");
 }

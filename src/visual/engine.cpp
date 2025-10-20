@@ -360,6 +360,7 @@ RenderEngine::~RenderEngine() {
 uint32_t RenderEngine::Run() {
     std::future<LabelAtlasData> fut;
 
+    glfwSwapInterval(m_controlData.engine.vSync);
     bool vSyncOld = m_controlData.engine.vSync;
     bool backgroundButtonToggleOld = m_controlData.engine.backgroundButtonToggle;
     uint32_t backgroundOption = 0;

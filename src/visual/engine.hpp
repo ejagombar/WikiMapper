@@ -122,7 +122,7 @@ class RenderEngine {
 
     void updateSelectorBuffer();
     void processMouseSelectorInput(GLFWwindow *window);
-    
+
     void computeLighting(glm::vec3 cameraPosition);
 
     void computeHoverTransition(float deltaTime);
@@ -139,8 +139,7 @@ class RenderEngine {
     float m_deltaTime = 0.0f;
     float m_lastFrame = 0.0f;
 
-    // TODO: Change this to ensure it works on other plaforms. Maybe bundle a font?
-    const char *m_font = "C:\\Windows\\Fonts\\calibri.ttf";
+    const std::string m_font{"OpenSans-Regular.ttf"};
 
     State m_state = play;
     bool m_mouseActive = false;
