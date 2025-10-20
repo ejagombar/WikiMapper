@@ -5,6 +5,8 @@ A real-time 3D graph visualization tool for exploring Wikipedia page connections
 [![C++](https://img.shields.io/badge/C%2B%2B-20%2B-blue.svg)](https://isocpp.org/)
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-green.svg)](https://cmake.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Windows](https://custom-icon-badges.demolab.com/badge/Windows-0078D6?logo=windows11&logoColor=white)](#)
+[![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)](#)
 
  <img width="1937" height="1134" alt="WikiMapper Screenshot" src="https://github.com/user-attachments/assets/f7c7f4b2-435a-440b-917a-571d2dc7a67d" />
 
@@ -16,7 +18,7 @@ A real-time 3D graph visualization tool for exploring Wikipedia page connections
 - C++20 compatible compiler 
 - CMake 3.20 or higher
 - OpenGL 4.5+ compatible graphics driver
-- **Optional**: Wikipedia [Neo4j database](https://github.com/ejagombar/WikiLoader) *(Public server coming soon)*
+- **Optional**: Wikipedia [Neo4j database](https://github.com/ejagombar/WikiLoader) *(Public server available at http://eagombar.uk:6348)*
 
 ### Dependencies
 All dependencies are automatically fetched by CMake:
@@ -48,7 +50,27 @@ cmake --build build
 ./build/WikiMapperExplorer
 ```
 
-Windows coming soon...
+### Build Instructions (Windows)
+
+```bash
+# Clone the repository
+git clone https://github.com/ejagombar/WikiMapper.git && cd wikimapper
+
+# Create build directory
+mkdir build
+
+# Enter build directory
+cd build
+
+# Configure project 
+cmake .. -G "Visual Studio 17 2022" -A x64
+
+# Build project
+cmake --build . --config Release
+
+# Run the application
+.\Release\WikiMapperExplorer.exe
+```
 
 ## Usage
 
@@ -69,8 +91,8 @@ Windows coming soon...
 ## Roadmap
 
 ### Near-term Features
-- [ ] Node dragging with physics integration
-- [ ] Force-directed graph performance optimizations for larger datasets
+- [x] Node dragging with physics integration
+- [x] Force-directed graph performance optimizations for larger datasets
 - [x] Double clicking node causes more relevant nodes to be added to the scene
 - [ ] Improve camera movement smoothness
 
