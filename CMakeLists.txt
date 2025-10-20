@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
+
 include(FetchContent)
 
 project(WikiMapperExplorer)
@@ -38,16 +39,12 @@ FetchContent_Declare(
   GIT_TAG        1.0.1
 )
 
-
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
-
-#FetchContent_MakeAvailable(jsoncpp)
-
 FetchContent_Declare(
   imgui
-  GIT_REPOSITORY https://github.com/ocornut/imgui.gith
+  GIT_REPOSITORY https://github.com/ocornut/imgui.git
   GIT_TAG        v1.91.9b-docking
 )
 
@@ -57,11 +54,7 @@ FetchContent_Declare(
   GIT_TAG        v1.15.3
 )
 
-#set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(imgui glm glfw glad cpp_httplib freetype spdlog)
-
-#message(STATUS "Available targets: ${jsoncpp_TARGETS}")
-
 
 find_package(OpenGL REQUIRED)
 
