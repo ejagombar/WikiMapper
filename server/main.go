@@ -37,9 +37,9 @@ func NewNeo4jClient(url, username, password string) *Neo4jClient {
 	}
 }
 
-func (c *Neo4jClient) ExecuteCypher(cypher string, params map[string]interface{}) (map[string]interface{}, error) {
-	query := map[string]interface{}{
-		"statements": []map[string]interface{}{
+func (c *Neo4jClient) ExecuteCypher(cypher string, params map[string]any) (map[string]any, error) {
+	query := map[string]any{
+		"statements": []map[string]any{
 			{
 				"statement":  cypher,
 				"parameters": params,
@@ -71,12 +71,12 @@ func (c *Neo4jClient) ExecuteCypher(cypher string, params map[string]interface{}
 		return nil, fmt.Errorf("HTTP error %d", resp.StatusCode)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
 	}
 
-	if errs, ok := data["errors"].([]interface{}); ok && len(errs) > 0 {
+	if errs, ok := data["errors"].([]any); ok && len(errs) > 0 {
 		return nil, fmt.Errorf("Cypher error: %v", errs)
 	}
 
@@ -84,19 +84,19 @@ func (c *Neo4jClient) ExecuteCypher(cypher string, params map[string]interface{}
 }
 
 // ParsePages parses Cypher result into LinkedPage slice.
-func ParsePages(data map[string]interface{}) ([]LinkedPage, error) {
+func ParsePages(data map[string]any) ([]LinkedPage, error) {
 	var pages []LinkedPage
-	results := data["results"].([]interface{})
+	results := data["results"].([]any)
 	if len(results) == 0 {
 		return pages, nil
 	}
 
-	first := results[0].(map[string]interface{})
-	rows := first["data"].([]interface{})
+	first := results[0].(map[string]any)
+	rows := first["data"].([]any)
 
 	for _, r := range rows {
-		row := r.(map[string]interface{})
-		node := row["row"].([]interface{})[0].(map[string]interface{})
+		row := r.(map[string]any)
+		node := row["row"].([]any)[0].(map[string]any)
 		pages = append(pages, LinkedPage{
 			PageName: node["pageName"].(string),
 			Title:    node["title"].(string),
@@ -116,7 +116,7 @@ func linkedPagesHandler(client *Neo4jClient) http.HandlerFunc {
 		name := parts[2]
 
 		cypher := `MATCH (:PAGE {pageName: $name})-[]->(related:PAGE) RETURN related`
-		params := map[string]interface{}{"name": name}
+		params := map[string]any{"name": name}
 
 		data, err := client.ExecuteCypher(cypher, params)
 		if err != nil {
@@ -144,7 +144,7 @@ func linkingPagesHandler(client *Neo4jClient) http.HandlerFunc {
 		name := parts[2]
 
 		cypher := `MATCH (related:PAGE)-[r]->(:PAGE {pageName: $name}) RETURN related`
-		params := map[string]interface{}{"name": name}
+		params := map[string]any{"name": name}
 
 		data, err := client.ExecuteCypher(cypher, params)
 		if err != nil {
@@ -172,7 +172,7 @@ func shortestPathHandler(client *Neo4jClient) http.HandlerFunc {
 		}
 
 		cypher := `MATCH path = shortestPath((start:PAGE {pageName: $startName})-[*]-(end:PAGE {pageName: $endName})) RETURN nodes(path) AS nodes`
-		params := map[string]interface{}{"startName": start, "endName": end}
+		params := map[string]any{"startName": start, "endName": end}
 
 		data, err := client.ExecuteCypher(cypher, params)
 		if err != nil {
@@ -181,9 +181,9 @@ func shortestPathHandler(client *Neo4jClient) http.HandlerFunc {
 		}
 
 		var pages []LinkedPage
-		nodes := data["results"].([]interface{})[0].(map[string]interface{})["data"].([]interface{})[0].(map[string]interface{})["row"].([]interface{})[0].([]interface{})
+		nodes := data["results"].([]any)[0].(map[string]any)["data"].([]any)[0].(map[string]any)["row"].([]any)[0].([]any)
 		for _, n := range nodes {
-			node := n.(map[string]interface{})
+			node := n.(map[string]any)
 			pages = append(pages, LinkedPage{
 				PageName: node["pageName"].(string),
 				Title:    node["title"].(string),
@@ -203,7 +203,7 @@ func randomPagesHandler(client *Neo4jClient) http.HandlerFunc {
 		}
 
 		cypher := `MATCH (p:PAGE) WITH p, rand() AS r ORDER BY r RETURN p LIMIT $limit`
-		params := map[string]interface{}{"limit": count}
+		params := map[string]any{"limit": count}
 
 		data, err := client.ExecuteCypher(cypher, params)
 		if err != nil {
@@ -218,6 +218,42 @@ func randomPagesHandler(client *Neo4jClient) http.HandlerFunc {
 		}
 
 		json.NewEncoder(w).Encode(pages)
+	}
+}
+
+func connectedHandler(client *Neo4jClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cypher := `RETURN 1 AS test`
+
+		data, err := client.ExecuteCypher(cypher, nil)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Database not accessible: %v", err), http.StatusServiceUnavailable)
+			return
+		}
+
+		results, ok := data["results"].([]any)
+		if !ok || len(results) == 0 {
+			http.Error(w, "Unexpected response from database", http.StatusInternalServerError)
+			return
+		}
+
+		first := results[0].(map[string]any)
+		rows := first["data"].([]any)
+		if len(rows) == 0 {
+			http.Error(w, "No data returned from test query", http.StatusInternalServerError)
+			return
+		}
+
+		row := rows[0].(map[string]any)
+		value := row["row"].([]any)[0]
+
+		resp := map[string]any{
+			"connected": true,
+			"testValue": value,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	}
 }
 
@@ -238,6 +274,7 @@ func main() {
 	mux.HandleFunc("/linking-pages/", linkingPagesHandler(client))
 	mux.HandleFunc("/shortest-path", shortestPathHandler(client))
 	mux.HandleFunc("/random-pages", randomPagesHandler(client))
+	mux.HandleFunc("/connected", connectedHandler(client))
 
 	server := &http.Server{
 		Addr:    ":" + port,
