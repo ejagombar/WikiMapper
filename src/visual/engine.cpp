@@ -56,6 +56,7 @@ RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlData &controlDat
     glfwSetMouseButtonCallback(m_window, mouse_button_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
     glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 
     // m_camera.SetPosition(glm::vec3(25.0f, 0.0f, 0.0f), glm::pi<float>(), 0.0f);
     m_camera.SetPosition(glm::vec3(0.f, 0.f, 0.0f), glm::pi<float>(), 0.0f);

@@ -34,8 +34,6 @@ void handle_database_source(ControlData &controlData, std::shared_ptr<dBInterfac
 
             dBInterface = std::make_shared<Neo4jInterface>(controlData.app.dataSource.dbUrl);
 
-            globalLogger->info("PRE AUTH Database connected {}", controlData.app.dataSource.connectedToDataSource);
-
             if (!dBInterface->Authenticate(controlData.app.dataSource.dbUsername,
                                            controlData.app.dataSource.dbPassword)) {
                 globalLogger->info("Failed to Auth. URL: {}", controlData.app.dataSource.dbUrl);

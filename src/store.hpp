@@ -62,7 +62,7 @@ class Neo4jInterface : public dBInterface {
 
     std::string m_url;
     bool m_connected = false;
-    std::chrono::milliseconds m_timeout_ms{5000};
+    uint32_t m_timeout_ms{5000};
     std::unique_ptr<httplib::Client> m_httpClient;
 };
 
@@ -80,9 +80,9 @@ class HttpInterface : public dBInterface {
     std::vector<LinkedPage> GetRandomPages(uint32_t count) override;
 
   private:
-    json GetHttpResults(const std::string &endpoint);
+    json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);
     std::unique_ptr<httplib::Client> m_httpClient;
-    std::chrono::milliseconds m_timeout_ms{5000};
+    uint32_t m_timeout_ms{5000};
     bool m_connected = false;
 };
 

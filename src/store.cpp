@@ -9,6 +9,12 @@
 
 // ------------------ Neo4J Interface ------------------
 
+void setClientTimeoutMs(std::unique_ptr<httplib::Client> &m_httpClient, uint32_t timeout) {
+    m_httpClient->set_read_timeout(std::chrono::milliseconds(timeout));
+    m_httpClient->set_write_timeout(std::chrono::milliseconds(timeout));
+    m_httpClient->set_connection_timeout(std::chrono::milliseconds(timeout));
+}
+
 Neo4jInterface::Neo4jInterface(const std::string url) { m_httpClient = std::make_unique<httplib::Client>(url); }
 
 bool Neo4jInterface::connected() {
@@ -17,16 +23,9 @@ bool Neo4jInterface::connected() {
         const json parameters = json::object();
         const json query = {{"statements", {{{"statement", testQuery}, {"parameters", parameters}}}}};
 
-        const uint32_t shortTimeout = 100;
-        m_httpClient->set_connection_timeout(std::chrono::milliseconds(shortTimeout));
-        m_httpClient->set_read_timeout(std::chrono::milliseconds(shortTimeout));
-        m_httpClient->set_write_timeout(std::chrono::milliseconds(shortTimeout));
-
+        setClientTimeoutMs(m_httpClient, 100);
         auto res = m_httpClient->Post("/db/neo4j/tx/commit", query.dump(), "application/json");
-
-        m_httpClient->set_read_timeout(m_timeout_ms);
-        m_httpClient->set_write_timeout(m_timeout_ms);
-        m_httpClient->set_connection_timeout(m_timeout_ms);
+        setClientTimeoutMs(m_httpClient, m_timeout_ms);
 
         if (!res || res->status != httplib::StatusCode::OK_200) {
             globalLogger->info("RETURNED {}", res->status);
@@ -115,16 +114,9 @@ bool Neo4jInterface::Authenticate(const std::string &username, const std::string
     const std::string basicToken = base64::to_base64(username + ":" + password);
     const httplib::Headers headers = {{"Authorization", "Basic " + basicToken}};
 
-    const uint32_t shortTimeout = 50;
-    m_httpClient->set_connection_timeout(std::chrono::milliseconds(shortTimeout));
-    m_httpClient->set_read_timeout(std::chrono::milliseconds(shortTimeout));
-    m_httpClient->set_write_timeout(std::chrono::milliseconds(shortTimeout));
-
+    setClientTimeoutMs(m_httpClient, 50);
     const auto res = m_httpClient->Get("/", headers);
-
-    m_httpClient->set_read_timeout(m_timeout_ms);
-    m_httpClient->set_write_timeout(m_timeout_ms);
-    m_httpClient->set_connection_timeout(m_timeout_ms);
+    setClientTimeoutMs(m_httpClient, m_timeout_ms);
 
     if (res && res->status == httplib::StatusCode::OK_200) {
         m_httpClient->set_default_headers(headers);
@@ -242,17 +234,16 @@ HttpInterface::HttpInterface(const std::string domain) {
     m_httpClient = std::make_unique<httplib::Client>(dom);
 }
 
-json HttpInterface::GetHttpResults(const std::string &endpoint) {
-    const uint32_t shortTimeout = 100;
-    m_httpClient->set_connection_timeout(std::chrono::milliseconds(shortTimeout));
-    m_httpClient->set_read_timeout(std::chrono::milliseconds(shortTimeout));
-    m_httpClient->set_write_timeout(std::chrono::milliseconds(shortTimeout));
+json HttpInterface::GetHttpResults(const std::string &endpoint, uint32_t timeoutMs = 0) {
+    if (timeoutMs > 0) {
+        setClientTimeoutMs(m_httpClient, timeoutMs);
+    }
 
     auto res = m_httpClient->Get(endpoint);
 
-    m_httpClient->set_read_timeout(m_timeout_ms);
-    m_httpClient->set_write_timeout(m_timeout_ms);
-    m_httpClient->set_connection_timeout(m_timeout_ms);
+    if (timeoutMs > 0) {
+        setClientTimeoutMs(m_httpClient, m_timeout_ms);
+    }
 
     if (!res) {
         throw std::runtime_error("No response from server");
@@ -335,7 +326,7 @@ std::vector<LinkedPage> HttpInterface::GetRandomPages(uint32_t count) {
 
 bool HttpInterface::connected() {
     try {
-        json result = GetHttpResults("/connected");
+        json result = GetHttpResults("/connected", 100);
 
         if (result.contains("connected") && result["connected"].is_boolean()) {
             m_connected = result["connected"].get<bool>();
