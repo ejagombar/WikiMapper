@@ -294,55 +294,63 @@ void GUI::RenderMenu() {
     separator();
     subtitle("Graph Data Source");
 
-    ImGui::PushItemWidth(350.0f);
+    ImGui::PushItemWidth(500.0f);
     ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
 
+    std::lock_guard<std::mutex> lock(m_controlData.app.dataSourceMutex);
+
     // Data source type dropdown
-    ImGui::Text("Data Source Type");
-    const char *sourceTypes[] = {"Neo4j Database", "HTTP Server"};
-    int currentSourceType = static_cast<int>(m_dataSourceSettings.sourceType);
-    if (ImGui::Combo("##dataSourceType", &currentSourceType, sourceTypes, IM_ARRAYSIZE(sourceTypes))) {
-        m_dataSourceSettings.sourceType = static_cast<DataSourceType>(currentSourceType);
+    int currentSourceType = static_cast<int>(m_controlData.app.dataSource.sourceType);
+    const char *sourceTypes[] = {"HTTP Server", "Database (Neo4j)"};
+
+    ImGui::Text("Data Source");
+    ImGui::PushItemWidth(180.0f);
+    if (ImGui::Combo("##sourceType", &currentSourceType, sourceTypes, IM_ARRAYSIZE(sourceTypes))) {
+        m_controlData.app.dataSource.sourceType = static_cast<dbInterfaceType>(currentSourceType);
     }
 
     ImGui::Spacing();
 
     const int boxWidth = 280;
 
-    if (m_dataSourceSettings.sourceType == DataSourceType::Neo4j) {
+    if (m_controlData.app.dataSource.sourceType == dbInterfaceType::DB) {
         ImGui::Text("URL");
         ImGui::PushItemWidth(boxWidth);
-        ImGui::InputTextWithHint("##neo4jUrl", "http://localhost", m_dataSourceSettings.neo4jUrl,
-                                 IM_ARRAYSIZE(m_dataSourceSettings.neo4jUrl));
-        ImGui::PopItemWidth();
-
-        ImGui::SameLine();
-        ImGui::Text("Port");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(80.0f);
-        ImGui::InputTextWithHint("##neo4jPort", "7474", m_dataSourceSettings.neo4jPort,
-                                 IM_ARRAYSIZE(m_dataSourceSettings.neo4jPort), ImGuiInputTextFlags_CharsDecimal);
+        {
+            std::string urlBuffer = m_controlData.app.dataSource.dbUrl;
+            char buffer[256];
+            strncpy(buffer, urlBuffer.c_str(), sizeof(buffer));
+            buffer[sizeof(buffer) - 1] = '\0';
+            if (ImGui::InputTextWithHint("##neo4jUrl", "bolt://localhost", buffer, IM_ARRAYSIZE(buffer))) {
+                m_controlData.app.dataSource.dbUrl = buffer;
+            }
+        }
         ImGui::PopItemWidth();
 
         ImGui::Text("Password");
         ImGui::PushItemWidth(boxWidth);
-        ImGui::InputTextWithHint("##neo4jPassword", "Enter password", m_dataSourceSettings.neo4jPassword,
-                                 IM_ARRAYSIZE(m_dataSourceSettings.neo4jPassword), ImGuiInputTextFlags_Password);
+        {
+            char buffer[256];
+            strncpy(buffer, m_controlData.app.dataSource.dbPassword.c_str(), sizeof(buffer));
+            buffer[sizeof(buffer) - 1] = '\0';
+            if (ImGui::InputTextWithHint("##neo4jPassword", "Enter password", buffer, IM_ARRAYSIZE(buffer),
+                                         ImGuiInputTextFlags_Password)) {
+                m_controlData.app.dataSource.dbPassword = buffer;
+            }
+        }
         ImGui::PopItemWidth();
 
-    } else if (m_dataSourceSettings.sourceType == DataSourceType::HTTPServer) {
+    } else if (m_controlData.app.dataSource.sourceType == dbInterfaceType::HTTP) {
         ImGui::Text("URL");
         ImGui::PushItemWidth(boxWidth);
-        ImGui::InputTextWithHint("##httpUrl", "http://eagombar.uk", m_dataSourceSettings.httpUrl,
-                                 IM_ARRAYSIZE(m_dataSourceSettings.httpUrl));
-        ImGui::PopItemWidth();
-
-        ImGui::SameLine();
-        ImGui::Text("Port");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(80.0f);
-        ImGui::InputTextWithHint("##httpPort", "6348", m_dataSourceSettings.httpPort,
-                                 IM_ARRAYSIZE(m_dataSourceSettings.httpPort), ImGuiInputTextFlags_CharsDecimal);
+        {
+            char buffer[256];
+            strncpy(buffer, m_controlData.app.dataSource.serverUrl.c_str(), sizeof(buffer));
+            buffer[sizeof(buffer) - 1] = '\0';
+            if (ImGui::InputTextWithHint("##httpUrl", "http://eagombar.uk", buffer, IM_ARRAYSIZE(buffer))) {
+                m_controlData.app.dataSource.serverUrl = buffer;
+            }
+        }
         ImGui::PopItemWidth();
     }
 
@@ -354,7 +362,7 @@ void GUI::RenderMenu() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
 
     if (ImGui::Button("Save & Connect", ImVec2(205, 50))) {
-        m_dataSourceSettings.connectionValid = !m_dataSourceSettings.connectionValid;
+        m_controlData.app.dataSource.attemptDataConnection = true;
     }
 
     ImGui::PopStyleColor(3);
@@ -369,19 +377,22 @@ void GUI::RenderMenu() {
     circlePos.y += 25;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
-    ImVec4 statusColor =
-        m_dataSourceSettings.connectionValid ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
+    ImVec4 statusColor = m_controlData.app.dataSource.connectedToDataSource ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f)
+                                                                            : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
 
     drawList->AddCircleFilled(circlePos, 8.0f, ImGui::ColorConvertFloat4ToU32(statusColor));
 
     // Status text
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 25);
     ImGui::PushStyleColor(ImGuiCol_Text, statusColor);
-    ImGui::Text("%s", m_dataSourceSettings.connectionValid ? "Connected" : "Disconnected");
+    ImGui::Text("%s", m_controlData.app.dataSource.connectedToDataSource ? "Connected" : "Disconnected");
     ImGui::PopStyleColor();
 
     ImGui::PopStyleColor();
     ImGui::PopItemWidth();
+
+    ImGui::Spacing();
+    ImGui::Spacing();
 
     ImGui::EndChild();
     ImGui::PopStyleVar();

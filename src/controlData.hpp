@@ -48,11 +48,34 @@ struct EngineControlData {
     float customVals[6] = {0.9f, 128.f, 0.2f, 0.007, 0.07, 0.017};
 };
 
+enum class dbInterfaceType { HTTP, DB };
+
+struct DataSource {
+    dbInterfaceType sourceType = dbInterfaceType::HTTP;
+
+    std::string dbUrl = "http://localhost:7474";
+    std::string dbUsername = "neo4j";
+    std::string dbPassword = "test1234";
+
+    std::string serverUrl = "http://eagombar.uk:6348";
+
+    bool connectedToDataSource = false;
+    bool attemptDataConnection = false;
+};
+
+struct ApplicationData {
+    std::mutex dataSourceMutex;
+    DataSource dataSource;
+
+    int32_t background{0};
+};
+
 class ControlData {
   public:
     SimulationControlData sim;
     GraphControlData graph;
     EngineControlData engine;
+    ApplicationData app;
 
     bool LoadControlData(const std::string &filename);
     bool SaveControlData(const std::string &filename);

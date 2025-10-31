@@ -1,3 +1,4 @@
+#include "application.hpp"
 #include "controlData.hpp"
 #include "graph.hpp"
 #include "logger.hpp"
@@ -67,13 +68,21 @@ int main() {
 
     {
         std::lock_guard<std::mutex> lock(dBInterfaceMutex);
-        dBInterface = std::make_shared<HttpInterface>("http://eagombar.uk:6348");
-        // dBInterface = std::make_shared<Neo4jInterface>("http://localhost:7474");
 
-        if (dBInterface->RequiresAuthentication() && !dBInterface->Authenticate("neo4j", "test1234")) {
-            globalLogger->info("Failed to Auth");
-            return 1;
+        if (controlData.app.dataSource.sourceType == dbInterfaceType::DB) {
+            dBInterface = std::make_shared<Neo4jInterface>(controlData.app.dataSource.dbUrl);
+
+            if (!dBInterface->Authenticate(controlData.app.dataSource.dbUsername,
+                                           controlData.app.dataSource.dbPassword)) {
+                globalLogger->info("Failed to Auth. URL: {}", controlData.app.dataSource.dbUrl);
+                // return 1;
+            }
+        } else if (controlData.app.dataSource.sourceType == dbInterfaceType::HTTP) {
+            dBInterface = std::make_shared<HttpInterface>(controlData.app.dataSource.serverUrl);
         }
+
+        controlData.app.dataSource.connectedToDataSource = dBInterface->connected();
+        globalLogger->info("Connected : {}", controlData.app.dataSource.connectedToDataSource);
     }
 
     GS::GraphTripleBuf graphBuf;
@@ -89,12 +98,16 @@ int main() {
 
     std::thread t{&GraphEngine::graphPositionSimulation, std::ref(graphEngine)};
 
+    std::thread d{handle_application_tasks, std::ref(shouldTerminate), std::ref(controlData), std::ref(dBInterface),
+                  std::ref(dBInterfaceMutex)};
+
     renderEngine.Run();
 
     // writeGraph->SaveBinary("physics.wiki");
 
     shouldTerminate = true;
     t.join();
+    d.join();
 
     {
         std::lock_guard<std::mutex> lock(dBInterfaceMutex);

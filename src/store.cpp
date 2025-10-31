@@ -11,6 +11,44 @@
 
 Neo4jInterface::Neo4jInterface(const std::string url) { m_httpClient = std::make_unique<httplib::Client>(url); }
 
+bool Neo4jInterface::connected() {
+    try {
+        const std::string testQuery = "RETURN 1 AS test";
+        const json parameters = json::object();
+        const json query = {{"statements", {{{"statement", testQuery}, {"parameters", parameters}}}}};
+
+        const uint32_t shortTimeout = 100;
+        m_httpClient->set_connection_timeout(std::chrono::milliseconds(shortTimeout));
+        m_httpClient->set_read_timeout(std::chrono::milliseconds(shortTimeout));
+        m_httpClient->set_write_timeout(std::chrono::milliseconds(shortTimeout));
+
+        auto res = m_httpClient->Post("/db/neo4j/tx/commit", query.dump(), "application/json");
+
+        m_httpClient->set_read_timeout(m_timeout_ms);
+        m_httpClient->set_write_timeout(m_timeout_ms);
+        m_httpClient->set_connection_timeout(m_timeout_ms);
+
+        if (!res || res->status != httplib::StatusCode::OK_200) {
+            globalLogger->info("RETURNED {}", res->status);
+            m_connected = false;
+            return false;
+        }
+
+        json data = json::parse(res->body);
+        if (data.contains("errors") && !data["errors"].empty()) {
+            globalLogger->info("RETURNED Errors");
+            m_connected = false;
+            return false;
+        }
+
+        m_connected = true;
+        return true;
+    } catch (...) {
+        m_connected = false;
+        return false;
+    }
+}
+
 json Neo4jInterface::ExecuteCypherQuery(const std::string &cypher, const json &parameters) {
     const json query = {{"statements", {{{"statement", cypher}, {"parameters", parameters}}}}};
 
@@ -75,11 +113,20 @@ std::vector<LinkedPage> ParsePagesFromResult(const json &data) {
 
 bool Neo4jInterface::Authenticate(const std::string &username, const std::string &password) {
     const std::string basicToken = base64::to_base64(username + ":" + password);
-
     const httplib::Headers headers = {{"Authorization", "Basic " + basicToken}};
-    const httplib::Result res = m_httpClient->Get("/", headers);
 
-    if (res->status == httplib::StatusCode::OK_200) {
+    const uint32_t shortTimeout = 50;
+    m_httpClient->set_connection_timeout(std::chrono::milliseconds(shortTimeout));
+    m_httpClient->set_read_timeout(std::chrono::milliseconds(shortTimeout));
+    m_httpClient->set_write_timeout(std::chrono::milliseconds(shortTimeout));
+
+    const auto res = m_httpClient->Get("/", headers);
+
+    m_httpClient->set_read_timeout(m_timeout_ms);
+    m_httpClient->set_write_timeout(m_timeout_ms);
+    m_httpClient->set_connection_timeout(m_timeout_ms);
+
+    if (res && res->status == httplib::StatusCode::OK_200) {
         m_httpClient->set_default_headers(headers);
         return true;
     }
@@ -87,6 +134,10 @@ bool Neo4jInterface::Authenticate(const std::string &username, const std::string
 }
 
 std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &pageName) {
+    if (!m_connected) {
+        return {};
+    }
+
     const std::string cypher = "MATCH (:PAGE {pageName: $name})-[]->(related:PAGE) "
                                "RETURN related";
 
@@ -101,6 +152,10 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &pageNa
 }
 
 std::vector<LinkedPage> Neo4jInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
+    if (!m_connected) {
+        return {};
+    }
+
     const std::string cypher =
         "MATCH path = shortestPath((start:PAGE {pageName: $startName})-[*]-(end:PAGE {pageName: $endName})) "
         "RETURN nodes(path) AS nodes";
@@ -121,6 +176,10 @@ std::vector<LinkedPage> Neo4jInterface::FindShortestPath(const std::string &star
 }
 
 std::vector<LinkedPage> Neo4jInterface::GetLinkingPages(const std::string &pageName) {
+    if (!m_connected) {
+        return {};
+    }
+
     const std::string cypher = "MATCH (related:PAGE)-[r]->(:PAGE {pageName: $name}) "
                                "RETURN related";
 
@@ -135,6 +194,10 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkingPages(const std::string &pageN
 }
 
 std::vector<LinkedPage> Neo4jInterface::GetRandomPages(uint32_t count) {
+    if (!m_connected) {
+        return {};
+    }
+
     const std::string cypher = "MATCH (p:PAGE) "
                                "WITH p, RAND() AS r "
                                "ORDER BY r "
@@ -180,7 +243,16 @@ HttpInterface::HttpInterface(const std::string domain) {
 }
 
 json HttpInterface::GetHttpResults(const std::string &endpoint) {
-    const httplib::Result res = m_httpClient->Get(endpoint);
+    const uint32_t shortTimeout = 100;
+    m_httpClient->set_connection_timeout(std::chrono::milliseconds(shortTimeout));
+    m_httpClient->set_read_timeout(std::chrono::milliseconds(shortTimeout));
+    m_httpClient->set_write_timeout(std::chrono::milliseconds(shortTimeout));
+
+    auto res = m_httpClient->Get(endpoint);
+
+    m_httpClient->set_read_timeout(m_timeout_ms);
+    m_httpClient->set_write_timeout(m_timeout_ms);
+    m_httpClient->set_connection_timeout(m_timeout_ms);
 
     if (!res) {
         throw std::runtime_error("No response from server");
@@ -209,6 +281,10 @@ json HttpInterface::GetHttpResults(const std::string &endpoint) {
 }
 
 std::vector<LinkedPage> HttpInterface::GetLinkedPages(const std::string &pageName) {
+    if (!m_connected) {
+        return {};
+    }
+
     try {
         return HttpParsePagesFromResult(GetHttpResults("/linked-pages/" + pageName));
     } catch (const std::exception &e) {
@@ -218,6 +294,10 @@ std::vector<LinkedPage> HttpInterface::GetLinkedPages(const std::string &pageNam
 }
 
 std::vector<LinkedPage> HttpInterface::GetLinkingPages(const std::string &pageName) {
+    if (!m_connected) {
+        return {};
+    }
+
     try {
         return HttpParsePagesFromResult(GetHttpResults("/linking-pages/" + pageName));
     } catch (const std::exception &e) {
@@ -227,6 +307,10 @@ std::vector<LinkedPage> HttpInterface::GetLinkingPages(const std::string &pageNa
 }
 
 std::vector<LinkedPage> HttpInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
+    if (!m_connected) {
+        return {};
+    }
+
     try {
         return HttpParsePagesFromResult(GetHttpResults("/shortest-path?start=" + startPage + "&end=" + endPage));
     } catch (const std::exception &e) {
@@ -237,10 +321,30 @@ std::vector<LinkedPage> HttpInterface::FindShortestPath(const std::string &start
 }
 
 std::vector<LinkedPage> HttpInterface::GetRandomPages(uint32_t count) {
+    if (!m_connected) {
+        return {};
+    }
+
     try {
         return HttpParsePagesFromResult(GetHttpResults("/random-pages/" + std::to_string(count)));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetRandomPages failed : " + std::string(e.what()));
         return {};
     }
+}
+
+bool HttpInterface::connected() {
+    try {
+        json result = GetHttpResults("/connected");
+
+        if (result.contains("connected") && result["connected"].is_boolean()) {
+            m_connected = result["connected"].get<bool>();
+        } else {
+            m_connected = false;
+        }
+    } catch (...) {
+        m_connected = false;
+    }
+
+    return m_connected;
 }

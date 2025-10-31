@@ -1,6 +1,7 @@
 #ifndef STORE_H
 #define STORE_H
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -35,6 +36,7 @@ class dBInterface {
         return true;
     }
 
+    virtual bool connected() = 0;
     virtual std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) = 0;
     virtual std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) = 0;
     virtual std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) = 0;
@@ -49,6 +51,7 @@ class Neo4jInterface : public dBInterface {
     bool RequiresAuthentication() const override { return true; }
     bool Authenticate(const std::string &username, const std::string &password) override;
 
+    virtual bool connected() override;
     std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) override;
     std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) override;
     std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
@@ -58,6 +61,8 @@ class Neo4jInterface : public dBInterface {
     json ExecuteCypherQuery(const std::string &cypher, const json &parameters);
 
     std::string m_url;
+    bool m_connected = false;
+    std::chrono::milliseconds m_timeout_ms{5000};
     std::unique_ptr<httplib::Client> m_httpClient;
 };
 
@@ -68,6 +73,7 @@ class HttpInterface : public dBInterface {
 
     bool RequiresAuthentication() const override { return false; }
 
+    virtual bool connected() override;
     std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) override;
     std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) override;
     std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
@@ -76,6 +82,8 @@ class HttpInterface : public dBInterface {
   private:
     json GetHttpResults(const std::string &endpoint);
     std::unique_ptr<httplib::Client> m_httpClient;
+    std::chrono::milliseconds m_timeout_ms{5000};
+    bool m_connected = false;
 };
 
 #endif

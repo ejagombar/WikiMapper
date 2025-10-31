@@ -57,18 +57,6 @@ class GUI {
     GLuint m_graphIconTexture = 0;
     GLuint m_diceIconTexture = 0;
     GLuint m_backgroundIconTexture = 0;
-
-    enum class DataSourceType { Neo4j = 0, HTTPServer = 1 };
-
-    struct DataSourceSettings {
-        DataSourceType sourceType = DataSourceType::Neo4j;
-        char neo4jUrl[256] = "bolt://localhost";
-        char neo4jPort[16] = "7687";
-        char neo4jPassword[256] = "";
-        char httpUrl[256] = "http://localhost";
-        char httpPort[16] = "8080";
-        bool connectionValid = false;
-    } m_dataSourceSettings;
 };
 
 #endif // GUI_H

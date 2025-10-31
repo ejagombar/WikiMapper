@@ -66,6 +66,25 @@ void from_json(const json &j, ControlData &c) {
         j.at("engine").get_to(c.engine);
 }
 
+// ApplicationData -----------------------------
+void to_json(json &j, const ApplicationData &a) {
+    j = json{{"dataSource", static_cast<int>(a.dataSource.sourceType)},
+             {"dbUrl", a.dataSource.dbUrl},
+             {"dbUsername", a.dataSource.dbUsername},
+             {"dbPassword", a.dataSource.dbPassword},
+             {"serverUrl", a.dataSource.serverUrl},
+             {"background", a.background}};
+}
+
+void from_json(const json &j, ApplicationData &a) {
+    a.dataSource.sourceType = static_cast<dbInterfaceType>(j.at("dataSource").get<int>());
+    a.dataSource.dbUrl = j.at("dbUrl").get<std::string>();
+    a.dataSource.dbUsername = j.at("dbUsername").get<std::string>();
+    a.dataSource.dbPassword = j.at("dbPassword").get<std::string>();
+    a.dataSource.serverUrl = j.at("serverUrl").get<std::string>();
+    a.background = j.at("background").get<int32_t>();
+}
+
 // IO Helpers -------------------------------
 bool ControlData::SaveControlData(const std::string &filename) {
     std::ofstream file(filename);
@@ -75,6 +94,7 @@ bool ControlData::SaveControlData(const std::string &filename) {
     json j;
     j["simParameters"] = sim.parameters.load();
     j["engine"] = engine;
+    j["app"] = app;
 
     file << j.dump(4);
     return true;
@@ -95,6 +115,10 @@ bool ControlData::LoadControlData(const std::string &filename) {
 
     if (j.contains("engine")) {
         from_json(j["engine"], engine);
+    }
+
+    if (j.contains("app")) {
+        from_json(j["app"], app);
     }
 
     return true;
