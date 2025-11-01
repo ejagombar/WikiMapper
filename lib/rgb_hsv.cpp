@@ -4,7 +4,9 @@
 #include "./rgb_hsv.hpp"
 
 RGBColor hsv2rgb(const float h, const float s, const float v) {
-    float r, g, b = 0.0f;
+    float r = 0.0f;
+    float g = 0.0f;
+    float b = 0.0f;
 
     int i = floor(h * 6);
     float f = h * 6 - i;
