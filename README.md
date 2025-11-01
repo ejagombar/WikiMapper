@@ -10,7 +10,7 @@ A real-time 3D graph visualization tool for exploring Wikipedia page connections
 
  <img width="1937" height="1134" alt="WikiMapper Screenshot" src="https://github.com/user-attachments/assets/f7c7f4b2-435a-440b-917a-571d2dc7a67d" />
 
-[![Wideo Demo](https://img.youtube.com/vi/PC5q615khHg/0.jpg)](https://www.youtube.com/watch?v=PC5q615khHg)
+[Demo Video](https://www.youtube.com/watch?v=PC5q615khHg)
 
 ## Installation
 
@@ -33,28 +33,32 @@ All dependencies are automatically fetched by CMake:
 
 ### Build Instructions (Linux)
 
+
 ```bash
+# Install dependencies (Example: Ubuntu)
+sudo apt-get install libx11-dev xorg-dev libglu1-mesa-dev
+
 # Clone the repository
-git clone https://github.com/ejagombar/WikiMapper.git && cd wikimapper
+git clone https://github.com/ejagombar/WikiMapper.git && cd WikiMapper
 
 # Create build directory
-mkdir build
+mkdir build && cd build
 
 # Configure environment
-cmake --preset=default
+cmake ..
 
 # Build project
-cmake --build build
+cmake --build .
 
 # Run the application
-./build/WikiMapperExplorer
+./WikiMapperExplorer
 ```
 
 ### Build Instructions (Windows)
 
 ```bash
 # Clone the repository
-git clone https://github.com/ejagombar/WikiMapper.git && cd wikimapper
+git clone https://github.com/ejagombar/WikiMapper.git && cd WikiMapper
 
 # Create build directory
 mkdir build
