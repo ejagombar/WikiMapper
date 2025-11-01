@@ -14,7 +14,6 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
-#include <json/json.h>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -60,7 +59,7 @@ int main() {
 
     initializeLogger(true);
 
-    globalLogger->info("WikiMapper starting");
+    globalLogger->info("WikiMapper SStarting");
 
     if (controlData.LoadControlData(SETTINGS_FILE)) {
         globalLogger->info("Loaded settings");

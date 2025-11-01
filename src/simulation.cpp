@@ -8,7 +8,6 @@
 #include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
-#include <json/json.h>
 #include <optional>
 #include <random>
 #include <string>
@@ -510,9 +509,9 @@ void GraphEngine::graphPositionSimulation() {
 }
 
 void GraphEngine::generateRealData(GS::Graph &graph) {
-
-    graph.LoadBinary("physics.wiki"); // Use local data for demo
-    return;
+    if (graph.LoadBinary("physics.wiki")) {
+        return;
+    }
 
     std::vector<LinkedPage> linkedPages;
 
