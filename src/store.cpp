@@ -135,7 +135,6 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &pageNa
 
     try {
         json data = ExecuteCypherQuery(cypher, {{"name", pageName}});
-        globalLogger->error("{} ", data.dump());
         return ParsePagesFromResult(data);
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkedPages failed: " + std::string(e.what()));
