@@ -2,54 +2,58 @@
 #include "./application.hpp"
 #include "./logger.hpp"
 #include "controlData.hpp"
+#include <mutex>
 #include <unistd.h>
 
-const auto sleepInterval = std::chrono::milliseconds(100);
+void ApplicationTasks::handle() {
 
-void handle_application_tasks(std::atomic<bool> &shouldTerminate, ControlData &controlData,
-                              std::shared_ptr<dBInterface> &dBInterface, std::mutex &dBInterfaceMutex) {
+    while (!m_shouldTerminate) {
+        std::this_thread::sleep_for(m_sleepInterval);
 
-    while (!shouldTerminate) {
-        std::this_thread::sleep_for(sleepInterval);
-
-        handle_database_source(controlData, dBInterface, dBInterfaceMutex);
+        handle_database_source();
+        handle_search_autocomplete();
     }
 }
 
-void handle_database_source(ControlData &controlData, std::shared_ptr<dBInterface> &dBInterface,
-                            std::mutex &dBInterfaceMutex) {
+void ApplicationTasks::handle_database_source() {
 
-    static dbInterfaceType oldDataSource;
+    std::lock_guard<std::mutex> lock(m_controlData.app.dataSourceMutex);
 
-    std::lock_guard<std::mutex> lock(controlData.app.dataSourceMutex);
+    if (m_controlData.app.dataSource.attemptDataConnection == true ||
+        m_controlData.app.dataSource.sourceType != m_oldDataSource) {
 
-    if (controlData.app.dataSource.attemptDataConnection == true ||
-        controlData.app.dataSource.sourceType != oldDataSource) {
+        m_controlData.app.dataSource.connectedToDataSource = false;
+        std::lock_guard<std::mutex> lock2(m_dBInterfaceMutex);
 
-        controlData.app.dataSource.connectedToDataSource = false;
-        std::lock_guard<std::mutex> lock(dBInterfaceMutex);
+        if (m_controlData.app.dataSource.sourceType == dbInterfaceType::DB) {
+            globalLogger->info("Database source switching to local DB", m_controlData.app.dataSource.dbUrl);
 
-        if (controlData.app.dataSource.sourceType == dbInterfaceType::DB) {
-            globalLogger->info("Database source switching to local DB", controlData.app.dataSource.dbUrl);
+            m_dBInterface = std::make_shared<Neo4jInterface>(m_controlData.app.dataSource.dbUrl);
 
-            dBInterface = std::make_shared<Neo4jInterface>(controlData.app.dataSource.dbUrl);
-
-            if (!dBInterface->Authenticate(controlData.app.dataSource.dbUsername,
-                                           controlData.app.dataSource.dbPassword)) {
-                globalLogger->info("Failed to Auth. URL: {}", controlData.app.dataSource.dbUrl);
+            if (!m_dBInterface->Authenticate(m_controlData.app.dataSource.dbUsername,
+                                             m_controlData.app.dataSource.dbPassword)) {
+                globalLogger->info("Failed to Auth. URL: {}", m_controlData.app.dataSource.dbUrl);
             }
 
-        } else if (controlData.app.dataSource.sourceType == dbInterfaceType::HTTP) {
-            globalLogger->info("Database source switching to HTTP server", controlData.app.dataSource.dbUrl);
+        } else if (m_controlData.app.dataSource.sourceType == dbInterfaceType::HTTP) {
+            globalLogger->info("Database source switching to HTTP server", m_controlData.app.dataSource.dbUrl);
 
-            dBInterface = std::make_shared<HttpInterface>(controlData.app.dataSource.serverUrl);
+            m_dBInterface = std::make_shared<HttpInterface>(m_controlData.app.dataSource.serverUrl);
         }
 
-        controlData.app.dataSource.connectedToDataSource = dBInterface->connected();
+        m_controlData.app.dataSource.connectedToDataSource = m_dBInterface->connected();
 
-        controlData.app.dataSource.attemptDataConnection = false;
-        globalLogger->info("Database connected {}", controlData.app.dataSource.connectedToDataSource);
+        m_controlData.app.dataSource.attemptDataConnection = false;
+        globalLogger->info("Database connected {}", m_controlData.app.dataSource.connectedToDataSource);
     }
 
-    oldDataSource = controlData.app.dataSource.sourceType;
+    m_oldDataSource = m_controlData.app.dataSource.sourceType;
+}
+
+void ApplicationTasks::handle_search_autocomplete() {
+    if (m_oldSearchString == m_controlData.graph.searchString) {
+        std::lock_guard<std::mutex> lock2(m_dBInterfaceMutex);
+    }
+
+    m_oldSearchString = m_controlData.graph.searchString;
 }
