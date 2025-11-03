@@ -94,11 +94,10 @@ int main() {
     graphBuf.PublishAll();
 
     RenderEngine renderEngine(graphBuf, controlData);
-
     std::thread t{&GraphEngine::graphPositionSimulation, std::ref(graphEngine)};
 
-    std::thread d{handle_application_tasks, std::ref(shouldTerminate), std::ref(controlData), std::ref(dBInterface),
-                  std::ref(dBInterfaceMutex)};
+    ApplicationTasks applicationTasks(shouldTerminate, controlData, dBInterface, dBInterfaceMutex);
+    std::thread d{&ApplicationTasks::handle, std::ref(applicationTasks)};
 
     renderEngine.Run();
 
