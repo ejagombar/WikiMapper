@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <string>
+#include <vector>
 
 struct SimParameters {
     float repulsionStrength = 6.0f;
@@ -32,6 +33,8 @@ struct SimulationControlData {
 
 struct GraphControlData {
     std::string searchString = "";
+    std::mutex searchStringMutex;
+
     std::atomic<bool> searching = false;
 
     std::atomic<int32_t> sourceNode = -1;
@@ -45,7 +48,7 @@ struct EngineControlData {
 
     std::atomic<bool> initGraphData = false;
 
-    float customVals[6] = {0.9f, 128.f, 0.2f, 0.007, 0.07, 0.017};
+    float customVals[6] = {0.9f, 128.f, 0.2f, 0.007f, 0.07f, 0.017f};
 };
 
 enum class dbInterfaceType { HTTP, DB };
@@ -68,6 +71,9 @@ struct ApplicationData {
     DataSource dataSource;
 
     int32_t background{0};
+
+    std::mutex searchSuggestionsMutex;
+    std::vector<std::string> searchSuggestions;
 };
 
 class ControlData {

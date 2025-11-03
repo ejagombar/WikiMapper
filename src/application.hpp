@@ -3,6 +3,7 @@
 
 #include "./controlData.hpp"
 #include "./store.hpp"
+#include <future>
 #include <memory>
 
 class ApplicationTasks {
@@ -25,6 +26,13 @@ class ApplicationTasks {
 
     dbInterfaceType m_oldDataSource{};
     std::string m_oldSearchString{};
+
+    struct PendingSearchAutocomplete {
+        std::future<std::vector<LinkedPage>> m_future;
+        std::string searchString;
+    };
+
+    std::optional<PendingSearchAutocomplete> m_pendingAutocomplete;
 
     static constexpr auto m_sleepInterval = std::chrono::milliseconds(20);
 };

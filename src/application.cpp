@@ -51,9 +51,54 @@ void ApplicationTasks::handle_database_source() {
 }
 
 void ApplicationTasks::handle_search_autocomplete() {
-    if (m_oldSearchString == m_controlData.graph.searchString) {
-        std::lock_guard<std::mutex> lock2(m_dBInterfaceMutex);
+
+    std::string searchString;
+    if (m_controlData.graph.searchStringMutex.try_lock()) {
+        searchString = m_controlData.graph.searchString;
+        m_controlData.graph.searchStringMutex.unlock();
+    } else {
+        return;
     }
 
-    m_oldSearchString = m_controlData.graph.searchString;
+    if (m_oldSearchString != searchString) {
+
+        if (!m_pendingAutocomplete.has_value()) {
+            auto future = std::async(std::launch::async, [searchString, this]() -> std::vector<LinkedPage> {
+                std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+                return m_dBInterface->SearchPages(searchString);
+            });
+
+            m_pendingAutocomplete = PendingSearchAutocomplete{std::move(future), searchString};
+
+            globalLogger->info("Searching autocomplete on " + searchString);
+        } else {
+            globalLogger->info("Autocomplete search already in progress");
+        }
+    }
+
+    if (m_pendingAutocomplete.has_value()) {
+        auto &autocomplete = m_pendingAutocomplete.value();
+
+        if (autocomplete.m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            try {
+                std::lock_guard<std::mutex> lock(m_controlData.app.searchSuggestionsMutex);
+
+                auto suggestedPages = autocomplete.m_future.get();
+
+                m_controlData.app.searchSuggestions.resize(suggestedPages.size());
+
+                std::transform(suggestedPages.begin(), suggestedPages.end(),
+                               std::back_inserter(m_controlData.app.searchSuggestions),
+                               [](const LinkedPage &p) { return p.pageName; });
+
+                globalLogger->info("Search completed on " + autocomplete.searchString);
+            } catch (const std::exception &e) {
+                globalLogger->error("Failed to autocomplete: " + std::string(e.what()));
+            }
+
+            m_pendingAutocomplete.reset();
+        }
+    }
+
+    m_oldSearchString = searchString;
 }

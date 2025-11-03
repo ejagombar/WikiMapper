@@ -358,7 +358,7 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
     std::vector<float> nodeDamping(nodeCount);
     for (size_t i = 0; i < nodeCount; ++i) {
         std::vector<uint32_t> neighbors = writeG.GetNeighboursIdx(i);
-        int connectionCount = neighbors.size();
+        uint32_t connectionCount = neighbors.size();
 
         float connectivityDamping = 0.7f + 0.25f * std::tanh(connectionCount / 5.0f);
         nodeDamping[i] = std::min(0.98f, connectivityDamping);
@@ -421,6 +421,26 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
     }
 
+    int32_t sourceNode = m_controlData.graph.sourceNode.load(std::memory_order_relaxed);
+    if (sourceNode >= 0) {
+        m_controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
+
+        if (!m_pendingExpansion.has_value()) {
+            std::string nodeName = readGraph->nodes.titles.at(sourceNode);
+
+            auto future = std::async(std::launch::async, [nodeName, this]() -> std::vector<LinkedPage> {
+                std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+                return m_dB->GetLinkedPages(toLower(nodeName));
+            });
+
+            m_pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
+
+            globalLogger->info("Started async node expansion for: " + nodeName);
+        } else {
+            globalLogger->info("Node expansion already in progress, ignoring request");
+        }
+    }
+
     if (m_pendingExpansion.has_value()) {
         auto &expansion = m_pendingExpansion.value();
 
@@ -450,26 +470,6 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             }
 
             m_pendingExpansion.reset();
-        }
-    }
-
-    int32_t sourceNode = m_controlData.graph.sourceNode.load(std::memory_order_relaxed);
-    if (sourceNode >= 0) {
-        m_controlData.graph.sourceNode.store(-1, std::memory_order_relaxed);
-
-        if (!m_pendingExpansion.has_value()) {
-            std::string nodeName = readGraph->nodes.titles.at(sourceNode);
-
-            auto future = std::async(std::launch::async, [nodeName, this]() -> std::vector<LinkedPage> {
-                std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
-                return m_dB->GetLinkedPages(toLower(nodeName));
-            });
-
-            m_pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
-
-            globalLogger->info("Started async node expansion for: " + nodeName);
-        } else {
-            globalLogger->info("Node expansion already in progress, ignoring request");
         }
     }
 
@@ -571,9 +571,10 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
 }
 
 void GraphEngine::search(GS::Graph &graph, std::string query) {
-    std::vector<LinkedPage> linkedPages;
+    std::vector<LinkedPage> linkedPages{};
 
     std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+
     linkedPages = m_dB->GetLinkedPages(query);
 
     auto x = graph.AddNode(query.c_str());

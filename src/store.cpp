@@ -17,6 +17,8 @@ void setClientTimeoutMs(std::unique_ptr<httplib::Client> &m_httpClient, uint32_t
 
 Neo4jInterface::Neo4jInterface(const std::string url) { m_httpClient = std::make_unique<httplib::Client>(url); }
 
+Neo4jInterface::~Neo4jInterface() {};
+
 bool Neo4jInterface::connected() {
     try {
         const std::string testQuery = "RETURN 1 AS test";
@@ -205,6 +207,48 @@ std::vector<LinkedPage> Neo4jInterface::GetRandomPages(uint32_t count) {
     }
 }
 
+std::vector<LinkedPage> Neo4jInterface::SearchPages(const std::string &queryString) {
+    std::vector<LinkedPage> pages;
+
+    if (!m_connected || queryString.empty()) {
+        return pages;
+    }
+
+    try {
+        const std::string cypher = "MATCH (p:PAGE) "
+                                   "WHERE p.pageName CONTAINS toLower($query) "
+                                   "RETURN p.pageName AS pageName, p.title AS title "
+                                   "LIMIT 25";
+
+        json data = ExecuteCypherQuery(cypher, {{"query", queryString}});
+
+        if (data.contains("results") && data["results"].is_array()) {
+            for (const auto &result : data["results"]) {
+                if (!result.contains("data") || !result["data"].is_array())
+                    continue;
+
+                for (const auto &entry : result["data"]) {
+                    if (!entry.contains("row") || !entry["row"].is_array())
+                        continue;
+
+                    const auto &row = entry["row"];
+                    if (row.size() >= 2) {
+                        pages.emplace_back(LinkedPage{
+                            row[0].get<std::string>(), // pageName
+                            row[1].get<std::string>()  // title
+                        });
+                    }
+                }
+            }
+        }
+
+    } catch (const std::exception &e) {
+        throw std::runtime_error("SearchPages failed: " + std::string(e.what()));
+    }
+
+    return pages;
+}
+
 // ------------------ HTTP Interface ------------------
 
 std::vector<LinkedPage> HttpParsePagesFromResult(const json &data) {
@@ -232,6 +276,8 @@ HttpInterface::HttpInterface(const std::string domain) {
 
     m_httpClient = std::make_unique<httplib::Client>(dom);
 }
+
+HttpInterface::~HttpInterface() {};
 
 json HttpInterface::GetHttpResults(const std::string &endpoint, uint32_t timeoutMs = 0) {
     if (timeoutMs > 0) {
@@ -337,4 +383,10 @@ bool HttpInterface::connected() {
     }
 
     return m_connected;
+}
+
+// TODO: IMPLEMENT!!
+std::vector<LinkedPage> HttpInterface::SearchPages(const std::string &queryString) {
+    std::vector<LinkedPage> pages;
+    return pages;
 }

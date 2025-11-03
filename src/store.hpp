@@ -1,7 +1,6 @@
 #ifndef STORE_H
 #define STORE_H
 
-#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -28,7 +27,7 @@ std::vector<LinkedPage> ParsePagesFromResult(const json &data);
 class dBInterface {
   public:
     dBInterface() = default;
-    ~dBInterface() = default;
+    virtual ~dBInterface() = default;
 
     virtual bool RequiresAuthentication() const = 0;
     virtual bool Authenticate([[maybe_unused]] const std::string &username,
@@ -41,12 +40,13 @@ class dBInterface {
     virtual std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) = 0;
     virtual std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) = 0;
     virtual std::vector<LinkedPage> GetRandomPages(uint32_t count) = 0;
+    virtual std::vector<LinkedPage> SearchPages(const std::string &queryString) = 0;
 };
 
 class Neo4jInterface : public dBInterface {
   public:
     Neo4jInterface(const std::string url);
-    ~Neo4jInterface() = default;
+    ~Neo4jInterface();
 
     bool RequiresAuthentication() const override { return true; }
     bool Authenticate(const std::string &username, const std::string &password) override;
@@ -56,6 +56,7 @@ class Neo4jInterface : public dBInterface {
     std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) override;
     std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
     std::vector<LinkedPage> GetRandomPages(uint32_t count) override;
+    std::vector<LinkedPage> SearchPages(const std::string &queryString) override;
 
   private:
     json ExecuteCypherQuery(const std::string &cypher, const json &parameters);
@@ -69,7 +70,7 @@ class Neo4jInterface : public dBInterface {
 class HttpInterface : public dBInterface {
   public:
     HttpInterface(const std::string domain);
-    ~HttpInterface() = default;
+    ~HttpInterface();
 
     bool RequiresAuthentication() const override { return false; }
 
@@ -78,6 +79,7 @@ class HttpInterface : public dBInterface {
     std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) override;
     std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
     std::vector<LinkedPage> GetRandomPages(uint32_t count) override;
+    std::vector<LinkedPage> SearchPages(const std::string &queryString) override;
 
   private:
     json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);

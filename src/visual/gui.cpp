@@ -3,8 +3,10 @@
 #include <cmath>
 #include <imgui.h>
 #include <iostream>
+#include <mutex>
 #include <string>
 
+#include "../../lib/ImSearch/imsearch.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -55,7 +57,7 @@ void GUI::setupTheme() {
     style.GrabMinSize = 12.0f;
 
     // Borders
-    style.WindowBorderSize = 0.0f;
+    style.WindowBorderSize = 1.0f;
     style.ChildBorderSize = 1.0f;
     style.FrameBorderSize = 0.0f;
     style.PopupBorderSize = 1.0f;
@@ -92,6 +94,10 @@ void GUI::setupTheme() {
     colors[ImGuiCol_Separator] = ColorScheme::Separator;
     colors[ImGuiCol_SeparatorHovered] = ColorScheme::Primary;
     colors[ImGuiCol_SeparatorActive] = ColorScheme::PrimaryActive;
+
+    auto &searchStyle = ImSearch::GetStyle();
+    searchStyle.Colors[ImSearchCol_TextHighlightedBg] = {0.0f, 0.0f, 0.0f, 0.0f};
+    searchStyle.Colors[ImSearchCol_TextHighlighted] = ColorScheme::Accent;
 }
 
 void GUI::subtitle(const char *text) {
@@ -129,7 +135,6 @@ void GUI::RenderFPSWidget() {
     ImGui::SetNextWindowSize(widgetSize, ImGuiCond_Always);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 20.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
     ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
 
@@ -142,14 +147,14 @@ void GUI::RenderFPSWidget() {
     ImGui::PushFont(m_subTitleFont);
     ImGui::SetCursorPos(ImVec2(12, 13));
     ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
-    ImGui::Text("%.0f", fps);
+    ImGui::Text("%.0f", static_cast<double>(fps));
     ImGui::PopStyleColor();
     ImGui::PopFont();
 
     ImGui::End();
 
     ImGui::PopStyleColor(2);
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(1);
 }
 
 void GUI::loadIconTextures() {
@@ -169,6 +174,7 @@ GUI::GUI(GLFWwindow *m_window, std::string font, ControlData &controlData) : m_c
     IMGUI_CHECKVERSION();
 
     ImGui::CreateContext();
+    ImSearch::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -201,6 +207,7 @@ bool GUI::Active() {
 GUI::~GUI() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImSearch::DestroyContext();
     ImGui::DestroyContext();
 };
 
@@ -279,17 +286,6 @@ void GUI::RenderMenu() {
 
     ImGui::Spacing();
     ImGui::Spacing();
-
-    // ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.3f, 0.3f, 1.0f));
-    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.4f, 0.4f, 1.0f));
-    // ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
-    // ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-    //
-    // if (ImGui::Button("Reset Simulation", ImVec2(205, 50))) {
-    // }
-    //
-    // ImGui::PopStyleVar();
-    // ImGui::PopStyleColor(3);
 
     separator();
     subtitle("Graph Data Source");
@@ -434,7 +430,7 @@ void GUI::RenderBottomLeftBox() {
         m_overrideActive = true;
         boxSize = ImVec2(250, 50);
 
-        ImVec2 boxPos = ImVec2(mainViewport->Pos.x, mainViewport->Pos.y + mainViewport->Size.y - boxSize.y - 20);
+        boxPos = ImVec2(mainViewport->Pos.x, mainViewport->Pos.y + mainViewport->Size.y - boxSize.y - 20);
         ImGui::SetNextWindowPos(boxPos, ImGuiCond_Always);
         ImGui::SetNextWindowSize(boxSize);
 
@@ -467,18 +463,23 @@ void GUI::RenderBottomLeftBox() {
     ImGui::PopStyleColor(2);
 }
 
+static std::vector<const char *> sSuggestions = {"Albert Einstein", "Isaac Newton",   "Marie Curie",
+                                                 "Charles Darwin",  "Nikola Tesla",   "Ada Lovelace",
+                                                 "Stephen Hawking", "Galileo Galilei"};
+
 void GUI::RenderSearchBar() {
     ImGuiViewport *mainViewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowViewport(mainViewport->ID);
 
-    ImVec2 searchBarSize = ImVec2(585, 68);
+    ImVec2 searchBarSize = ImVec2(585, 0);
     ImVec2 localPos = ImVec2(25, 25);
     ImVec2 searchBarPos = ImVec2(mainViewport->Pos.x + localPos.x, mainViewport->Pos.y + localPos.y);
 
-    // glow effect for searching
+    // Glow effect while searching
     ImVec4 searchBarColor = ColorScheme::Surface;
     if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
-        float pulse = (sin(m_settings.searchTimeElapsed * 2.0f) * 0.5f + 0.5f) * 0.3f;
+        float pulse =
+            static_cast<float>(sin(static_cast<double>(m_settings.searchTimeElapsed * 2.0f))) * 0.5f + 0.5f * 0.3f;
         searchBarColor = ImVec4(ColorScheme::Primary.x * pulse + searchBarColor.x * (1.0f - pulse),
                                 ColorScheme::Primary.y * pulse + searchBarColor.y * (1.0f - pulse),
                                 ColorScheme::Primary.z * pulse + searchBarColor.z * (1.0f - pulse), 0.95f);
@@ -487,52 +488,60 @@ void GUI::RenderSearchBar() {
 
     ImGui::SetNextWindowPos(searchBarPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(searchBarSize);
+    ImGui::SetNextWindowViewport(mainViewport->ID);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 20.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-
     ImGui::PushStyleColor(ImGuiCol_WindowBg, searchBarColor);
     ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
 
-    ImGui::Begin("##searchbar", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
+    static const char *selectedString = sSuggestions[0];
+    static bool suggestionsVisible = true;
 
-    // Search input
-    ImGui::PushItemWidth(450);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
-    ImGui::PushStyleColor(ImGuiCol_FrameBg, ColorScheme::SurfaceLight);
-    ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextPrimary);
+    ImGui::Begin("##searchpopup", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 
-    static char searchBuffer[128] = "";
-    bool enterPressed = ImGui::InputTextWithHint("##searchInput", "Search Wikipedia...", searchBuffer,
-                                                 IM_ARRAYSIZE(searchBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
-    m_controlData.graph.searchString = std::string(searchBuffer);
+    if (ImSearch::BeginSearch()) {
+        ImSearch::SearchBar("Search Wikipedia...");
 
-    ImGui::PopStyleColor(2);
-    ImGui::PopStyleVar(2);
-    ImGui::PopItemWidth();
+        if (ImGui::IsAnyItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            m_controlData.graph.searching.store(true);
+        }
 
-    ImGui::SameLine();
+        if (ImGui::IsItemEdited() || ImGui::IsItemClicked()) {
+            suggestionsVisible = true;
+        }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
-    ImGui::PushStyleColor(ImGuiCol_Button, ColorScheme::Primary);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::PrimaryHover);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
+        if (suggestionsVisible && m_controlData.app.searchSuggestionsMutex.try_lock()) {
+            for (const auto &suggestion : m_controlData.app.searchSuggestions) {
+                if (suggestion.size() == 0) {
+                    continue;
+                }
 
-    if (enterPressed || ImGui::Button("Search", ImVec2(100, 48))) {
-        m_controlData.graph.searching.store(true);
-        m_settings.searchTimeElapsed = 0.0f;
+                ImSearch::SearchableItem(suggestion.c_str(), [&](const char *name) {
+                    bool isSelected = (selectedString == name);
+                    if (ImGui::Selectable(name, isSelected)) {
+                        ImSearch::SetUserQuery(name);
+                        suggestionsVisible = false;
+                        m_controlData.graph.searching.store(true);
+                        selectedString = name;
+                    }
+                });
+            }
+            m_controlData.app.searchSuggestionsMutex.unlock();
+        }
+
+        if (ImGui::IsItemEdited()) {
+            std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
+            m_controlData.graph.searchString = ImSearch::GetUserQuery();
+        }
+
+        ImSearch::EndSearch();
     }
 
-    ImGui::PopStyleColor(3);
-    ImGui::PopStyleVar();
-
     ImGui::End();
-
-    ImGui::PopStyleVar(1);
     ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(1);
 
     ImVec2 actionPanelSize = ImVec2(126 + 68, 68);
     ImVec2 actionPanelPos = ImVec2(searchBarPos.x + searchBarSize.x + 15, searchBarPos.y);
@@ -541,7 +550,6 @@ void GUI::RenderSearchBar() {
     ImGui::SetNextWindowSize(actionPanelSize);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 20.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
     ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
 
@@ -582,7 +590,7 @@ void GUI::RenderSearchBar() {
 
     ImGui::SameLine(0, spacing);
 
-    if (ImGui::ImageButton("##background", (ImTextureID)m_backgroundIconTexture, ImVec2(32, 32))) {
+    if (ImGui::ImageButton("##background", static_cast<ImTextureID>(m_backgroundIconTexture), ImVec2(32, 32))) {
         m_controlData.engine.backgroundButtonToggle = !m_controlData.engine.backgroundButtonToggle;
     }
 
@@ -595,7 +603,7 @@ void GUI::RenderSearchBar() {
 
     ImGui::End();
 
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(1);
     ImGui::PopStyleColor(2);
 }
 
