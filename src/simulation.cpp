@@ -2,6 +2,7 @@
 #include "pointMaths.hpp"
 #include <algorithm>
 #include <atomic>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <future>
@@ -419,6 +420,8 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         writeGraph = m_graphBuf.GetWriteBuffer();
         m_controlData.graph.searching.store(false, std::memory_order_relaxed);
         m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+
+        readGraph->edges.InvalidateCSR();
     }
 
     int32_t sourceNode = m_controlData.graph.sourceNode.load(std::memory_order_relaxed);
@@ -462,6 +465,9 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
                 m_graphBuf.PublishAll();
                 readGraph = m_graphBuf.GetCurrent();
                 writeGraph = m_graphBuf.GetWriteBuffer();
+
+                readGraph->edges.InvalidateCSR();
+
                 dat.resetSimulation = true;
 
                 globalLogger->info("Completed async node expansion for: " + expansion.m_nodeName);
