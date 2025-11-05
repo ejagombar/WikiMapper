@@ -12,6 +12,8 @@ A real-time 3D graph visualization tool for exploring Wikipedia page connections
 
 [Demo Video](https://www.youtube.com/watch?v=PC5q615khHg)
 
+<img width="2687" height="1558" alt="Screenshot From 2025-11-05 22-37-14" src="https://github.com/user-attachments/assets/cdce727c-2330-49ef-87c1-9f4846a4f43d" />
+
 ## Installation
 
 ### Prerequisites
