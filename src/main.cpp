@@ -52,12 +52,19 @@ void initializeLogger(bool enableConsole) {
 }
 
 int main() {
+
+#ifdef NDEBUG
+    std::cout << "Running in release mode (asserts disabled)\n";
+#else
+    std::cout << "Running in debug mode (asserts enabled)\n";
+#endif
+
+    initializeLogger(true);
+
     ControlData controlData;
 
     std::mutex dBInterfaceMutex;
     std::shared_ptr<dBInterface> dBInterface;
-
-    initializeLogger(true);
 
     globalLogger->info("WikiMapper SStarting");
 

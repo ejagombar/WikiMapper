@@ -67,8 +67,8 @@ std::vector<uint32_t> EdgeData::GetNeighbours(uint32_t nodeIdx, uint32_t totalNo
         return {};
     }
 
-    uint32_t start = csrOffsets[nodeIdx];
-    uint32_t end = csrOffsets[nodeIdx + 1];
+    uint32_t start = csrOffsets.at(nodeIdx);
+    uint32_t end = csrOffsets.at(nodeIdx + 1);
 
     return std::vector<uint32_t>(csrNeighbours.begin() + start, csrNeighbours.begin() + end);
 }
@@ -83,8 +83,8 @@ void EdgeData::BuildCSR(uint32_t totalNodes) const {
     csrOffsets.resize(totalNodes + 1, 0);
 
     for (size_t i = 0; i < startIdxs.size(); ++i) {
-        uint32_t u = startIdxs[i];
-        uint32_t v = endIdxs[i];
+        uint32_t u = startIdxs.at(i);
+        uint32_t v = endIdxs.at(i);
 
         if (u < totalNodes)
             csrOffsets[u + 1]++;

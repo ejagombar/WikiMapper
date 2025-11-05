@@ -494,7 +494,7 @@ void GUI::RenderSearchBar() {
     ImGui::PushStyleColor(ImGuiCol_WindowBg, searchBarColor);
     ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
 
-    static const char *selectedString = sSuggestions[0];
+    static const char *selectedString;
     static bool suggestionsVisible = true;
 
     ImGui::Begin("##searchpopup", nullptr,
@@ -523,6 +523,7 @@ void GUI::RenderSearchBar() {
                     if (ImGui::Selectable(name, isSelected)) {
                         ImSearch::SetUserQuery(name);
                         suggestionsVisible = false;
+                        m_controlData.graph.searchString = name;
                         m_controlData.graph.searching.store(true);
                         selectedString = name;
                     }

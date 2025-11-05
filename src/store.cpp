@@ -29,7 +29,13 @@ bool Neo4jInterface::connected() {
         auto res = m_httpClient->Post("/db/neo4j/tx/commit", query.dump(), "application/json");
         setClientTimeoutMs(m_httpClient, m_timeout_ms);
 
-        if (!res || res->status != httplib::StatusCode::OK_200) {
+        if (!res) {
+            globalLogger->info("RETURNED (no response from Neo4j)");
+            m_connected = false;
+            return false;
+        }
+
+        if (res->status != httplib::StatusCode::OK_200) {
             globalLogger->info("RETURNED {}", res->status);
             m_connected = false;
             return false;
@@ -127,16 +133,17 @@ bool Neo4jInterface::Authenticate(const std::string &username, const std::string
     return false;
 }
 
-std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &pageName) {
+std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &queryString) {
     if (!m_connected) {
         return {};
     }
 
-    const std::string cypher = "MATCH (:PAGE {pageName: $name})-[]->(related:PAGE) "
+    const std::string cypher = "MATCH (p:PAGE)-[]->(related:PAGE) "
+                               "WHERE p.pageName = $query OR p.title = $query "
                                "RETURN related";
 
     try {
-        json data = ExecuteCypherQuery(cypher, {{"name", pageName}});
+        json data = ExecuteCypherQuery(cypher, {{"query", queryString}});
         return ParsePagesFromResult(data);
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkedPages failed: " + std::string(e.what()));

@@ -72,11 +72,11 @@ class EdgeData {
     std::vector<uint32_t> startIdxs;
     std::vector<uint32_t> endIdxs;
 
-  private:
     mutable std::vector<uint32_t> csrOffsets;
     mutable std::vector<uint32_t> csrNeighbours;
     mutable bool csrValid = false;
 
+  private:
     void MoveFrom(EdgeData &&other);
     void EnsureCSRBuilt(uint32_t totalNodes) const;
     void BuildCSR(uint32_t totalNodes) const;

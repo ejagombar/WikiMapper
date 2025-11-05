@@ -62,18 +62,19 @@ void ApplicationTasks::handle_search_autocomplete() {
 
     if (m_oldSearchString != searchString) {
 
-        if (!m_pendingAutocomplete.has_value()) {
-            auto future = std::async(std::launch::async, [searchString, this]() -> std::vector<LinkedPage> {
-                std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
-                return m_dBInterface->SearchPages(searchString);
-            });
-
-            m_pendingAutocomplete = PendingSearchAutocomplete{std::move(future), searchString};
-
-            globalLogger->info("Searching autocomplete on " + searchString);
-        } else {
-            globalLogger->info("Autocomplete search already in progress");
+        if (m_pendingAutocomplete.has_value()) {
+            globalLogger->info("Cancelling previous autocomplete for " + m_pendingAutocomplete->searchString);
+            m_pendingAutocomplete.reset();
         }
+
+        auto future = std::async(std::launch::async, [searchString, this]() -> std::vector<LinkedPage> {
+            std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+            return m_dBInterface->SearchPages(searchString);
+        });
+
+        m_pendingAutocomplete = PendingSearchAutocomplete{std::move(future), searchString};
+
+        globalLogger->info("Searching autocomplete on " + searchString);
     }
 
     if (m_pendingAutocomplete.has_value()) {
@@ -89,7 +90,7 @@ void ApplicationTasks::handle_search_autocomplete() {
 
                 std::transform(suggestedPages.begin(), suggestedPages.end(),
                                std::back_inserter(m_controlData.app.searchSuggestions),
-                               [](const LinkedPage &p) { return p.pageName; });
+                               [](const LinkedPage &p) { return p.title; });
 
                 globalLogger->info("Search completed on " + autocomplete.searchString);
             } catch (const std::exception &e) {
