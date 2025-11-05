@@ -51,7 +51,6 @@ void ApplicationTasks::handle_database_source() {
 }
 
 void ApplicationTasks::handle_search_autocomplete() {
-
     std::string searchString;
     if (m_controlData.graph.searchStringMutex.try_lock()) {
         searchString = m_controlData.graph.searchString;
@@ -61,7 +60,6 @@ void ApplicationTasks::handle_search_autocomplete() {
     }
 
     if (m_oldSearchString != searchString) {
-
         if (m_pendingAutocomplete.has_value()) {
             globalLogger->info("Cancelling previous autocomplete for " + m_pendingAutocomplete->searchString);
             m_pendingAutocomplete.reset();
@@ -73,8 +71,6 @@ void ApplicationTasks::handle_search_autocomplete() {
         });
 
         m_pendingAutocomplete = PendingSearchAutocomplete{std::move(future), searchString};
-
-        globalLogger->info("Searching autocomplete on " + searchString);
     }
 
     if (m_pendingAutocomplete.has_value()) {
@@ -91,8 +87,6 @@ void ApplicationTasks::handle_search_autocomplete() {
                 std::transform(suggestedPages.begin(), suggestedPages.end(),
                                std::back_inserter(m_controlData.app.searchSuggestions),
                                [](const LinkedPage &p) { return p.title; });
-
-                globalLogger->info("Search completed on " + autocomplete.searchString);
             } catch (const std::exception &e) {
                 globalLogger->error("Failed to autocomplete: " + std::string(e.what()));
             }

@@ -392,8 +392,34 @@ bool HttpInterface::connected() {
     return m_connected;
 }
 
-// TODO: IMPLEMENT!!
 std::vector<LinkedPage> HttpInterface::SearchPages(const std::string &queryString) {
     std::vector<LinkedPage> pages;
+
+    if (!m_connected || queryString.empty()) {
+        return pages;
+    }
+
+    try {
+        std::string encodedQuery;
+        for (char c : queryString) {
+            if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') {
+                encodedQuery += c;
+            } else {
+                char buf[4];
+                snprintf(buf, sizeof(buf), "%%%02X", static_cast<unsigned char>(c));
+                encodedQuery += buf;
+            }
+        }
+
+        const std::string endpoint = "/search-pages?query=" + encodedQuery;
+
+        json data = GetHttpResults(endpoint);
+
+        pages = HttpParsePagesFromResult(data);
+
+    } catch (const std::exception &e) {
+        throw std::runtime_error("SearchPages failed for query '" + queryString + "': " + std::string(e.what()));
+    }
+
     return pages;
 }

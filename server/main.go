@@ -257,6 +257,51 @@ func connectedHandler(client *Neo4jClient) http.HandlerFunc {
 	}
 }
 
+func searchPagesHandler(client *Neo4jClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query().Get("query")
+		if query == "" {
+			http.Error(w, "Missing query parameter", http.StatusBadRequest)
+			return
+		}
+
+		cypher := `
+            MATCH (p:PAGE)
+            WHERE toLower(p.pageName) CONTAINS toLower($query)
+            RETURN p.pageName AS pageName, p.title AS title
+            LIMIT 25
+        `
+		params := map[string]any{"query": query}
+
+		data, err := client.ExecuteCypher(cypher, params)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		// Parse manually because the return is scalar (no nested node map)
+		var pages []LinkedPage
+		results := data["results"].([]any)
+		if len(results) > 0 {
+			first := results[0].(map[string]any)
+			rows := first["data"].([]any)
+			for _, r := range rows {
+				row := r.(map[string]any)
+				values := row["row"].([]any)
+				if len(values) >= 2 {
+					pages = append(pages, LinkedPage{
+						PageName: values[0].(string),
+						Title:    values[1].(string),
+					})
+				}
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(pages)
+	}
+}
+
 func main() {
 	neo4jURL := os.Getenv("NEO4J_URL")
 	username := os.Getenv("NEO4J_USER")
@@ -275,6 +320,7 @@ func main() {
 	mux.HandleFunc("/shortest-path", shortestPathHandler(client))
 	mux.HandleFunc("/random-pages", randomPagesHandler(client))
 	mux.HandleFunc("/connected", connectedHandler(client))
+	mux.HandleFunc("/search-pages", searchPagesHandler(client))
 
 	server := &http.Server{
 		Addr:    ":" + port,
