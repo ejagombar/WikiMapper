@@ -1,5 +1,5 @@
-#ifndef STORE_H
-#define STORE_H
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
 #include <cstdint>
 #include <memory>
@@ -8,12 +8,6 @@
 
 #include "../lib/json.hpp"
 #include <httplib.h>
-
-struct NodeStore {
-    uint32_t UID;
-    std::string name;
-    std::vector<uint32_t> linksTo;
-};
 
 struct LinkedPage {
     std::string pageName;

@@ -170,7 +170,7 @@ void GUI::loadIconTextures() {
     }
 }
 
-GUI::GUI(GLFWwindow *m_window, std::string font, ControlData &controlData) : m_controlData(controlData) {
+GUI::GUI(GLFWwindow *m_window, std::string font, ControlPlane &controlData) : m_controlData(controlData) {
     IMGUI_CHECKVERSION();
 
     ImGui::CreateContext();

@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include "controlData.hpp"
+#include "controlPlane.hpp"
 #include "logger.hpp"
 
 #include "simulation.hpp"
@@ -478,16 +478,6 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             m_pendingExpansion.reset();
         }
     }
-
-    // if (dat.resetSimulation) {
-    //     setupGraph(*writeGraph, false);
-    //     graphBuf.Publish();
-    //     readGraph = graphBuf.GetCurrent();
-    //     writeGraph = graphBuf.GetWriteBuffer();
-    //     dat.resetSimulation = false;
-    //     controlData.sim.store(dat, std::memory_order_relaxed);
-    //     globalLogger->info("Reset simulation");
-    // }
 }
 
 void GraphEngine::graphPositionSimulation() {

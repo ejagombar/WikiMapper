@@ -6,7 +6,7 @@
 #include <glad/glad.h>
 #include <glm/trigonometric.hpp>
 
-#include "../controlData.hpp"
+#include "../controlPlane.hpp"
 #include "../graph.hpp"
 #include "./camera.hpp"
 #include "./filter.hpp"
@@ -28,7 +28,7 @@
 // the 3d scene, and handling user input.
 class RenderEngine {
   public:
-    RenderEngine(GS::GraphTripleBuf &graphBuf, ControlData &controlData);
+    RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlData);
     ~RenderEngine();
     uint32_t Run();
 
@@ -146,7 +146,7 @@ class RenderEngine {
 
     ShaderData m_shader;
 
-    ControlData &m_controlData;
+    ControlPlane &m_controlData;
 
     Camera m_camera;
     GLFWwindow *m_window;

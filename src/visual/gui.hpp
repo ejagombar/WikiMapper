@@ -5,7 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <string>
 
-#include "../controlData.hpp"
+#include "../controlPlane.hpp"
 #include "../logger.hpp"
 #include "imgui.h"
 
@@ -18,7 +18,7 @@ struct GUISettings {
 // A wrapper of Dear ImGui to provide a graphical interface for Wikimapper.
 class GUI {
   public:
-    GUI(GLFWwindow *m_window, std::string font, ControlData &controlData);
+    GUI(GLFWwindow *m_window, std::string font, ControlPlane &controlData);
     ~GUI();
 
     void BeginFrame();
@@ -47,7 +47,7 @@ class GUI {
     std::string m_activeNodeTitle;
     std::string m_originNodeTitle;
 
-    ControlData &m_controlData;
+    ControlPlane &m_controlData;
     GUISettings m_settings;
     ImFont *m_defaultFont;
     ImFont *m_titleFont;

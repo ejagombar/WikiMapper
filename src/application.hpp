@@ -1,14 +1,14 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "./controlData.hpp"
-#include "./store.hpp"
+#include "./controlPlane.hpp"
+#include "./interface.hpp"
 #include <future>
 #include <memory>
 
 class ApplicationTasks {
   public:
-    ApplicationTasks(std::atomic<bool> &shouldTerminate, ControlData &controlData,
+    ApplicationTasks(std::atomic<bool> &shouldTerminate, ControlPlane &controlData,
                      std::shared_ptr<dBInterface> &dBInterface, std::mutex &dBInterfaceMutex)
         : m_shouldTerminate(shouldTerminate), m_controlData(controlData), m_dBInterface(dBInterface),
           m_dBInterfaceMutex(dBInterfaceMutex) {};
@@ -20,7 +20,7 @@ class ApplicationTasks {
     void handle_search_autocomplete();
 
     std::atomic<bool> &m_shouldTerminate;
-    ControlData &m_controlData;
+    ControlPlane &m_controlData;
     std::shared_ptr<dBInterface> m_dBInterface;
     std::mutex &m_dBInterfaceMutex;
 

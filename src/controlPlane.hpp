@@ -1,5 +1,5 @@
-#ifndef DEBUGSIM_H
-#define DEBUGSIM_H
+#ifndef CONTROLPLANE_H
+#define CONTROLPLANE_H
 
 #include <atomic>
 #include <cstdint>
@@ -76,7 +76,7 @@ struct ApplicationData {
     std::vector<std::string> searchSuggestions;
 };
 
-class ControlData {
+class ControlPlane {
   public:
     SimulationControlData sim;
     GraphControlData graph;

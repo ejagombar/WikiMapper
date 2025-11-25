@@ -1,10 +1,10 @@
 #include "application.hpp"
-#include "controlData.hpp"
+#include "controlPlane.hpp"
 #include "graph.hpp"
+#include "interface.hpp"
 #include "logger.hpp"
 #include "simulation.hpp"
 #include "spdlog/common.h"
-#include "store.hpp"
 #include "visual/engine.hpp"
 #include <atomic>
 #include <chrono>
@@ -61,7 +61,7 @@ int main() {
 
     initializeLogger(true);
 
-    ControlData controlData;
+    ControlPlane controlData;
 
     std::mutex dBInterfaceMutex;
     std::shared_ptr<dBInterface> dBInterface;

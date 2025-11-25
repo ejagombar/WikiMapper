@@ -1,6 +1,6 @@
 #include "./graph.hpp"
-#include "controlData.hpp"
-#include "store.hpp"
+#include "controlPlane.hpp"
+#include "interface.hpp"
 #include <future>
 #include <memory>
 #include <optional>
@@ -10,7 +10,7 @@
 
 class GraphEngine {
   public:
-    GraphEngine(GS::GraphTripleBuf &graphBuf, std::atomic<bool> &shouldTerminate, ControlData &controlData,
+    GraphEngine(GS::GraphTripleBuf &graphBuf, std::atomic<bool> &shouldTerminate, ControlPlane &controlData,
                 std::shared_ptr<dBInterface> &dBInterface, std::mutex &dBInterfaceMutex)
         : m_graphBuf(graphBuf), m_shouldTerminate(shouldTerminate), m_controlData(controlData), m_dB(dBInterface),
           m_dBInterfaceMutex(dBInterfaceMutex) {};
@@ -30,7 +30,7 @@ class GraphEngine {
 
     GS::GraphTripleBuf &m_graphBuf;
     std::atomic<bool> &m_shouldTerminate;
-    ControlData &m_controlData;
+    ControlPlane &m_controlData;
 
     std::shared_ptr<dBInterface> &m_dB;
     std::mutex &m_dBInterfaceMutex;

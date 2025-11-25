@@ -1,4 +1,4 @@
-#include "controlData.hpp"
+#include "controlPlane.hpp"
 #include "../lib/json.hpp"
 #include <fstream>
 #include <vector>
@@ -55,11 +55,11 @@ void from_json(const json &j, EngineControlData &e) {
 }
 
 // ControlData -------------------------------
-void to_json(json &j, const ControlData &c) {
+void to_json(json &j, const ControlPlane &c) {
     j = json{{"simParameters", c.sim.parameters.load()}, {"engine", c.engine}};
 }
 
-void from_json(const json &j, ControlData &c) {
+void from_json(const json &j, ControlPlane &c) {
     if (j.contains("simParameters"))
         c.sim.parameters.store(j.at("simParameters").get<SimParameters>());
     if (j.contains("engine"))
@@ -86,7 +86,7 @@ void from_json(const json &j, ApplicationData &a) {
 }
 
 // IO Helpers -------------------------------
-bool ControlData::SaveControlData(const std::string &filename) {
+bool ControlPlane::SaveControlData(const std::string &filename) {
     std::ofstream file(filename);
     if (!file.is_open())
         return false;
@@ -100,7 +100,7 @@ bool ControlData::SaveControlData(const std::string &filename) {
     return true;
 }
 
-bool ControlData::LoadControlData(const std::string &filename) {
+bool ControlPlane::LoadControlData(const std::string &filename) {
     std::ifstream file(filename);
     if (!file.is_open())
         return false;

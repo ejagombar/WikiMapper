@@ -27,7 +27,7 @@
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
 // and associated mutex is quite messy and a temporary solution. This shall be changed eventually.
-RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlData &controlData)
+RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlData)
     : m_controlData(controlData), m_graphBuf(graphBuf) {
 
     globalLogger->info("Initialising Engine");
