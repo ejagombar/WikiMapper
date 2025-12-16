@@ -87,8 +87,8 @@ json Neo4jInterface::ExecuteCypherQuery(const std::string &cypher, const json &p
     return data;
 }
 
-std::vector<LinkedPage> ParsePagesFromResult(const json &data) {
-    std::vector<LinkedPage> pages;
+std::vector<NodeData> ParsePagesFromResult(const json &data) {
+    std::vector<NodeData> pages;
 
     // Check for the top-level "results" array
     if (!data.contains("results") || !data["results"].is_array())
@@ -107,7 +107,7 @@ std::vector<LinkedPage> ParsePagesFromResult(const json &data) {
                 if (row.size() >= 1) {
                     std::string pageName = row[0].value("pageName", "");
                     std::string title = row[0].value("title", "");
-                    pages.emplace_back(LinkedPage{pageName, title});
+                    pages.emplace_back(NodeData{pageName, title});
                 }
             }
         }
@@ -133,7 +133,7 @@ bool Neo4jInterface::Authenticate(const std::string &username, const std::string
     return false;
 }
 
-std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &queryString) {
+std::vector<NodeData> Neo4jInterface::GetLinkedPages(const std::string &queryString) {
     if (!m_connected) {
         return {};
     }
@@ -151,7 +151,7 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkedPages(const std::string &queryS
     }
 }
 
-std::vector<LinkedPage> Neo4jInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
+std::vector<NodeData> Neo4jInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
     if (!m_connected) {
         return {};
     }
@@ -163,10 +163,10 @@ std::vector<LinkedPage> Neo4jInterface::FindShortestPath(const std::string &star
     try {
         json data = ExecuteCypherQuery(cypher, {{"startName", startPage}, {"endName", endPage}});
 
-        std::vector<LinkedPage> pathNodes;
+        std::vector<NodeData> pathNodes;
         const auto &nodes = data["results"][0]["data"][0]["row"][0];
         for (const auto &node : nodes) {
-            pathNodes.emplace_back(LinkedPage{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
+            pathNodes.emplace_back(NodeData{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
         }
         return pathNodes;
     } catch (const std::exception &e) {
@@ -175,7 +175,7 @@ std::vector<LinkedPage> Neo4jInterface::FindShortestPath(const std::string &star
     }
 }
 
-std::vector<LinkedPage> Neo4jInterface::GetLinkingPages(const std::string &pageName) {
+std::vector<NodeData> Neo4jInterface::GetLinkingPages(const std::string &pageName) {
     if (!m_connected) {
         return {};
     }
@@ -193,7 +193,7 @@ std::vector<LinkedPage> Neo4jInterface::GetLinkingPages(const std::string &pageN
     }
 }
 
-std::vector<LinkedPage> Neo4jInterface::GetRandomPages(uint32_t count) {
+std::vector<NodeData> Neo4jInterface::GetRandomPages(uint32_t count) {
     if (!m_connected) {
         return {};
     }
@@ -214,8 +214,8 @@ std::vector<LinkedPage> Neo4jInterface::GetRandomPages(uint32_t count) {
     }
 }
 
-std::vector<LinkedPage> Neo4jInterface::SearchPages(const std::string &queryString) {
-    std::vector<LinkedPage> pages;
+std::vector<NodeData> Neo4jInterface::SearchPages(const std::string &queryString) {
+    std::vector<NodeData> pages;
 
     if (!m_connected || queryString.empty()) {
         return pages;
@@ -240,7 +240,7 @@ std::vector<LinkedPage> Neo4jInterface::SearchPages(const std::string &queryStri
 
                     const auto &row = entry["row"];
                     if (row.size() >= 2) {
-                        pages.emplace_back(LinkedPage{
+                        pages.emplace_back(NodeData{
                             row[0].get<std::string>(), // pageName
                             row[1].get<std::string>()  // title
                         });
@@ -258,15 +258,15 @@ std::vector<LinkedPage> Neo4jInterface::SearchPages(const std::string &queryStri
 
 // ------------------ HTTP Interface ------------------
 
-std::vector<LinkedPage> HttpParsePagesFromResult(const json &data) {
-    std::vector<LinkedPage> pages;
+std::vector<NodeData> HttpParsePagesFromResult(const json &data) {
+    std::vector<NodeData> pages;
 
     if (!data.is_array())
         return pages;
 
     try {
         for (const auto &node : data) {
-            pages.emplace_back(LinkedPage{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
+            pages.emplace_back(NodeData{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
         }
     } catch (const json::exception &e) {
         throw std::runtime_error("Failed to parse node: " + std::string(e.what()));
@@ -323,7 +323,7 @@ json HttpInterface::GetHttpResults(const std::string &endpoint, uint32_t timeout
     return data;
 }
 
-std::vector<LinkedPage> HttpInterface::GetLinkedPages(const std::string &pageName) {
+std::vector<NodeData> HttpInterface::GetLinkedPages(const std::string &pageName) {
     if (!m_connected) {
         return {};
     }
@@ -336,7 +336,7 @@ std::vector<LinkedPage> HttpInterface::GetLinkedPages(const std::string &pageNam
     }
 }
 
-std::vector<LinkedPage> HttpInterface::GetLinkingPages(const std::string &pageName) {
+std::vector<NodeData> HttpInterface::GetLinkingPages(const std::string &pageName) {
     if (!m_connected) {
         return {};
     }
@@ -349,7 +349,7 @@ std::vector<LinkedPage> HttpInterface::GetLinkingPages(const std::string &pageNa
     }
 }
 
-std::vector<LinkedPage> HttpInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
+std::vector<NodeData> HttpInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
     if (!m_connected) {
         return {};
     }
@@ -363,7 +363,7 @@ std::vector<LinkedPage> HttpInterface::FindShortestPath(const std::string &start
     }
 }
 
-std::vector<LinkedPage> HttpInterface::GetRandomPages(uint32_t count) {
+std::vector<NodeData> HttpInterface::GetRandomPages(uint32_t count) {
     if (!m_connected) {
         return {};
     }
@@ -392,8 +392,8 @@ bool HttpInterface::connected() {
     return m_connected;
 }
 
-std::vector<LinkedPage> HttpInterface::SearchPages(const std::string &queryString) {
-    std::vector<LinkedPage> pages;
+std::vector<NodeData> HttpInterface::SearchPages(const std::string &queryString) {
+    std::vector<NodeData> pages;
 
     if (!m_connected || queryString.empty()) {
         return pages;

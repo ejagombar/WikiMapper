@@ -28,7 +28,7 @@ class ApplicationTasks {
     std::string m_oldSearchString{};
 
     struct PendingSearchAutocomplete {
-        std::future<std::vector<LinkedPage>> m_future;
+        std::future<std::vector<NodeData>> m_future;
         std::string searchString;
     };
 

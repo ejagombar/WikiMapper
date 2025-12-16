@@ -65,7 +65,7 @@ void ApplicationTasks::handle_search_autocomplete() {
             m_pendingAutocomplete.reset();
         }
 
-        auto future = std::async(std::launch::async, [searchString, this]() -> std::vector<LinkedPage> {
+        auto future = std::async(std::launch::async, [searchString, this]() -> std::vector<NodeData> {
             std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
             return m_dBInterface->SearchPages(searchString);
         });
@@ -86,7 +86,7 @@ void ApplicationTasks::handle_search_autocomplete() {
 
                 std::transform(suggestedPages.begin(), suggestedPages.end(),
                                std::back_inserter(m_controlData.app.searchSuggestions),
-                               [](const LinkedPage &p) { return p.title; });
+                               [](const NodeData &p) { return p.title; });
             } catch (const std::exception &e) {
                 globalLogger->error("Failed to autocomplete: " + std::string(e.what()));
             }

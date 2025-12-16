@@ -9,14 +9,24 @@
 #include "../lib/json.hpp"
 #include <httplib.h>
 
-struct LinkedPage {
+struct NodeData {
     std::string pageName;
     std::string title;
 };
 
+struct EdgeData {
+    std::string sourcePageName;
+    std::string targetPageName;
+};
+
+struct GraphUpdateData {
+    std::vector<NodeData> nodes;
+    std::vector<EdgeData> edges;
+};
+
 using json = nlohmann::json;
 
-std::vector<LinkedPage> ParsePagesFromResult(const json &data);
+std::vector<NodeData> ParsePagesFromResult(const json &data);
 
 class dBInterface {
   public:
@@ -30,11 +40,11 @@ class dBInterface {
     }
 
     virtual bool connected() = 0;
-    virtual std::vector<LinkedPage> GetLinkedPages(const std::string &queryString) = 0;
-    virtual std::vector<LinkedPage> GetLinkingPages(const std::string &queryString) = 0;
-    virtual std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) = 0;
-    virtual std::vector<LinkedPage> GetRandomPages(uint32_t count) = 0;
-    virtual std::vector<LinkedPage> SearchPages(const std::string &queryString) = 0;
+    virtual std::vector<NodeData> GetLinkedPages(const std::string &queryString) = 0;
+    virtual std::vector<NodeData> GetLinkingPages(const std::string &queryString) = 0;
+    virtual std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) = 0;
+    virtual std::vector<NodeData> GetRandomPages(uint32_t count) = 0;
+    virtual std::vector<NodeData> SearchPages(const std::string &queryString) = 0;
 };
 
 class Neo4jInterface : public dBInterface {
@@ -46,11 +56,11 @@ class Neo4jInterface : public dBInterface {
     bool Authenticate(const std::string &username, const std::string &password) override;
 
     virtual bool connected() override;
-    std::vector<LinkedPage> GetLinkedPages(const std::string &queryString) override;
-    std::vector<LinkedPage> GetLinkingPages(const std::string &queryString) override;
-    std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
-    std::vector<LinkedPage> GetRandomPages(uint32_t count) override;
-    std::vector<LinkedPage> SearchPages(const std::string &queryString) override;
+    std::vector<NodeData> GetLinkedPages(const std::string &queryString) override;
+    std::vector<NodeData> GetLinkingPages(const std::string &queryString) override;
+    std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
+    std::vector<NodeData> GetRandomPages(uint32_t count) override;
+    std::vector<NodeData> SearchPages(const std::string &queryString) override;
 
   private:
     json ExecuteCypherQuery(const std::string &cypher, const json &parameters);
@@ -69,11 +79,11 @@ class HttpInterface : public dBInterface {
     bool RequiresAuthentication() const override { return false; }
 
     virtual bool connected() override;
-    std::vector<LinkedPage> GetLinkedPages(const std::string &pageName) override;
-    std::vector<LinkedPage> GetLinkingPages(const std::string &pageName) override;
-    std::vector<LinkedPage> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
-    std::vector<LinkedPage> GetRandomPages(uint32_t count) override;
-    std::vector<LinkedPage> SearchPages(const std::string &queryString) override;
+    std::vector<NodeData> GetLinkedPages(const std::string &pageName) override;
+    std::vector<NodeData> GetLinkingPages(const std::string &pageName) override;
+    std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
+    std::vector<NodeData> GetRandomPages(uint32_t count) override;
+    std::vector<NodeData> SearchPages(const std::string &queryString) override;
 
   private:
     json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);

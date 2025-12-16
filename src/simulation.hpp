@@ -21,7 +21,7 @@ class GraphEngine {
 
   private:
     struct PendingNodeExpansion {
-        std::future<std::vector<LinkedPage>> m_future;
+        std::future<std::vector<NodeData>> m_future;
         uint32_t m_sourceNodeId;
         std::string m_nodeName;
     };

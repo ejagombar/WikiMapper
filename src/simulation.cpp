@@ -431,7 +431,7 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         if (!m_pendingExpansion.has_value()) {
             std::string nodeName = readGraph->nodes.titles.at(sourceNode);
 
-            auto future = std::async(std::launch::async, [nodeName, this]() -> std::vector<LinkedPage> {
+            auto future = std::async(std::launch::async, [nodeName, this]() -> std::vector<NodeData> {
                 std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
                 return m_dB->GetLinkedPages(toLower(nodeName));
             });
@@ -509,7 +509,7 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
         return;
     }
 
-    std::vector<LinkedPage> linkedPages;
+    std::vector<NodeData> linkedPages;
 
     std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
 
@@ -567,7 +567,7 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
 }
 
 void GraphEngine::search(GS::Graph &graph, std::string query) {
-    std::vector<LinkedPage> linkedPages{};
+    std::vector<NodeData> linkedPages{};
 
     std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
 
