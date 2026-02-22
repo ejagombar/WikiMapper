@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-
 include(FetchContent)
 
 project(WikiMapperExplorer)
@@ -107,12 +106,30 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 if(UNIX AND NOT APPLE)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE atomic -static-libasan -static-libstdc++)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE atomic -static-libasan -static-libstdc++)
+    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
 endif()
 
 if(MSVC)
-  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W4 /Zi)
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W4 /Zi)
 else()
-  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
+    # target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -g -g3 -O3 -Wall -Wextra -pedantic)
+
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
+    -g3                 # Full debug info
+    -O0                 # Disable optimization (easier to debug)
+    -Wall -Wextra -Wpedantic
+    -Wshadow            # Warn if you shadow variables
+    -Wnon-virtual-dtor  # Warn if virtual class lacks virtual destructor
+    # -Wold-style-cast    # Catch C-style casts in C++
+    # -Wcast-align        # Warn on potential misaligned casts
+    -Wformat=2          # Stricter printf/scanf format checking
+ #   -Wconversion        # Implicit narrowing conversions
+    # -Wsign-conversion   # Signed/unsigned mixups
+    -Wnull-dereference  # Warn about null pointer deref
+ #   -Wdouble-promotion  # Warn if float -> double unexpectedly
+    -fno-omit-frame-pointer # Better backtraces
+)
+
 endif()
 

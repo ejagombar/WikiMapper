@@ -45,6 +45,9 @@ class dBInterface {
     virtual std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) = 0;
     virtual std::vector<NodeData> GetRandomPages(uint32_t count) = 0;
     virtual std::vector<NodeData> SearchPages(const std::string &queryString) = 0;
+
+    virtual GraphUpdateData GetLocalSubgraph(const std::string &centerPageName) = 0;
+    virtual GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames) = 0;
 };
 
 class Neo4jInterface : public dBInterface {
@@ -61,6 +64,9 @@ class Neo4jInterface : public dBInterface {
     std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
     std::vector<NodeData> GetRandomPages(uint32_t count) override;
     std::vector<NodeData> SearchPages(const std::string &queryString) override;
+
+    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName) override;
+    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames) override;
 
   private:
     json ExecuteCypherQuery(const std::string &cypher, const json &parameters);
@@ -84,6 +90,9 @@ class HttpInterface : public dBInterface {
     std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
     std::vector<NodeData> GetRandomPages(uint32_t count) override;
     std::vector<NodeData> SearchPages(const std::string &queryString) override;
+
+    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName) override { return {}; };
+    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames) override { return {}; };
 
   private:
     json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);

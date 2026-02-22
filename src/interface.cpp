@@ -7,6 +7,63 @@
 #include <string>
 #include <vector>
 
+GraphUpdateData ParseGraphResult(const json &data) {
+    GraphUpdateData update;
+
+    if (!data.contains("results") || !data["results"].is_array())
+        return update;
+
+    try {
+        for (const auto &result : data["results"]) {
+            for (const auto &entry : result["data"]) {
+                const auto &row = entry["row"];
+                // We assume the Cypher query always returns [sourceName, sourceTitle, targetName, targetTitle]
+                // or specific subsets. This parsing depends on the specific query columns below.
+
+                // Example row mapping based on "GetLocalSubgraph" query below:
+                // row[0] = sourceNode, row[1] = targetNode
+
+                if (row.size() >= 2) {
+                    std::string srcName = row[0]["pageName"];
+                    std::string srcTitle = row[0]["title"];
+                    std::string tgtName = row[1]["pageName"];
+                    std::string tgtTitle = row[1]["title"];
+
+                    update.nodes.push_back({srcName, srcTitle});
+                    update.nodes.push_back({tgtName, tgtTitle});
+                    update.edges.push_back({srcName, tgtName});
+                }
+            }
+        }
+    } catch (const std::exception &e) {
+        globalLogger->error("Parse Error: {}", e.what());
+    }
+    return update;
+}
+
+std::vector<NodeData> ParseGenericNodeResult(const json &data) {
+    std::vector<NodeData> results;
+
+    if (!data.contains("results") || !data["results"].is_array())
+        return results;
+
+    try {
+        for (const auto &result : data["results"]) {
+            for (const auto &entry : result["data"]) {
+                const auto &row = entry["row"];
+                // Expecting row[0] = pageName, row[1] = title
+                if (row.size() >= 2) {
+                    results.emplace_back(NodeData{row[0].get<std::string>(), row[1].get<std::string>()});
+                }
+            }
+        }
+    } catch (const std::exception &e) {
+        globalLogger->error("JSON Parse Error: {}", e.what());
+    }
+
+    return results;
+}
+
 // ------------------ Neo4J Interface ------------------
 
 void setClientTimeoutMs(std::unique_ptr<httplib::Client> &m_httpClient, uint32_t timeout) {
@@ -118,6 +175,44 @@ std::vector<NodeData> ParsePagesFromResult(const json &data) {
     return pages;
 }
 
+// Gets the center node and all its neighbors and the relationships
+GraphUpdateData Neo4jInterface::GetLocalSubgraph(const std::string &centerPageName) {
+    if (!m_connected)
+        return {};
+
+    const std::string cypher = "MATCH (n:PAGE {pageName: $name})-[r]-(m:PAGE) "
+                               "RETURN {pageName: n.pageName, title: n.title} as source, "
+                               "       {pageName: m.pageName, title: m.title} as target";
+
+    try {
+        json data = ExecuteCypherQuery(cypher, {{"name", centerPageName}});
+
+        globalLogger->error("Data: {}", data.dump());
+        return ParseGraphResult(data);
+    } catch (...) {
+        globalLogger->error("Failed to run local subgraph comand");
+        return {};
+    }
+}
+
+// Find all the links between the given nodes
+GraphUpdateData Neo4jInterface::GetInterconnections(const std::vector<std::string> &activeNodeNames) {
+    if (!m_connected || activeNodeNames.empty())
+        return {};
+
+    const std::string cypher = "MATCH (a:PAGE)-[:LINKS]->(b:PAGE) "
+                               "WHERE a.pageName IN $names AND b.pageName IN $names "
+                               "RETURN {pageName: a.pageName, title: a.title} as source, "
+                               "       {pageName: b.pageName, title: b.title} as target";
+
+    try {
+        json data = ExecuteCypherQuery(cypher, {{"names", activeNodeNames}});
+        return ParseGraphResult(data);
+    } catch (...) {
+        return {};
+    }
+}
+
 bool Neo4jInterface::Authenticate(const std::string &username, const std::string &password) {
     const std::string basicToken = base64::to_base64(username + ":" + password);
     const httplib::Headers headers = {{"Authorization", "Basic " + basicToken}};
@@ -152,25 +247,20 @@ std::vector<NodeData> Neo4jInterface::GetLinkedPages(const std::string &queryStr
 }
 
 std::vector<NodeData> Neo4jInterface::FindShortestPath(const std::string &startPage, const std::string &endPage) {
-    if (!m_connected) {
+    if (!m_connected)
         return {};
-    }
 
     const std::string cypher =
         "MATCH path = shortestPath((start:PAGE {pageName: $startName})-[*]-(end:PAGE {pageName: $endName})) "
-        "RETURN nodes(path) AS nodes";
+        "UNWIND nodes(path) AS n "
+        "RETURN n.pageName, n.title";
 
     try {
         json data = ExecuteCypherQuery(cypher, {{"startName", startPage}, {"endName", endPage}});
 
-        std::vector<NodeData> pathNodes;
-        const auto &nodes = data["results"][0]["data"][0]["row"][0];
-        for (const auto &node : nodes) {
-            pathNodes.emplace_back(NodeData{node["pageName"].get<std::string>(), node["title"].get<std::string>()});
-        }
-        return pathNodes;
+        return ParseGenericNodeResult(data);
     } catch (const std::exception &e) {
-        throw std::runtime_error("FindShortestPath failed: " + std::string(e.what()));
+        globalLogger->error("FindShortestPath failed: {}", e.what());
         return {};
     }
 }

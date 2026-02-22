@@ -1,4 +1,6 @@
 #include "../lib/rgb_hsv.hpp"
+#include "./graphLoader.cpp"
+#include "interface.hpp"
 #include "pointMaths.hpp"
 #include <algorithm>
 #include <atomic>
@@ -571,17 +573,23 @@ void GraphEngine::search(GS::Graph &graph, std::string query) {
 
     std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
 
-    linkedPages = m_dB->GetLinkedPages(query);
+    GraphLoader loader(&graph);
 
-    auto x = graph.AddNode(query.c_str());
+    GraphUpdateData data = m_dB->GetLocalSubgraph(query);
 
-    for (const auto &page : linkedPages) {
-        const uint32_t idx = graph.AddNode(page.title.c_str());
-        graph.AddEdge(x, idx);
-        graph.nodes.sizes[x]++;
-    }
+    globalLogger->info("Data size: {} and edge size: {}", data.edges.size(), data.nodes.size());
 
-    globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.titles.size());
+    // globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.titles.size());
+
+    loader.IngestData(data);
+
+    // auto x = graph.AddNode(query.c_str());
+    //
+    // for (const auto &page : linkedPages) {
+    //     const uint32_t idx = graph.AddNode(page.title.c_str());
+    //     graph.AddEdge(x, idx);
+    //     graph.nodes.sizes[x]++;
+    // }
 }
 
 void GraphEngine::setupGraph(GS::Graph &db, bool genData) {
