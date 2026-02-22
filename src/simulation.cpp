@@ -569,27 +569,19 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
 }
 
 void GraphEngine::search(GS::Graph &graph, std::string query) {
-    std::vector<NodeData> linkedPages{};
-
     std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
 
     GraphLoader loader(&graph);
 
     GraphUpdateData data = m_dB->GetLocalSubgraph(query);
-
-    globalLogger->info("Data size: {} and edge size: {}", data.edges.size(), data.nodes.size());
-
-    // globalLogger->info("Search query: ", query, " Number of connected nodes: ", graph.nodes.titles.size());
-
+    globalLogger->info("Local subgraph: {} nodes, {} edges", data.nodes.size(), data.edges.size());
     loader.IngestData(data);
 
-    // auto x = graph.AddNode(query.c_str());
-    //
-    // for (const auto &page : linkedPages) {
-    //     const uint32_t idx = graph.AddNode(page.title.c_str());
-    //     graph.AddEdge(x, idx);
-    //     graph.nodes.sizes[x]++;
-    // }
+    std::vector<std::string> activeNames = loader.GetActivePageNames();
+    GraphUpdateData interconnections = m_dB->GetInterconnections(activeNames);
+    globalLogger->info("Interconnections: {} nodes, {} edges", interconnections.nodes.size(),
+                       interconnections.edges.size());
+    loader.IngestData(interconnections);
 }
 
 void GraphEngine::setupGraph(GS::Graph &db, bool genData) {
@@ -599,6 +591,9 @@ void GraphEngine::setupGraph(GS::Graph &db, bool genData) {
     db.GenerateDefaultData();
 
     const uint32_t numOfElements = db.nodes.titles.size();
+    if (numOfElements == 0) {
+        return;
+    }
 
     uint32_t baseNodeIdx = db.GetTopNode();
     auto neighboursUID = db.GetNeighboursIdx(baseNodeIdx);
@@ -614,5 +609,8 @@ void GraphEngine::setupGraph(GS::Graph &db, bool genData) {
                                        static_cast<unsigned char>(col.b)};
         db.nodes.sizes[i] = std::sqrt(db.nodes.sizes[i]) * 5;
         db.nodes.edgeSizes[i] = db.nodes.sizes[i] * 0.7f;
+
+        uint32_t degree = db.GetNeighboursIdx(i).size();
+        db.nodes.masses[i] = 1.0f + std::sqrt(static_cast<float>(degree));
     }
 }

@@ -63,7 +63,7 @@ void EdgeData::Clear() {
 std::vector<uint32_t> EdgeData::GetNeighbours(uint32_t nodeIdx, uint32_t totalNodes) const {
     EnsureCSRBuilt(totalNodes);
 
-    if (nodeIdx >= csrOffsets.size() - 1) {
+    if (csrOffsets.size() <= 1 || nodeIdx >= csrOffsets.size() - 1) {
         return {};
     }
 

@@ -180,7 +180,8 @@ GraphUpdateData Neo4jInterface::GetLocalSubgraph(const std::string &centerPageNa
     if (!m_connected)
         return {};
 
-    const std::string cypher = "MATCH (n:PAGE {pageName: $name})-[r]-(m:PAGE) "
+    const std::string cypher = "MATCH (n:PAGE)-[r]-(m:PAGE) "
+                               "WHERE n.pageName = toLower($name) "
                                "RETURN {pageName: n.pageName, title: n.title} as source, "
                                "       {pageName: m.pageName, title: m.title} as target";
 
@@ -200,7 +201,7 @@ GraphUpdateData Neo4jInterface::GetInterconnections(const std::vector<std::strin
     if (!m_connected || activeNodeNames.empty())
         return {};
 
-    const std::string cypher = "MATCH (a:PAGE)-[:LINKS]->(b:PAGE) "
+    const std::string cypher = "MATCH (a:PAGE)-[]->(b:PAGE) "
                                "WHERE a.pageName IN $names AND b.pageName IN $names "
                                "RETURN {pageName: a.pageName, title: a.title} as source, "
                                "       {pageName: b.pageName, title: b.title} as target";
