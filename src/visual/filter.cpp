@@ -62,6 +62,7 @@ void Blur::initSizeDependantBuffers() {
     // Setup original framebuffer and texture to capture the scene.
     glGenFramebuffers(1, &m_originalFBO);
     glGenTextures(1, &m_originalTexture);
+    glGenRenderbuffers(1, &m_rboOriginalDepth);
 
     glBindTexture(GL_TEXTURE_2D, m_originalTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenSize.x, m_screenSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -70,6 +71,10 @@ void Blur::initSizeDependantBuffers() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_originalFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_originalTexture, 0);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, m_rboOriginalDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenSize.x, m_screenSize.y);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboOriginalDepth);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("FILTER::FRAMEBUFFER:: Original framebuffer is not complete!");
@@ -139,6 +144,7 @@ void Blur::Display() {
 Blur::~Blur() {
     glDeleteFramebuffers(1, &m_originalFBO);
     glDeleteTextures(1, &m_originalTexture);
+    glDeleteRenderbuffers(1, &m_rboOriginalDepth);
     glDeleteFramebuffers(2, m_blurFBO);
     glDeleteTextures(2, m_blurTexture);
     glDeleteRenderbuffers(2, m_rboDepth);

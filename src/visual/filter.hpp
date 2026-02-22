@@ -35,7 +35,7 @@ class Blur {
 
     GLuint m_blurFBO[2], m_blurTexture[2]; // Horizontal and Vertical blur
     GLuint m_rboDepth[2];
-    GLuint m_originalFBO, m_originalTexture; // New: Stores the original frame buffer before blur
+    GLuint m_originalFBO, m_originalTexture, m_rboOriginalDepth; // Stores the original frame buffer before blur
 
     GLuint m_quadVAO;
     GLuint m_quadVBO;

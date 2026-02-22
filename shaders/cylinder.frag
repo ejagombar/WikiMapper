@@ -85,11 +85,6 @@ void main()
     vec3 tmp_point = new_point - base;
     vec3 normal = normalize(tmp_point - axis * dot(tmp_point, axis));
 
-    vec2 clipZW = new_point.z * projection[2].zw + projection[3].zw;
-    float depth = 0.5 + 0.5 * clipZW.x / clipZW.y;
-
-    gl_FragDepth = depth;
-
     vec3 viewDir = normalize(vec3(cameraPosition) - new_point);
 
     vec4 final_color = vec4(0.0);

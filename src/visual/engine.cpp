@@ -478,13 +478,17 @@ void RenderEngine::loop() {
 
     m_text->RenderLabels(currentFrame);
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+
     m_shader.cylinder->Use();
     m_shader.cylinder->SetMat3("normalMat", normal);
     m_shader.cylinder->SetFloat("time", currentFrame);
     glBindVertexArray(m_VAOs[0]);
     glDrawArrays(GL_LINES, 0, m_graph->edges.startIdxs.size() * 2);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glDepthMask(GL_TRUE);
 
     m_gui->RenderSearchBar();
     m_gui->RenderBottomLeftBox();
