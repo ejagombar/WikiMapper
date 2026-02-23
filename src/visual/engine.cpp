@@ -103,6 +103,10 @@ void RenderEngine::setupShaders() {
     m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight),
                                             glm::ivec2(1000, 800), 20, false, .5f, 14, 0.92f);
 
+    m_bloom = std::make_unique<Filter::Bloom>(glm::ivec2(m_scrWidth, m_scrHeight), 0.5f, 0.25f, 6, 1.5f);
+
+    initSceneFBO();
+
     m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom");
 
     m_shader.cameraMatricesUBO =
@@ -156,6 +160,37 @@ void RenderEngine::initEdgeBuffers() {
     glVertexAttribPointer(posAttr, 3, GL_FLOAT, GL_FALSE, sizeof(EdgeData), reinterpret_cast<void *>(edgePosOffset));
 
     glBindVertexArray(0);
+}
+
+void RenderEngine::initSceneFBO() {
+    if (m_sceneFBO) {
+        glDeleteFramebuffers(1, &m_sceneFBO);
+        glDeleteTextures(1, &m_sceneTexture);
+        glDeleteRenderbuffers(1, &m_sceneDepthRBO);
+    }
+
+    glGenFramebuffers(1, &m_sceneFBO);
+    glGenTextures(1, &m_sceneTexture);
+    glGenRenderbuffers(1, &m_sceneDepthRBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
+
+    glBindTexture(GL_TEXTURE_2D, m_sceneTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_scrWidth, m_scrHeight, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_sceneTexture, 0);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, m_sceneDepthRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_scrWidth, m_scrHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_sceneDepthRBO);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        throw std::runtime_error("ENGINE::FRAMEBUFFER:: Scene framebuffer is not complete!");
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 // Initialise buffer with node data on the GPU
@@ -355,6 +390,12 @@ RenderEngine::~RenderEngine() {
     glDeleteVertexArrays(count, m_VAOs);
     glDeleteBuffers(count, m_VBOs);
 
+    if (m_sceneFBO) {
+        glDeleteFramebuffers(1, &m_sceneFBO);
+        glDeleteTextures(1, &m_sceneTexture);
+        glDeleteRenderbuffers(1, &m_sceneDepthRBO);
+    }
+
     glfwTerminate();
 }
 
@@ -436,8 +477,8 @@ void RenderEngine::loop() {
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    m_blur->Preprocess();
-
+    // Render entire scene to scene FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -458,6 +499,10 @@ void RenderEngine::loop() {
     m_shader.cameraMatricesUBO->Update(cameraMatrices);
 
     processMouseSelectorInput(m_window);
+
+    // Rebind scene FBO — selector input switches to its own FBO and restores to FBO 0
+    glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFBO);
+    glEnable(GL_DEPTH_TEST);
 
     m_shader.sphere->Use();
     m_shader.sphere->SetFloat("time", currentFrame);
@@ -489,18 +534,41 @@ void RenderEngine::loop() {
     glDrawArrays(GL_LINES, 0, m_graph->edges.startIdxs.size() * 2);
 
     glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
 
-    m_gui->RenderSearchBar();
-    m_gui->RenderBottomLeftBox();
+    // Bloom: extract bright pixels and blur at half-res
+    m_bloom->ExtractAndBlur(m_sceneTexture);
 
-    if (m_gui->GUIValues().debugMode) {
-        m_gui->RenderDebugMenu();
-    }
+    if (m_blur->GetEnabled()) {
+        // Composite bloom into blur's originalFBO so menu blur operates on bloomed scene
+        m_bloom->Composite(m_sceneTexture, m_blur->GetOriginalFBO());
 
-    m_blur->Display();
+        glBindFramebuffer(GL_FRAMEBUFFER, m_blur->GetOriginalFBO());
+        glEnable(GL_DEPTH_TEST);
 
-    if (m_state == stop) {
+        m_gui->RenderSearchBar();
+        m_gui->RenderBottomLeftBox();
+
+        if (m_gui->GUIValues().debugMode) {
+            m_gui->RenderDebugMenu();
+        }
+
+        m_blur->Display();
+
         m_gui->RenderMenu();
+    } else {
+        // Composite bloom directly to default framebuffer
+        m_bloom->Composite(m_sceneTexture, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glEnable(GL_DEPTH_TEST);
+
+        m_gui->RenderSearchBar();
+        m_gui->RenderBottomLeftBox();
+
+        if (m_gui->GUIValues().debugMode) {
+            m_gui->RenderDebugMenu();
+        }
     }
 
     m_gui->EndFrame();
@@ -601,11 +669,14 @@ void RenderEngine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window
     glViewport(0, 0, width, height);
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
+    m_bloom->ScreenResize(glm::ivec2(width, height));
     // m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
     m_picking->Resize(width, height);
 
     m_scrWidth = width;
     m_scrHeight = height;
+
+    initSceneFBO();
 }
 
 // Called when there is mouse movement

@@ -28,6 +28,8 @@ class Blur {
     void SetPasses(const uint32_t passes) { m_passes = passes; }
     void SetBrightness(const GLfloat brightnes) { m_brightnessModifier = brightnes; }
 
+    GLuint GetOriginalFBO() const { return m_originalFBO; }
+
   private:
     void initSizeDependantBuffers();
 

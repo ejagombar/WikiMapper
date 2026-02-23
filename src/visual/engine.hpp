@@ -9,6 +9,7 @@
 #include "../controlPlane.hpp"
 #include "../graph.hpp"
 #include "./camera.hpp"
+#include "./bloom.hpp"
 #include "./filter.hpp"
 #include "./gui.hpp"
 #include "./label.hpp"
@@ -116,6 +117,7 @@ class RenderEngine {
     void updateEdges(GS::Graph &graph);
 
     void setupShaders();
+    void initSceneFBO();
 
     void updateParticles(GS::Graph &graph);
     void updateGraphData();
@@ -152,6 +154,9 @@ class RenderEngine {
     GLFWwindow *m_window;
 
     std::unique_ptr<Filter::Blur> m_blur;
+    std::unique_ptr<Filter::Bloom> m_bloom;
+
+    GLuint m_sceneFBO = 0, m_sceneTexture = 0, m_sceneDepthRBO = 0;
     std::unique_ptr<LabelEngine> m_text;
     std::unique_ptr<Text2d> m_text2d;
     std::unique_ptr<Skybox> m_skybox;
