@@ -2,6 +2,8 @@
 #include "./application.hpp"
 #include "./logger.hpp"
 #include "controlPlane.hpp"
+#include <algorithm>
+#include <cctype>
 #include <mutex>
 #include <unistd.h>
 
@@ -82,8 +84,30 @@ void ApplicationTasks::handle_search_autocomplete() {
 
                 auto suggestedPages = autocomplete.m_future.get();
 
-                m_controlData.app.searchSuggestions.resize(suggestedPages.size());
+                // Rank: exact match first, then prefix match, then by title length
+                std::string lowerQuery = autocomplete.searchString;
+                std::transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(),
+                               [](unsigned char c) { return std::tolower(c); });
+                std::sort(suggestedPages.begin(), suggestedPages.end(),
+                          [&lowerQuery](const NodeData &a, const NodeData &b) {
+                              auto score = [&lowerQuery](const std::string &title) {
+                                  std::string lower = title;
+                                  std::transform(lower.begin(), lower.end(), lower.begin(),
+                                                 [](unsigned char c) { return std::tolower(c); });
+                                  if (lower == lowerQuery)
+                                      return 0;
+                                  if (lower.starts_with(lowerQuery))
+                                      return 1;
+                                  return 2;
+                              };
+                              int sa = score(a.title), sb = score(b.title);
+                              if (sa != sb)
+                                  return sa < sb;
+                              return a.title.size() < b.title.size();
+                          });
 
+                m_controlData.app.searchSuggestions.clear();
+                m_controlData.app.searchSuggestions.reserve(suggestedPages.size());
                 std::transform(suggestedPages.begin(), suggestedPages.end(),
                                std::back_inserter(m_controlData.app.searchSuggestions),
                                [](const NodeData &p) { return p.title; });

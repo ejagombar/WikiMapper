@@ -17,6 +17,7 @@ layout(std140) uniform GlobalUniforms {
 in float vWidth[];
 flat in float vTexIndex[];
 in float vOffsetDistance[];
+in float vScale[];
 
 out vec2 mapping;
 flat out float fTexIndex;
@@ -43,8 +44,8 @@ void main() {
 
     center -= cameraDir * vOffsetDistance[0] * 0.06;
 
-    vec3 offsetX = vWidth[0] * 0.5f * cameraRight * size;
-    vec3 offsetY = vHeight * cameraUp * size;
+    vec3 offsetX = vWidth[0] * vScale[0] * 0.5f * cameraRight * size;
+    vec3 offsetY = vHeight * vScale[0] * cameraUp * size;
 
     mat4 PV = projection * view;
 

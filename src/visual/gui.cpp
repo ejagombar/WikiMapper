@@ -282,6 +282,7 @@ void GUI::RenderMenu() {
     ImGui::Checkbox("V-Sync", &m_controlData.engine.vSync);
     ImGui::Checkbox("Show FPS", &m_settings.showFPS);
     ImGui::Checkbox("Debug Controls", &m_settings.debugMode);
+    ImGui::Checkbox("Size Nodes by Link Count", &m_controlData.engine.sizeByDegree);
     ImGui::PopStyleVar();
 
     ImGui::Spacing();
@@ -512,6 +513,11 @@ void GUI::RenderSearchBar() {
             suggestionsVisible = true;
         }
 
+        // Close suggestions when the user clicks outside the search window
+        if (suggestionsVisible && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered()) {
+            suggestionsVisible = false;
+        }
+
         if (suggestionsVisible && m_controlData.app.searchSuggestionsMutex.try_lock()) {
             for (const auto &suggestion : m_controlData.app.searchSuggestions) {
                 if (suggestion.size() == 0) {
@@ -663,6 +669,12 @@ void GUI::RenderDebugMenu() {
         ImGui::SliderFloat("Specular Strength", &colors[0], 0.0f, 1.0f, "%.3f");
         ImGui::SliderFloat("Shininess", &colors[1], 0.0f, 512.0f, "%.1f");
         ImGui::SliderFloat("Ambient", &colors[2], 0.0f, 1.0f, "%.3f");
+
+        ImGui::Spacing();
+        ImGui::Text("Labels");
+        ImGui::Separator();
+        ImGui::SliderFloat("Label Distance", &m_controlData.engine.labelDistanceThreshold, 10.0f, 500.0f, "%.0f");
+        ImGui::SliderInt("Max Labels", &m_controlData.engine.maxLabelCount, 10, 1000);
     }
 
     ImGui::PopStyleColor();

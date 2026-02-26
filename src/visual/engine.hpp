@@ -23,7 +23,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <math.h>
+#include <future>
 #include <memory>
+#include <unordered_set>
 
 // This Engine class encapsulates all the data and logic relating to creating a graphical window (with glfw), rendering
 // the 3d scene, and handling user input.
@@ -129,7 +131,13 @@ class RenderEngine {
 
     void computeHoverTransition(float deltaTime);
 
+    static std::vector<uint32_t> computeClosestNodeIndices(glm::vec3 camPos, float threshold, int maxCount,
+                                                            const std::vector<glm::vec3> &positions);
+    bool shouldRebuildLabelAtlas(const std::vector<uint32_t> &candidates) const;
+
     void handleDragging(double mouseX, double mouseY);
+
+    void recomputeEffectiveSizes(const GS::Graph &graph);
 
     unsigned int m_scrWidth = 1920;
     unsigned int m_scrHeight = 1080;
@@ -165,6 +173,7 @@ class RenderEngine {
 
     DraggingNode m_draggingNode = {};
     glm::vec3 m_draggingNodeStartPos;
+    glm::vec3 m_draggingOffset{0, 0, 0}; // camera-to-node vector at drag start, updated by mouse moves
 
     int32_t m_hoveredNodeID = -1;
 
@@ -174,6 +183,10 @@ class RenderEngine {
 
     std::vector<NodeData> m_nodeData;
     std::vector<EdgeData> m_edgeData;
+
+    std::vector<unsigned char> m_effectiveNodeSizes;
+    std::vector<unsigned char> m_effectiveEdgeSizes;
+    bool m_sizeByDegreeOld = false;
 
     static const uint8_t count = 2;
     unsigned int m_VAOs[count], m_VBOs[count];
@@ -186,6 +199,16 @@ class RenderEngine {
     int32_t m_selectedNode = -1;
 
     constexpr static const std::array<std::string_view, 3> backgroundAssets{"stars.jpg", "starless.jpg", "blue.jpg"};
+
+    // Label atlas state — two-phase async pipeline:
+    // phase 1 (m_candidateFuture): computes closest node indices off the render thread
+    // phase 2 (m_labelFuture):     builds the glyph atlas off the render thread
+    std::future<std::vector<uint32_t>> m_candidateFuture;
+    std::future<LabelAtlasData> m_labelFuture;
+    std::vector<uint32_t> m_currentLabelNodes;
+    std::vector<uint32_t> m_pendingLabelNodes;
+    float m_lastLabelRebuildTime = -999.0f;
+    static constexpr float LABEL_REBUILD_INTERVAL = 0.5f;
 };
 
 #endif

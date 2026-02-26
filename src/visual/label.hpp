@@ -29,6 +29,7 @@ struct LabelData {
     float width;
     float texIndex;
     float offsetDistance;
+    float scale;
 };
 
 typedef std::vector<uint8_t> Pixels;
@@ -36,7 +37,8 @@ typedef std::vector<uint8_t> Pixels;
 struct LabelAtlasData {
     int32_t atlasWidth;
     int32_t atlasHeight;
-    std::vector<Pixels> atlases;
+    uint32_t layerCount;
+    Pixels packedAtlas; // all layers flattened: layer0 pixels, layer1 pixels, ...
 };
 
 class LabelEngine {
@@ -50,7 +52,9 @@ class LabelEngine {
 
     std::vector<LabelData> m_activeLabels;
 
-    void UpdateLabelPositions(const std::vector<glm::vec3> &nodePositions, const std::vector<unsigned char> &nodeSizes);
+    void UpdateLabelPositions(const std::vector<uint32_t> &activeNodeIndices,
+                              const std::vector<glm::vec3> &allPositions,
+                              const std::vector<unsigned char> &allSizes);
 
     LabelAtlasData PrepareLabelAtlases(const std::vector<std::string> &nodeTitles);
     void UploadLabelAtlasesToGPU(const LabelAtlasData &data);

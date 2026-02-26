@@ -49,6 +49,11 @@ struct EngineControlData {
     std::atomic<bool> initGraphData = false;
 
     float customVals[6] = {0.9f, 128.f, 0.2f, 0.007f, 0.07f, 0.017f};
+
+    float labelDistanceThreshold = 100.0f;
+    int maxLabelCount = 500;
+
+    bool sizeByDegree = false;
 };
 
 enum class dbInterfaceType { HTTP, DB };

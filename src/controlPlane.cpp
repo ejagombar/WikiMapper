@@ -39,7 +39,10 @@ void to_json(json &j, const EngineControlData &e) {
              {"cameraFov", e.cameraFov},
              {"mouseSensitivity", e.mouseSensitivity},
              {"initGraphData", e.initGraphData.load()},
-             {"customVals", std::vector<float>(std::begin(e.customVals), std::end(e.customVals))}};
+             {"customVals", std::vector<float>(std::begin(e.customVals), std::end(e.customVals))},
+             {"labelDistanceThreshold", e.labelDistanceThreshold},
+             {"maxLabelCount", e.maxLabelCount},
+             {"sizeByDegree", e.sizeByDegree}};
 }
 
 void from_json(const json &j, EngineControlData &e) {
@@ -52,6 +55,9 @@ void from_json(const json &j, EngineControlData &e) {
     auto arr = j.at("customVals").get<std::vector<float>>();
     for (size_t i = 0; i < std::min(arr.size(), size_t(6)); ++i)
         e.customVals[i] = arr[i];
+    e.labelDistanceThreshold = j.value("labelDistanceThreshold", 100.0f);
+    e.maxLabelCount          = j.value("maxLabelCount", 500);
+    e.sizeByDegree           = j.value("sizeByDegree", false);
 }
 
 // ControlData -------------------------------

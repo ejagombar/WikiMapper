@@ -3,10 +3,12 @@ layout(location = 0) in vec3 aCoord;
 layout(location = 1) in float aWidth;
 layout(location = 2) in float aTexIndex;
 layout(location = 3) in float aOffsetDistance;
+layout(location = 4) in float aScale;
 
 out float vWidth;
 flat out float vTexIndex;
 out float vOffsetDistance;
+out float vScale;
 
 void main()
 {
@@ -14,4 +16,5 @@ void main()
     vWidth = aWidth;
     vTexIndex = aTexIndex;
     vOffsetDistance = aOffsetDistance;
+    vScale = aScale;
 }

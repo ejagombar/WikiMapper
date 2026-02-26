@@ -23,6 +23,7 @@
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
@@ -78,11 +79,20 @@ RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlDa
     updateNodes(*graph);
     updateEdges(*graph);
 
-    // m_text->SetupTextureAtlases(graph->nodes);
-    auto out = m_text->PrepareLabelAtlases(graph->nodes.titles);
-    m_text->UploadLabelAtlasesToGPU(out);
+    m_currentLabelNodes = computeClosestNodeIndices(m_camera.GetCameraPosition(),
+                                                    m_controlData.engine.labelDistanceThreshold,
+                                                    m_controlData.engine.maxLabelCount,
+                                                    graph->nodes.positions);
+    std::vector<std::string> filteredTitles;
+    filteredTitles.reserve(m_currentLabelNodes.size());
 
-    m_text->UpdateLabelPositions(graph->nodes.positions, graph->nodes.sizes);
+    for (uint32_t idx : m_currentLabelNodes) {
+        filteredTitles.push_back(graph->nodes.titles[idx]);
+    }
+
+    auto out = m_text->PrepareLabelAtlases(filteredTitles);
+    m_text->UploadLabelAtlasesToGPU(out);
+    m_text->UpdateLabelPositions(m_currentLabelNodes, graph->nodes.positions, m_effectiveNodeSizes);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
@@ -193,17 +203,46 @@ void RenderEngine::initSceneFBO() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void RenderEngine::recomputeEffectiveSizes(const GS::Graph &graph) {
+    const uint32_t N = static_cast<uint32_t>(graph.GetNodeCount());
+    m_effectiveNodeSizes.resize(N);
+    m_effectiveEdgeSizes.resize(N);
+
+    if (m_controlData.engine.sizeByDegree && N > 0) {
+        float maxSqrtDeg = 0.0f;
+
+        for (uint32_t i = 0; i < N; i++) {
+            maxSqrtDeg = std::max(maxSqrtDeg, graph.nodes.masses[i] - 1.0f);
+        }
+
+        if (maxSqrtDeg < 1.0f)
+            maxSqrtDeg = 1.0f;
+
+        constexpr unsigned char kMin = 5, kMax = 60;
+        for (uint32_t i = 0; i < N; i++) {
+            float norm = (graph.nodes.masses[i] - 1.0f) / maxSqrtDeg;
+            m_effectiveNodeSizes[i] = kMin + static_cast<unsigned char>(norm * (kMax - kMin));
+            m_effectiveEdgeSizes[i] = static_cast<unsigned char>(m_effectiveNodeSizes[i] * 0.7f);
+        }
+    } else {
+        m_effectiveNodeSizes.assign(graph.nodes.sizes.begin(), graph.nodes.sizes.end());
+        m_effectiveEdgeSizes.assign(graph.nodes.edgeSizes.begin(), graph.nodes.edgeSizes.end());
+    }
+}
+
 // Initialise buffer with node data on the GPU
 void RenderEngine::updateNodes(GS::Graph &graph) {
     globalLogger->info("Start updating nodes");
     uint32_t nodeCount = uint32_t(graph.nodes.titles.size());
     m_nodeData.resize(nodeCount);
 
+    recomputeEffectiveSizes(graph);
+
     for (uint32_t i = 0; i < nodeCount; i++) {
         m_nodeData[i] = {graph.nodes.colors[i].r,
                          graph.nodes.colors[i].g,
                          graph.nodes.colors[i].b,
-                         GLubyte(graph.nodes.sizes[i]),
+                         GLubyte(m_effectiveNodeSizes[i]),
                          {graph.nodes.positions[i].x, graph.nodes.positions[i].y, graph.nodes.positions[i].z}};
     }
 
@@ -229,13 +268,13 @@ void RenderEngine::updateEdges(GS::Graph &graph) {
         m_edgeData[2 * i] = {graph.nodes.colors[s].r,
                              graph.nodes.colors[s].g,
                              graph.nodes.colors[s].b,
-                             GLubyte(graph.nodes.edgeSizes[s]),
+                             GLubyte(m_effectiveEdgeSizes[s]),
                              {graph.nodes.positions[s].x, graph.nodes.positions[s].y, graph.nodes.positions[s].z}};
 
         m_edgeData[2 * i + 1] = {graph.nodes.colors[e].r,
                                  graph.nodes.colors[e].g,
                                  graph.nodes.colors[e].b,
-                                 GLubyte(graph.nodes.edgeSizes[e]),
+                                 GLubyte(m_effectiveEdgeSizes[e]),
                                  {graph.nodes.positions[e].x, graph.nodes.positions[e].y, graph.nodes.positions[e].z}};
     }
 
@@ -299,7 +338,7 @@ void RenderEngine::updateParticles(GS::Graph &graph) {
         dst[2] = src.z;
     }
 
-    m_text->UpdateLabelPositions(graph.nodes.positions, graph.nodes.sizes);
+    m_text->UpdateLabelPositions(m_currentLabelNodes, graph.nodes.positions, m_effectiveNodeSizes);
 
     uint32_t minEdgeCount = std::min(m_edgeData.size() / 2, graph.edges.startIdxs.size());
     for (uint32_t i = 0; i < minEdgeCount; i++) {
@@ -400,8 +439,6 @@ RenderEngine::~RenderEngine() {
 }
 
 uint32_t RenderEngine::Run() {
-    std::future<LabelAtlasData> fut;
-
     glfwSwapInterval(m_controlData.engine.vSync);
     bool vSyncOld = m_controlData.engine.vSync;
     bool backgroundButtonToggleOld = m_controlData.engine.backgroundButtonToggle;
@@ -422,21 +459,81 @@ uint32_t RenderEngine::Run() {
             backgroundButtonToggleOld = m_controlData.engine.backgroundButtonToggle;
         }
 
+        // On graph data change: clear current labels immediately, force rebuild
         if (m_controlData.engine.initGraphData.load(std::memory_order_relaxed)) {
             m_controlData.engine.initGraphData.store(false, std::memory_order_relaxed);
             GS::Graph *graph = m_graphBuf.GetCurrent();
-
             updateNodes(*graph);
             updateEdges(*graph);
-
-            fut = std::async(std::launch::async, [engine = m_text.get(), graph = graph->nodes.titles]() {
-                return engine->PrepareLabelAtlases(graph);
-            });
+            m_currentLabelNodes.clear();
+            m_lastLabelRebuildTime = -999.0f;
         }
 
-        if (fut.valid() && fut.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            LabelAtlasData atlasData = fut.get();
+        if (m_controlData.engine.sizeByDegree != m_sizeByDegreeOld) {
+            m_sizeByDegreeOld = m_controlData.engine.sizeByDegree;
+            GS::Graph *graph = m_graphBuf.GetCurrent();
+            recomputeEffectiveSizes(*graph);
+
+            uint32_t nodeCount = static_cast<uint32_t>(graph->GetNodeCount());
+
+            for (uint32_t i = 0; i < nodeCount; i++) {
+                m_nodeData[i].radius = m_effectiveNodeSizes[i];
+            }
+
+            glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[1]);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NodeData) * m_nodeData.size(), m_nodeData.data());
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+            uint32_t edgeCount = static_cast<uint32_t>(graph->edges.startIdxs.size());
+            for (uint32_t i = 0; i < edgeCount; i++) {
+                m_edgeData[2 * i].radius = m_effectiveEdgeSizes[graph->edges.startIdxs[i]];
+                m_edgeData[2 * i + 1].radius = m_effectiveEdgeSizes[graph->edges.endIdxs[i]];
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(EdgeData) * m_edgeData.size(), m_edgeData.data());
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+
+        // Phase 1 complete: candidate indices ready → check if atlas needs rebuild, then launch phase 2
+        if (m_candidateFuture.valid() &&
+            m_candidateFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            std::vector<uint32_t> candidates = m_candidateFuture.get();
+            if (shouldRebuildLabelAtlas(candidates)) {
+                m_pendingLabelNodes = candidates;
+                GS::Graph *graph = m_graphBuf.GetCurrent();
+                std::vector<std::string> titles;
+                titles.reserve(m_pendingLabelNodes.size());
+                for (uint32_t idx : m_pendingLabelNodes)
+                    titles.push_back(graph->nodes.titles[idx]);
+                m_labelFuture = std::async(std::launch::async, [engine = m_text.get(), t = std::move(titles)]() {
+                    return engine->PrepareLabelAtlases(t);
+                });
+            }
+        }
+
+        // Phase 2 complete: atlas built → upload to GPU
+        if (m_labelFuture.valid() &&
+            m_labelFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            LabelAtlasData atlasData = m_labelFuture.get();
             m_text->UploadLabelAtlasesToGPU(atlasData);
+            m_currentLabelNodes = m_pendingLabelNodes;
+        }
+
+        // Launch phase 1 (candidate selection) if throttle expired and pipeline is idle.
+        // Only positions are copied here — titles are copied later for the selected subset only.
+        float now = static_cast<float>(glfwGetTime());
+        if (!m_candidateFuture.valid() && !m_labelFuture.valid() &&
+            (now - m_lastLabelRebuildTime) > LABEL_REBUILD_INTERVAL) {
+            GS::Graph *graph = m_graphBuf.GetCurrent();
+            glm::vec3 camPos = m_camera.GetCameraPosition();
+            float threshold = m_controlData.engine.labelDistanceThreshold;
+            int maxCount = m_controlData.engine.maxLabelCount;
+            std::vector<glm::vec3> positions = graph->nodes.positions; // snapshot: one allocation + memcpy
+            m_candidateFuture = std::async(std::launch::async,
+                [camPos, threshold, maxCount, positions = std::move(positions)]() {
+                    return computeClosestNodeIndices(camPos, threshold, maxCount, positions);
+                });
+            m_lastLabelRebuildTime = now;
         }
 
         loop();
@@ -486,6 +583,14 @@ void RenderEngine::loop() {
     m_camera.ProcessMovement(deltaTime);
 
     glm::vec3 cameraPosition = m_camera.GetCameraPosition();
+
+    // Maintain fixed camera-to-node offset every frame so any camera movement
+    // (WASD, arrow keys, physics) propagates to the dragged node without
+    // requiring a mouse event.
+    if (m_draggingNode.id != -1) {
+        m_draggingNode.position = cameraPosition + m_draggingOffset;
+        m_controlData.sim.draggingNode.store(m_draggingNode, std::memory_order_relaxed);
+    }
     glm::mat4 projection = m_camera.GetProjectionMatrix();
     glm::mat4 view = m_camera.GetViewMatrix();
     glm::mat3 normal = m_camera.CalcNormalMatrix();
@@ -598,10 +703,9 @@ void RenderEngine::handleDragging(const double mouseX, const double mouseY) {
     if (fabs(denom) > 1e-6f) {
         float t = glm::dot(plane_point - ray_origin, plane_normal) / denom;
         glm::vec3 intersection = ray_origin + t * ray_world;
-        m_draggingNode.position = intersection;
+        // Store as camera-relative offset; loop() publishes the world position every frame
+        m_draggingOffset = intersection - ray_origin;
     }
-
-    m_controlData.sim.draggingNode.store(m_draggingNode, std::memory_order_relaxed);
 }
 
 // -------------------------------- Static Callbacks --------------------------------
@@ -710,6 +814,7 @@ void RenderEngine::handleClickHold(int action) {
     if (action == GLFW_PRESS && m_hoveredNodeID != -1) {
         m_draggingNode.id = m_hoveredNodeID;
         m_draggingNodeStartPos = m_graph->nodes.positions.at(m_hoveredNodeID);
+        m_draggingOffset = m_draggingNodeStartPos - m_camera.GetCameraPosition();
     } else if (action == GLFW_RELEASE) {
         m_draggingNode.id = -1;
     }
@@ -795,4 +900,63 @@ void RenderEngine::processEngineInput(GLFWwindow *window) {
         m_camera.ProcessKeyboard(CameraMovement::DOWN);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         m_camera.ProcessKeyboard(CameraMovement::SNEAK);
+
+    // Arrow keys move the camera. The dragged node follows automatically via the
+    // fixed camera-relative offset maintained in loop().
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        m_camera.ProcessKeyboard(CameraMovement::FORWARD);
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        m_camera.ProcessKeyboard(CameraMovement::BACKWARD);
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        m_camera.ProcessKeyboard(CameraMovement::LEFT);
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        m_camera.ProcessKeyboard(CameraMovement::RIGHT);
+}
+
+std::vector<uint32_t> RenderEngine::computeClosestNodeIndices(glm::vec3 camPos, float threshold, int maxCount,
+                                                               const std::vector<glm::vec3> &positions) {
+    const size_t N = positions.size();
+
+    std::vector<std::pair<float, uint32_t>> candidates;
+    candidates.reserve(N);
+    for (uint32_t i = 0; i < N; i++) {
+        float d = glm::distance(camPos, positions[i]);
+        if (d <= threshold)
+            candidates.emplace_back(d, i);
+    }
+    int take = std::min((int)candidates.size(), maxCount);
+    std::partial_sort(candidates.begin(), candidates.begin() + take, candidates.end());
+    candidates.resize(take);
+
+    std::vector<uint32_t> result;
+    result.reserve(take);
+    for (auto &[d, idx] : candidates)
+        result.push_back(idx);
+    return result;
+}
+
+bool RenderEngine::shouldRebuildLabelAtlas(const std::vector<uint32_t> &candidates) const {
+    int currSize = static_cast<int>(m_currentLabelNodes.size());
+    int candSize = static_cast<int>(candidates.size());
+    if (std::abs(currSize - candSize) > std::max(5, currSize / 10))
+        return true;
+    if (candidates.empty() && m_currentLabelNodes.empty())
+        return false;
+
+    std::unordered_set<uint32_t> currentSet(m_currentLabelNodes.begin(), m_currentLabelNodes.end());
+
+    // Always rebuild if the closest node has no label — ensures the node the
+    // camera is nearest to is never silently dropped by the hysteresis threshold.
+    if (!candidates.empty() && !currentSet.count(candidates[0])) {
+        return true;
+    }
+
+    int missing = 0;
+    for (uint32_t idx : candidates) {
+        if (!currentSet.count(idx) && ++missing > 5) {
+            return true;
+        }
+    }
+
+    return false;
 }
