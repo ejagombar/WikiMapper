@@ -85,12 +85,15 @@ void main()
     vec3 tmp_point = new_point - base;
     vec3 normal = normalize(tmp_point - axis * dot(tmp_point, axis));
 
-    vec3 viewDir = normalize(vec3(cameraPosition) - new_point);
+    // All geometry (new_point, normal, axis, U, V) is in camera space.
+    // Camera sits at the origin in camera space.
+    vec3 viewDir = normalize(-new_point);
 
     vec4 final_color = vec4(0.0);
 
-    // Global light contributions
-    vec3 lightDir = normalize(-globalLightDir);
+    // Transform global light direction into camera space before lighting
+    vec3 globalLightDir_cam = mat3(view) * globalLightDir;
+    vec3 lightDir = normalize(-globalLightDir_cam);
     final_color += ComputeColorForLight(
             normal, lightDir,
             vec4(0.12, 0.12, 0.12, 1.0) * vec4(globalLightColor, 1.0), // ambient
@@ -107,7 +110,9 @@ void main()
             continue;
         }
 
-        vec3 toLight = light.position - new_point;
+        // Transform world-space light position into camera space
+        vec3 light_pos_cam = vec3(view * vec4(light.position, 1.0));
+        vec3 toLight = light_pos_cam - new_point;
         float distance = length(toLight);
         vec3 lightDir = normalize(toLight);
 
