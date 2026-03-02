@@ -224,6 +224,15 @@ bool Neo4jInterface::Authenticate(const std::string &username, const std::string
 
     if (res && res->status == httplib::StatusCode::OK_200) {
         m_httpClient->set_default_headers(headers);
+
+        // Ensure a range index exists on pageName for fast prefix search
+        try {
+            ExecuteCypherQuery(
+                "CREATE INDEX page_pageName_idx IF NOT EXISTS FOR (n:PAGE) ON (n.pageName)", {});
+        } catch (const std::exception &e) {
+            globalLogger->warn("Could not create pageName index: {}", e.what());
+        }
+
         return true;
     }
     return false;
@@ -313,10 +322,11 @@ std::vector<NodeData> Neo4jInterface::SearchPages(const std::string &queryString
     }
 
     try {
-        const std::string cypher = "MATCH (p:PAGE) "
-                                   "WHERE p.pageName CONTAINS toLower($query) "
-                                   "RETURN p.pageName AS pageName, p.title AS title "
-                                   "LIMIT 25";
+        const std::string cypher =
+            "MATCH (p:PAGE) "
+            "WHERE p.pageName STARTS WITH toLower($query) "
+            "RETURN p.pageName AS pageName, p.title AS title "
+            "LIMIT 25";
 
         json data = ExecuteCypherQuery(cypher, {{"query", queryString}});
 
