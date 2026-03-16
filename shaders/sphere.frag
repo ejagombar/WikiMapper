@@ -53,7 +53,12 @@ void Impostor(out vec3 cameraPos, out vec3 cameraNormal)
     float posT = -B + sqrtDet;
     float negT = -B - sqrtDet;
 
-    float intersectT = min(posT, negT);
+    // When negT < 0 the camera is inside the sphere; use posT (exit point) to
+    // avoid picking a behind-camera intersection which inverts the surface normal
+    // and causes the billboard to render as a black square.
+    float intersectT = negT > 0.0 ? negT : posT;
+    if (intersectT < 0.0)
+        discard;
     cameraPos = rayDirection * intersectT;
     cameraNormal = normalize(cameraPos - cameraSpherePos);
 }

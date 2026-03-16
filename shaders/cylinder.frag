@@ -127,5 +127,9 @@ void main()
             );
     }
 
-    out_Color = final_color;
+    // Use the base color's alpha (0.3) rather than the lighting-accumulated alpha.
+    // Each ComputeColorForLight call adds to final_color.a through vec4 arithmetic,
+    // which can push alpha well above 1.0 when close to many lights, causing the
+    // blend equation to subtract from the background and render cylinders as black.
+    out_Color = vec4(final_color.rgb, color.a);
 }
