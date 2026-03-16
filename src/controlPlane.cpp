@@ -42,7 +42,8 @@ void to_json(json &j, const EngineControlData &e) {
              {"customVals", std::vector<float>(std::begin(e.customVals), std::end(e.customVals))},
              {"labelDistanceThreshold", e.labelDistanceThreshold},
              {"maxLabelCount", e.maxLabelCount},
-             {"sizeByDegree", e.sizeByDegree}};
+             {"sizeByDegree", e.sizeByDegree},
+             {"nodeSizeMultiplier", e.nodeSizeMultiplier}};
 }
 
 void from_json(const json &j, EngineControlData &e) {
@@ -58,6 +59,7 @@ void from_json(const json &j, EngineControlData &e) {
     e.labelDistanceThreshold = j.value("labelDistanceThreshold", 100.0f);
     e.maxLabelCount          = j.value("maxLabelCount", 500);
     e.sizeByDegree           = j.value("sizeByDegree", false);
+    e.nodeSizeMultiplier     = j.value("nodeSizeMultiplier", 1.0f);
 }
 
 // ControlData -------------------------------

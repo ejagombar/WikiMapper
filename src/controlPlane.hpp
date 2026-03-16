@@ -54,6 +54,7 @@ struct EngineControlData {
     int maxLabelCount = 500;
 
     bool sizeByDegree = false;
+    float nodeSizeMultiplier = 1.0f;
 };
 
 enum class dbInterfaceType { HTTP, DB };

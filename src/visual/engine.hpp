@@ -187,6 +187,7 @@ class RenderEngine {
     std::vector<unsigned char> m_effectiveNodeSizes;
     std::vector<unsigned char> m_effectiveEdgeSizes;
     bool m_sizeByDegreeOld = false;
+    float m_nodeSizeMultiplierOld = 1.0f;
 
     static const uint8_t count = 2;
     unsigned int m_VAOs[count], m_VBOs[count];

@@ -631,6 +631,11 @@ void GUI::RenderDebugMenu() {
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Background);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
 
+    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
+    ImVec2 center =
+        ImVec2(mainViewport->Pos.x + mainViewport->Size.x * 0.5f, mainViewport->Pos.y + mainViewport->Size.y * 0.5f);
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
     ImGui::Begin("Debug Controls", &m_settings.debugMode);
 
     ImGui::PushItemWidth(300.0f);
@@ -669,6 +674,11 @@ void GUI::RenderDebugMenu() {
         ImGui::SliderFloat("Specular Strength", &colors[0], 0.0f, 1.0f, "%.3f");
         ImGui::SliderFloat("Shininess", &colors[1], 0.0f, 512.0f, "%.1f");
         ImGui::SliderFloat("Ambient", &colors[2], 0.0f, 1.0f, "%.3f");
+
+        ImGui::Spacing();
+        ImGui::Text("Node Size");
+        ImGui::Separator();
+        ImGui::SliderFloat("Size Multiplier", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 10.0f, "%.2f");
 
         ImGui::Spacing();
         ImGui::Text("Labels");

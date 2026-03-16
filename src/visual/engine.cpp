@@ -79,10 +79,9 @@ RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlDa
     updateNodes(*graph);
     updateEdges(*graph);
 
-    m_currentLabelNodes = computeClosestNodeIndices(m_camera.GetCameraPosition(),
-                                                    m_controlData.engine.labelDistanceThreshold,
-                                                    m_controlData.engine.maxLabelCount,
-                                                    graph->nodes.positions);
+    m_currentLabelNodes =
+        computeClosestNodeIndices(m_camera.GetCameraPosition(), m_controlData.engine.labelDistanceThreshold,
+                                  m_controlData.engine.maxLabelCount, graph->nodes.positions);
     std::vector<std::string> filteredTitles;
     filteredTitles.reserve(m_currentLabelNodes.size());
 
@@ -227,6 +226,12 @@ void RenderEngine::recomputeEffectiveSizes(const GS::Graph &graph) {
     } else {
         m_effectiveNodeSizes.assign(graph.nodes.sizes.begin(), graph.nodes.sizes.end());
         m_effectiveEdgeSizes.assign(graph.nodes.edgeSizes.begin(), graph.nodes.edgeSizes.end());
+    }
+
+    float mult = m_controlData.engine.nodeSizeMultiplier;
+    for (uint32_t i = 0; i < N; i++) {
+        m_effectiveNodeSizes[i] = static_cast<unsigned char>(std::clamp(m_effectiveNodeSizes[i] * mult, 1.0f, 255.0f));
+        m_effectiveEdgeSizes[i] = static_cast<unsigned char>(std::clamp(m_effectiveEdgeSizes[i] * mult, 1.0f, 255.0f));
     }
 }
 
@@ -469,8 +474,10 @@ uint32_t RenderEngine::Run() {
             m_lastLabelRebuildTime = -999.0f;
         }
 
-        if (m_controlData.engine.sizeByDegree != m_sizeByDegreeOld) {
+        if (m_controlData.engine.sizeByDegree != m_sizeByDegreeOld ||
+            m_controlData.engine.nodeSizeMultiplier != m_nodeSizeMultiplierOld) {
             m_sizeByDegreeOld = m_controlData.engine.sizeByDegree;
+            m_nodeSizeMultiplierOld = m_controlData.engine.nodeSizeMultiplier;
             GS::Graph *graph = m_graphBuf.GetCurrent();
             recomputeEffectiveSizes(*graph);
 
@@ -494,7 +501,6 @@ uint32_t RenderEngine::Run() {
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
 
-        // Phase 1 complete: candidate indices ready → check if atlas needs rebuild, then launch phase 2
         if (m_candidateFuture.valid() &&
             m_candidateFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             std::vector<uint32_t> candidates = m_candidateFuture.get();
@@ -511,16 +517,12 @@ uint32_t RenderEngine::Run() {
             }
         }
 
-        // Phase 2 complete: atlas built → upload to GPU
-        if (m_labelFuture.valid() &&
-            m_labelFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        if (m_labelFuture.valid() && m_labelFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             LabelAtlasData atlasData = m_labelFuture.get();
             m_text->UploadLabelAtlasesToGPU(atlasData);
             m_currentLabelNodes = m_pendingLabelNodes;
         }
 
-        // Launch phase 1 (candidate selection) if throttle expired and pipeline is idle.
-        // Only positions are copied here — titles are copied later for the selected subset only.
         float now = static_cast<float>(glfwGetTime());
         if (!m_candidateFuture.valid() && !m_labelFuture.valid() &&
             (now - m_lastLabelRebuildTime) > LABEL_REBUILD_INTERVAL) {
@@ -529,8 +531,8 @@ uint32_t RenderEngine::Run() {
             float threshold = m_controlData.engine.labelDistanceThreshold;
             int maxCount = m_controlData.engine.maxLabelCount;
             std::vector<glm::vec3> positions = graph->nodes.positions; // snapshot: one allocation + memcpy
-            m_candidateFuture = std::async(std::launch::async,
-                [camPos, threshold, maxCount, positions = std::move(positions)]() {
+            m_candidateFuture =
+                std::async(std::launch::async, [camPos, threshold, maxCount, positions = std::move(positions)]() {
                     return computeClosestNodeIndices(camPos, threshold, maxCount, positions);
                 });
             m_lastLabelRebuildTime = now;
@@ -914,7 +916,7 @@ void RenderEngine::processEngineInput(GLFWwindow *window) {
 }
 
 std::vector<uint32_t> RenderEngine::computeClosestNodeIndices(glm::vec3 camPos, float threshold, int maxCount,
-                                                               const std::vector<glm::vec3> &positions) {
+                                                              const std::vector<glm::vec3> &positions) {
     const size_t N = positions.size();
 
     std::vector<std::pair<float, uint32_t>> candidates;
