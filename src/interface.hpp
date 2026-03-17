@@ -46,8 +46,8 @@ class dBInterface {
     virtual std::vector<NodeData> GetRandomPages(uint32_t count) = 0;
     virtual std::vector<NodeData> SearchPages(const std::string &queryString) = 0;
 
-    virtual GraphUpdateData GetLocalSubgraph(const std::string &centerPageName) = 0;
-    virtual GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames) = 0;
+    virtual GraphUpdateData GetLocalSubgraph(const std::string &centerPageName, int limit = 500) = 0;
+    virtual GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames, int limit = 500) = 0;
 };
 
 class Neo4jInterface : public dBInterface {
@@ -65,8 +65,8 @@ class Neo4jInterface : public dBInterface {
     std::vector<NodeData> GetRandomPages(uint32_t count) override;
     std::vector<NodeData> SearchPages(const std::string &queryString) override;
 
-    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName) override;
-    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames) override;
+    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName, int limit) override;
+    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames, int limit) override;
 
   private:
     json ExecuteCypherQuery(const std::string &cypher, const json &parameters);
@@ -91,8 +91,8 @@ class HttpInterface : public dBInterface {
     std::vector<NodeData> GetRandomPages(uint32_t count) override;
     std::vector<NodeData> SearchPages(const std::string &queryString) override;
 
-    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName) override { return {}; };
-    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames) override { return {}; };
+    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName, int limit) override { return {}; };
+    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames, int limit) override { return {}; };
 
   private:
     json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);

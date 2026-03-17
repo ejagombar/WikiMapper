@@ -1,6 +1,7 @@
 #include "./graph.hpp"
 #include "controlPlane.hpp"
 #include "interface.hpp"
+#include <chrono>
 #include <future>
 #include <memory>
 #include <optional>
@@ -26,7 +27,19 @@ class GraphEngine {
         std::string m_nodeName;
     };
 
+    struct SearchResult {
+        GraphUpdateData subgraph;
+        GraphUpdateData interconnections;
+    };
+
+    struct PendingSearch {
+        std::future<SearchResult> m_future;
+        std::string m_query;
+        std::chrono::steady_clock::time_point m_startTime;
+    };
+
     std::optional<PendingNodeExpansion> m_pendingExpansion;
+    std::optional<PendingSearch> m_pendingSearch;
 
     GS::GraphTripleBuf &m_graphBuf;
     std::atomic<bool> &m_shouldTerminate;
@@ -38,7 +51,6 @@ class GraphEngine {
     void updateGraphPositions(GS::Graph &writeG, const float dt, const SimulationControlData &simControlData);
     void processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat);
     void generateRealData(GS::Graph &graph);
-    void search(GS::Graph &graph, std::string query);
 };
 
 class BarnesHutTree {

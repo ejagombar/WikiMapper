@@ -204,24 +204,14 @@ void Graph::AddEdge(uint32_t idx1, uint32_t idx2) {
         return;
     }
 
-    // Do not add self links
-    if (idx1 == idx2) {
+    if (idx1 == idx2)
         return;
-    }
 
-    // Ensure the first idx is always lowest (will simplify things later on)
-    if (idx1 > idx2) {
+    if (idx1 > idx2)
         std::swap(idx1, idx2);
-    }
 
-    // Ensure the edge is not a duplicate
-    const size_t edgeCount = edges.startIdxs.size();
-    for (size_t i = 0; i < edgeCount; i++) {
-        if (edges.startIdxs[i] == idx1 && edges.endIdxs[i] == idx2) {
-            return;
-        }
-    }
-
+    // Callers that care about deduplication (e.g. GraphLoader) maintain their own
+    // O(1) set. The previous O(E) scan here made bulk ingestion O(E²).
     edges.AddEdge(idx1, idx2);
 }
 

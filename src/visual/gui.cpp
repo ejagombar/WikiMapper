@@ -681,6 +681,12 @@ void GUI::RenderDebugMenu() {
         ImGui::SliderFloat("Size Multiplier", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 10.0f, "%.2f");
 
         ImGui::Spacing();
+        ImGui::Text("Search");
+        ImGui::Separator();
+        ImGui::SliderInt("Result Limit", &m_controlData.engine.searchResultLimit, 0, 2000,
+                         m_controlData.engine.searchResultLimit == 0 ? "unlimited" : "%d");
+
+        ImGui::Spacing();
         ImGui::Text("Labels");
         ImGui::Separator();
         ImGui::SliderFloat("Label Distance", &m_controlData.engine.labelDistanceThreshold, 10.0f, 500.0f, "%.0f");

@@ -43,7 +43,8 @@ void to_json(json &j, const EngineControlData &e) {
              {"labelDistanceThreshold", e.labelDistanceThreshold},
              {"maxLabelCount", e.maxLabelCount},
              {"sizeByDegree", e.sizeByDegree},
-             {"nodeSizeMultiplier", e.nodeSizeMultiplier}};
+             {"nodeSizeMultiplier", e.nodeSizeMultiplier},
+             {"searchResultLimit", e.searchResultLimit}};
 }
 
 void from_json(const json &j, EngineControlData &e) {
@@ -60,6 +61,7 @@ void from_json(const json &j, EngineControlData &e) {
     e.maxLabelCount          = j.value("maxLabelCount", 500);
     e.sizeByDegree           = j.value("sizeByDegree", false);
     e.nodeSizeMultiplier     = j.value("nodeSizeMultiplier", 1.0f);
+    e.searchResultLimit      = j.value("searchResultLimit", 500);
 }
 
 // ControlData -------------------------------

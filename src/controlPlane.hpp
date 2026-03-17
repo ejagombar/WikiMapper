@@ -55,6 +55,7 @@ struct EngineControlData {
 
     bool sizeByDegree = false;
     float nodeSizeMultiplier = 1.0f;
+    int searchResultLimit = 500;
 };
 
 enum class dbInterfaceType { HTTP, DB };

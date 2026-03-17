@@ -176,40 +176,60 @@ std::vector<NodeData> ParsePagesFromResult(const json &data) {
 }
 
 // Gets the center node and all its neighbors and the relationships
-GraphUpdateData Neo4jInterface::GetLocalSubgraph(const std::string &centerPageName) {
+GraphUpdateData Neo4jInterface::GetLocalSubgraph(const std::string &centerPageName, int limit) {
     if (!m_connected)
         return {};
 
-    const std::string cypher = "MATCH (n:PAGE)-[r]-(m:PAGE) "
-                               "WHERE n.pageName = toLower($name) "
-                               "RETURN {pageName: n.pageName, title: n.title} as source, "
-                               "       {pageName: m.pageName, title: m.title} as target";
+    const std::string cypher = limit > 0
+        ? "MATCH (n:PAGE)-[r]-(m:PAGE) "
+          "WHERE n.pageName = toLower($name) "
+          "RETURN {pageName: n.pageName, title: n.title} as source, "
+          "       {pageName: m.pageName, title: m.title} as target "
+          "LIMIT $limit"
+        : "MATCH (n:PAGE)-[r]-(m:PAGE) "
+          "WHERE n.pageName = toLower($name) "
+          "RETURN {pageName: n.pageName, title: n.title} as source, "
+          "       {pageName: m.pageName, title: m.title} as target";
 
     try {
-        json data = ExecuteCypherQuery(cypher, {{"name", centerPageName}});
-
-        globalLogger->error("Data: {}", data.dump());
+        json params = {{"name", centerPageName}};
+        if (limit > 0)
+            params["limit"] = limit;
+        json data = ExecuteCypherQuery(cypher, params);
         return ParseGraphResult(data);
     } catch (...) {
-        globalLogger->error("Failed to run local subgraph comand");
+        globalLogger->error("Failed to run local subgraph query for '{}'", centerPageName);
         return {};
     }
 }
 
 // Find all the links between the given nodes
-GraphUpdateData Neo4jInterface::GetInterconnections(const std::vector<std::string> &activeNodeNames) {
+GraphUpdateData Neo4jInterface::GetInterconnections(const std::vector<std::string> &activeNodeNames, int limit) {
     if (!m_connected || activeNodeNames.empty())
         return {};
 
-    const std::string cypher = "MATCH (a:PAGE)-[]->(b:PAGE) "
-                               "WHERE a.pageName IN $names AND b.pageName IN $names "
-                               "RETURN {pageName: a.pageName, title: a.title} as source, "
-                               "       {pageName: b.pageName, title: b.title} as target";
+    // UNWIND lets each lookup hit the pageName index instead of doing a full edge scan.
+    const std::string cypher = limit > 0
+        ? "UNWIND $names AS name "
+          "MATCH (a:PAGE {pageName: name})-[]->(b:PAGE) "
+          "WHERE b.pageName IN $names "
+          "RETURN {pageName: a.pageName, title: a.title} as source, "
+          "       {pageName: b.pageName, title: b.title} as target "
+          "LIMIT $limit"
+        : "UNWIND $names AS name "
+          "MATCH (a:PAGE {pageName: name})-[]->(b:PAGE) "
+          "WHERE b.pageName IN $names "
+          "RETURN {pageName: a.pageName, title: a.title} as source, "
+          "       {pageName: b.pageName, title: b.title} as target";
 
     try {
-        json data = ExecuteCypherQuery(cypher, {{"names", activeNodeNames}});
+        json params = {{"names", activeNodeNames}};
+        if (limit > 0)
+            params["limit"] = limit;
+        json data = ExecuteCypherQuery(cypher, params);
         return ParseGraphResult(data);
     } catch (...) {
+        globalLogger->error("Failed to run GetInterconnections ({} names)", activeNodeNames.size());
         return {};
     }
 }

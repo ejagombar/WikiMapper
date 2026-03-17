@@ -411,19 +411,79 @@ std::string toLower(const std::string &input) {
 }
 
 void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
-    if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
-        globalLogger->info("Loading data for " + m_controlData.graph.searchString);
-        writeGraph->Clear();
-        search(*writeGraph, m_controlData.graph.searchString);
-        setupGraph(*writeGraph, false);
-        m_graphBuf.PublishAll();
-        globalLogger->info("Published graph data");
-        readGraph = m_graphBuf.GetCurrent();
-        writeGraph = m_graphBuf.GetWriteBuffer();
+    if (m_controlData.graph.searching.load(std::memory_order_relaxed) && !m_pendingSearch.has_value()) {
+        std::string query = m_controlData.graph.searchString;
         m_controlData.graph.searching.store(false, std::memory_order_relaxed);
-        m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
 
-        readGraph->edges.InvalidateCSR();
+        globalLogger->info("[search] Starting async fetch for '{}'", query);
+
+        auto startTime = std::chrono::steady_clock::now();
+        int limit = m_controlData.engine.searchResultLimit;
+        auto future = std::async(std::launch::async, [query, startTime, limit, this]() -> SearchResult {
+            auto ms = [&startTime]() {
+                return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
+                                                                             startTime)
+                    .count();
+            };
+
+            std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+
+            globalLogger->info("[search] +{}ms: calling GetLocalSubgraph('{}') limit={}", ms(), query, limit);
+            GraphUpdateData subgraph = m_dB->GetLocalSubgraph(query, limit);
+            globalLogger->info("[search] +{}ms: GetLocalSubgraph returned {} rows, {} edges", ms(),
+                               subgraph.nodes.size(), subgraph.edges.size());
+
+            std::vector<std::string> names;
+            names.reserve(subgraph.nodes.size());
+            for (const auto &n : subgraph.nodes)
+                names.push_back(n.pageName);
+            std::sort(names.begin(), names.end());
+            names.erase(std::unique(names.begin(), names.end()), names.end());
+
+            globalLogger->info("[search] +{}ms: calling GetInterconnections ({} names) limit={}", ms(), names.size(),
+                               limit);
+            GraphUpdateData interconnections = m_dB->GetInterconnections(names, limit);
+            globalLogger->info("[search] +{}ms: GetInterconnections returned {} rows, {} edges", ms(),
+                               interconnections.nodes.size(), interconnections.edges.size());
+
+            return SearchResult{std::move(subgraph), std::move(interconnections)};
+        });
+
+        m_pendingSearch = PendingSearch{std::move(future), query, startTime};
+    }
+
+    // ── Process completed search result ──────────────────────────────────────
+    if (m_pendingSearch.has_value() &&
+        m_pendingSearch->m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        auto ms = [&startTime = m_pendingSearch->m_startTime]() {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime)
+                .count();
+        };
+
+        try {
+            SearchResult result = m_pendingSearch->m_future.get();
+            globalLogger->info("[search] +{}ms: ingesting result into graph", ms());
+
+            writeGraph->Clear();
+            GraphLoader loader(writeGraph);
+            loader.IngestData(result.subgraph);
+            loader.IngestData(result.interconnections);
+
+            globalLogger->info("[search] +{}ms: calling setupGraph ({} nodes)", ms(), writeGraph->nodes.titles.size());
+            setupGraph(*writeGraph, false);
+
+            m_graphBuf.PublishAll();
+            globalLogger->info("[search] +{}ms: published — signalling render thread", ms());
+
+            readGraph = m_graphBuf.GetCurrent();
+            writeGraph = m_graphBuf.GetWriteBuffer();
+            m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+            readGraph->edges.InvalidateCSR();
+        } catch (const std::exception &e) {
+            globalLogger->error("[search] fetch failed: {}", e.what());
+        }
+
+        m_pendingSearch.reset();
     }
 
     int32_t sourceNode = m_controlData.graph.sourceNode.load(std::memory_order_relaxed);
@@ -566,22 +626,6 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
     // graph.Clear();
     // graph.LoadBinary("data2.wiki"); // Use local data for demo
     graph.SaveBinary("physics.wiki");
-}
-
-void GraphEngine::search(GS::Graph &graph, std::string query) {
-    std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
-
-    GraphLoader loader(&graph);
-
-    GraphUpdateData data = m_dB->GetLocalSubgraph(query);
-    globalLogger->info("Local subgraph: {} nodes, {} edges", data.nodes.size(), data.edges.size());
-    loader.IngestData(data);
-
-    std::vector<std::string> activeNames = loader.GetActivePageNames();
-    GraphUpdateData interconnections = m_dB->GetInterconnections(activeNames);
-    globalLogger->info("Interconnections: {} nodes, {} edges", interconnections.nodes.size(),
-                       interconnections.edges.size());
-    loader.IngestData(interconnections);
 }
 
 void GraphEngine::setupGraph(GS::Graph &db, bool genData) {
