@@ -36,6 +36,7 @@ struct GraphControlData {
     std::mutex searchStringMutex;
 
     std::atomic<bool> searching = false;
+    std::atomic<bool> addRandomPage = false;
 
     std::atomic<int32_t> sourceNode = -1;
 };

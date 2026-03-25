@@ -513,14 +513,16 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             try {
                 auto linkedPages = expansion.m_future.get();
 
-                for (const auto &page : linkedPages) {
-                    globalLogger->info("Page" + page.title);
-                    const uint32_t idx = writeGraph->AddNode(page.title);
-                    writeGraph->AddEdge(expansion.m_sourceNodeId, idx);
-                    writeGraph->nodes.sizes[expansion.m_sourceNodeId]++;
-                    // if (i > 25) {
-                    //     break;
-                    // }
+                if (expansion.m_sourceNodeId < writeGraph->nodes.titles.size()) {
+                    for (const auto &page : linkedPages) {
+                        globalLogger->info("Page" + page.title);
+                        const uint32_t idx = writeGraph->AddNode(page.title);
+                        writeGraph->AddEdge(expansion.m_sourceNodeId, idx);
+                        writeGraph->nodes.sizes[expansion.m_sourceNodeId]++;
+                    }
+                } else {
+                    globalLogger->warn("[expansion] source node {} no longer valid (graph has {} nodes), discarding",
+                                       expansion.m_sourceNodeId, writeGraph->nodes.titles.size());
                 }
 
                 m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
@@ -538,6 +540,73 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             }
 
             m_pendingExpansion.reset();
+        }
+    }
+
+    // ── Add Random Page ──────────────────────────────────────────────────────
+    if (m_controlData.graph.addRandomPage.load(std::memory_order_relaxed) && !m_pendingRandomPage.has_value() &&
+        !m_pendingSearch.has_value()) {
+        m_controlData.graph.addRandomPage.store(false, std::memory_order_relaxed);
+        int limit = m_controlData.engine.searchResultLimit;
+
+        std::vector<std::string> existingNames;
+        existingNames.reserve(readGraph->nodes.titles.size());
+        for (const auto &title : readGraph->nodes.titles) {
+            existingNames.push_back(toLower(title));
+        }
+
+        auto future = std::async(std::launch::async, [existingNames, limit, this]() -> RandomPageResult {
+            std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
+
+            auto randomPages = m_dB->GetRandomPages(1);
+            if (randomPages.empty())
+                return {};
+
+            NodeData newPage = randomPages.front();
+            globalLogger->info("[random] selected page: '{}'", newPage.title);
+
+            std::vector<std::string> names = existingNames;
+            names.push_back(newPage.pageName);
+            std::sort(names.begin(), names.end());
+            names.erase(std::unique(names.begin(), names.end()), names.end());
+
+            GraphUpdateData interconnections = m_dB->GetInterconnections(names, limit);
+            globalLogger->info("[random] found {} interconnection edges", interconnections.edges.size());
+
+            return RandomPageResult{std::move(newPage), std::move(interconnections)};
+        });
+
+        m_pendingRandomPage = PendingRandomPage{std::move(future)};
+        globalLogger->info("[random] started async random page fetch");
+    }
+
+    if (m_pendingRandomPage.has_value()) {
+        if (m_pendingRandomPage->m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            try {
+                RandomPageResult result = m_pendingRandomPage->m_future.get();
+
+                if (!result.newPage.pageName.empty()) {
+                    GraphLoader loader(writeGraph);
+                    for (uint32_t i = 0; i < writeGraph->nodes.titles.size(); i++) {
+                        loader.RegisterExistingNode(toLower(writeGraph->nodes.titles[i]), i);
+                    }
+
+                    GraphUpdateData newPageData;
+                    newPageData.nodes.push_back(result.newPage);
+                    loader.IngestData(newPageData);
+                    loader.IngestData(result.interconnections);
+
+                    m_graphBuf.PublishAll();
+                    readGraph = m_graphBuf.GetCurrent();
+                    writeGraph = m_graphBuf.GetWriteBuffer();
+                    readGraph->edges.InvalidateCSR();
+                    m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
+                    globalLogger->info("[random] added '{}' to graph", result.newPage.title);
+                }
+            } catch (const std::exception &e) {
+                globalLogger->error("[random] failed: {}", e.what());
+            }
+            m_pendingRandomPage.reset();
         }
     }
 }

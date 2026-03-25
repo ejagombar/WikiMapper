@@ -21,6 +21,8 @@ class GraphLoader {
   public:
     GraphLoader(GS::Graph *graph) : m_graph(graph) {}
 
+    void RegisterExistingNode(const std::string &pageName, uint32_t idx) { m_nodeMap[pageName] = idx; }
+
     // Reset internal maps if the graph is cleared
     void Clear() {
         m_nodeMap.clear();

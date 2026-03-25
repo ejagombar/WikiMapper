@@ -38,8 +38,18 @@ class GraphEngine {
         std::chrono::steady_clock::time_point m_startTime;
     };
 
+    struct RandomPageResult {
+        NodeData newPage;
+        GraphUpdateData interconnections;
+    };
+
+    struct PendingRandomPage {
+        std::future<RandomPageResult> m_future;
+    };
+
     std::optional<PendingNodeExpansion> m_pendingExpansion;
     std::optional<PendingSearch> m_pendingSearch;
+    std::optional<PendingRandomPage> m_pendingRandomPage;
 
     GS::GraphTripleBuf &m_graphBuf;
     std::atomic<bool> &m_shouldTerminate;

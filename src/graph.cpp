@@ -260,8 +260,7 @@ void Graph::Clear() {
     nodes.edgeSizes.clear();
     nodes.masses.clear();
 
-    edges.startIdxs.clear();
-    edges.endIdxs.clear();
+    edges.Clear();
 }
 
 // Binary load function - only loads titles and edges, generates other data

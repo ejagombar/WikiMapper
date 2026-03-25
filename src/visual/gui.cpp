@@ -505,8 +505,24 @@ void GUI::RenderSearchBar() {
     if (ImSearch::BeginSearch()) {
         ImSearch::SearchBar("Search Wikipedia...");
 
-        if (ImGui::IsAnyItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-            m_controlData.graph.searching.store(true);
+        // IsItemDeactivatedAfterEdit fires when Enter is pressed in the InputText
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            std::string query;
+            if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
+                if (!m_controlData.app.searchSuggestions.empty()) {
+                    query = m_controlData.app.searchSuggestions.front();
+                    ImSearch::SetUserQuery(query.c_str());
+                    suggestionsVisible = false;
+                }
+                m_controlData.app.searchSuggestionsMutex.unlock();
+            }
+            if (query.empty()) {
+                query = ImSearch::GetUserQuery();
+            }
+            if (!query.empty()) {
+                m_controlData.graph.searchString = query;
+                m_controlData.graph.searching.store(true);
+            }
         }
 
         if (ImGui::IsItemEdited() || ImGui::IsItemClicked()) {
@@ -588,7 +604,7 @@ void GUI::RenderSearchBar() {
     ImGui::SameLine(0, spacing);
 
     if (ImGui::ImageButton("##dice", (ImTextureID)m_diceIconTexture, ImVec2(32, 32))) {
-        std::cout << "Graph overview button clicked!" << std::endl;
+        m_controlData.graph.addRandomPage.store(true, std::memory_order_relaxed);
     }
 
     if (ImGui::IsItemHovered()) {
