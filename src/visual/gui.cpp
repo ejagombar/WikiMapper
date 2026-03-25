@@ -680,6 +680,14 @@ void GUI::RenderDebugMenu() {
             valUpdated[6]) {
             m_controlData.sim.parameters.store(localSim, std::memory_order_relaxed);
         }
+
+        ImGui::Spacing();
+        ImGui::Text("Cooling");
+        ImGui::Separator();
+        ImGui::Checkbox("Enable Cooling", &m_controlData.engine.enableCooling);
+        if (m_controlData.engine.enableCooling) {
+            ImGui::SliderFloat("Cooling Rate", &m_controlData.engine.coolingRate, 0.01f, 5.0f, "%.2f");
+        }
     }
 
     if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -694,7 +702,7 @@ void GUI::RenderDebugMenu() {
         ImGui::Spacing();
         ImGui::Text("Node Size");
         ImGui::Separator();
-        ImGui::SliderFloat("Size Multiplier", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 20.0f, "%.2f");
+        ImGui::SliderFloat("Node Scale", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 20.0f, "%.2f");
 
         ImGui::Spacing();
         ImGui::Text("Search");
@@ -705,6 +713,7 @@ void GUI::RenderDebugMenu() {
         ImGui::Spacing();
         ImGui::Text("Labels");
         ImGui::Separator();
+        ImGui::SliderFloat("Label Scale", &m_controlData.engine.labelSizeMultiplier, 0.1f, 10.0f, "%.2f");
         ImGui::SliderFloat("Label Distance", &m_controlData.engine.labelDistanceThreshold, 10.0f, 500.0f, "%.0f");
         ImGui::SliderInt("Max Labels", &m_controlData.engine.maxLabelCount, 10, 1000);
     }

@@ -92,7 +92,7 @@ RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlDa
     auto out = m_text->PrepareLabelAtlases(filteredTitles);
     m_text->UploadLabelAtlasesToGPU(out);
     m_text->UpdateLabelPositions(m_currentLabelNodes, graph->nodes.positions, m_effectiveNodeSizes,
-                                 m_controlData.engine.nodeSizeMultiplier);
+                                 m_controlData.engine.labelSizeMultiplier);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
@@ -345,7 +345,7 @@ void RenderEngine::updateParticles(GS::Graph &graph) {
     }
 
     m_text->UpdateLabelPositions(m_currentLabelNodes, graph.nodes.positions, m_effectiveNodeSizes,
-                                 m_controlData.engine.nodeSizeMultiplier);
+                                 m_controlData.engine.labelSizeMultiplier);
 
     uint32_t minEdgeCount = std::min(m_edgeData.size() / 2, graph.edges.startIdxs.size());
     for (uint32_t i = 0; i < minEdgeCount; i++) {

@@ -56,7 +56,11 @@ struct EngineControlData {
 
     bool sizeByDegree = false;
     float nodeSizeMultiplier = 1.0f;
+    float labelSizeMultiplier = 1.0f;
     int searchResultLimit = 500;
+
+    bool enableCooling = true;
+    float coolingRate = 0.5f;
 };
 
 enum class dbInterfaceType { HTTP, DB };

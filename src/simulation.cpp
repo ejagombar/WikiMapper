@@ -275,7 +275,8 @@ glm::vec3 BarnesHutTree::calculateForceRecursive(int32_t nodeIndex, const glm::v
     }
 }
 
-void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const SimulationControlData &simControlData) {
+void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const SimulationControlData &simControlData,
+                                   float temperature) {
     static std::vector<glm::vec3> smoothedVelocities;
     static BarnesHutTree bhTree;
 
@@ -375,7 +376,7 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
         glm::vec3 acceleration = writeG.nodes.forces[i] / std::max(0.1f, writeG.nodes.masses[i]);
 
         float damping = globalDamping * nodeDamping[i];
-        writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * damping + acceleration * safeTimeStep;
+        writeG.nodes.velocities[i] = writeG.nodes.velocities[i] * damping + acceleration * safeTimeStep * temperature;
 
         smoothedVelocities[i] =
             smoothedVelocities[i] * (1.0f - velocitySmoothing) + writeG.nodes.velocities[i] * velocitySmoothing;
@@ -407,7 +408,8 @@ std::string toLower(const std::string &input) {
     return result;
 }
 
-void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
+bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat) {
+    bool graphChanged = false;
     if (m_controlData.graph.searching.load(std::memory_order_relaxed) && !m_pendingSearch.has_value()) {
         std::string query = m_controlData.graph.searchString;
         m_controlData.graph.searching.store(false, std::memory_order_relaxed);
@@ -480,6 +482,7 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             globalLogger->error("[search] fetch failed: {}", e.what());
         }
 
+        graphChanged = true;
         m_pendingSearch.reset();
     }
 
@@ -530,6 +533,7 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
                 readGraph->edges.InvalidateCSR();
 
                 dat.resetSimulation = true;
+                graphChanged = true;
 
                 globalLogger->info("Completed async node expansion for: " + expansion.m_nodeName);
             } catch (const std::exception &e) {
@@ -599,6 +603,7 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
                     readGraph->edges.InvalidateCSR();
                     m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
                     globalLogger->info("[random] added '{}' to graph", result.newPage.title);
+                    graphChanged = true;
                 }
             } catch (const std::exception &e) {
                 globalLogger->error("[random] failed: {}", e.what());
@@ -606,6 +611,8 @@ void GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             m_pendingRandomPage.reset();
         }
     }
+
+    return graphChanged;
 }
 
 void GraphEngine::graphPositionSimulation() {
@@ -615,6 +622,9 @@ void GraphEngine::graphPositionSimulation() {
 
     auto frameStart = std::chrono::system_clock::now();
 
+    float temperature = 1.0f;
+    int32_t lastDragId = -1;
+
     while (!m_shouldTerminate) {
         GS::Graph *readGraph = m_graphBuf.GetCurrent();
         GS::Graph *writeGraph = m_graphBuf.GetWriteBuffer();
@@ -623,9 +633,27 @@ void GraphEngine::graphPositionSimulation() {
         double elapsed_seconds = std::chrono::duration<double>(frameEnd - frameStart).count();
         frameStart = frameEnd;
 
-        processControls(readGraph, writeGraph, m_controlData.sim);
+        // Detect drag state changes — any new interaction resets temperature to 1
+        int32_t currentDragId = m_controlData.sim.draggingNode.load(std::memory_order_relaxed).id;
+        if (currentDragId != lastDragId) {
+            temperature = 1.0f;
+            lastDragId = currentDragId;
+        }
+
+        // Graph changes (search/expansion/random page) also reset temperature
+        bool graphChanged = processControls(readGraph, writeGraph, m_controlData.sim);
+        if (graphChanged) {
+            temperature = 1.0f;
+        }
+
+        // Decay temperature toward zero when cooling is enabled and no drag is active
+        if (m_controlData.engine.enableCooling && currentDragId < 0) {
+            temperature *= std::exp(-m_controlData.engine.coolingRate * static_cast<float>(elapsed_seconds));
+            temperature = std::max(temperature, 0.0f);
+        }
+
         *writeGraph = *readGraph;
-        updateGraphPositionsBarnesHut(*writeGraph, elapsed_seconds, m_controlData.sim);
+        updateGraphPositionsBarnesHut(*writeGraph, elapsed_seconds, m_controlData.sim, temperature);
         m_graphBuf.Publish();
 
         std::this_thread::sleep_for(simulationInterval);

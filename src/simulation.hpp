@@ -59,7 +59,7 @@ class GraphEngine {
     std::mutex &m_dBInterfaceMutex;
 
     void updateGraphPositions(GS::Graph &writeG, const float dt, const SimulationControlData &simControlData);
-    void processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat);
+    bool processControls(GS::Graph *readGraph, GS::Graph *writeGraph, SimulationControlData &dat);
     void generateRealData(GS::Graph &graph);
 };
 
