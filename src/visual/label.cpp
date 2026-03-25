@@ -169,7 +169,8 @@ void LabelEngine::UploadLabelAtlasesToGPU(const LabelAtlasData &data) {
 
 void LabelEngine::UpdateLabelPositions(const std::vector<uint32_t> &activeNodeIndices,
                                        const std::vector<glm::vec3> &allPositions,
-                                       const std::vector<unsigned char> &allSizes) {
+                                       const std::vector<unsigned char> &allSizes,
+                                       float sizeMultiplier) {
     uint32_t numLabels = static_cast<uint32_t>(activeNodeIndices.size());
     m_activeLabels.resize(numLabels);
     const float width = (static_cast<float>(m_atlasWidth) / static_cast<float>(m_commonHeight)) * 0.4f;
@@ -194,7 +195,7 @@ void LabelEngine::UpdateLabelPositions(const std::vector<uint32_t> &activeNodeIn
         m_activeLabels[i].width = width;
         m_activeLabels[i].texIndex = static_cast<float>(i);
         m_activeLabels[i].offsetDistance = allSizes[nodeIdx];
-        m_activeLabels[i].scale = static_cast<float>(allSizes[nodeIdx]) / avgSize;
+        m_activeLabels[i].scale = (static_cast<float>(allSizes[nodeIdx]) / avgSize) * sizeMultiplier;
     }
     glBindVertexArray(m_VAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);

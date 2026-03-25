@@ -54,7 +54,8 @@ class LabelEngine {
 
     void UpdateLabelPositions(const std::vector<uint32_t> &activeNodeIndices,
                               const std::vector<glm::vec3> &allPositions,
-                              const std::vector<unsigned char> &allSizes);
+                              const std::vector<unsigned char> &allSizes,
+                              float sizeMultiplier = 1.0f);
 
     LabelAtlasData PrepareLabelAtlases(const std::vector<std::string> &nodeTitles);
     void UploadLabelAtlasesToGPU(const LabelAtlasData &data);

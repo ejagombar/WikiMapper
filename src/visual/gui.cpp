@@ -694,7 +694,7 @@ void GUI::RenderDebugMenu() {
         ImGui::Spacing();
         ImGui::Text("Node Size");
         ImGui::Separator();
-        ImGui::SliderFloat("Size Multiplier", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 10.0f, "%.2f");
+        ImGui::SliderFloat("Size Multiplier", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 20.0f, "%.2f");
 
         ImGui::Spacing();
         ImGui::Text("Search");
