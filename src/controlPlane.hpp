@@ -46,6 +46,7 @@ struct EngineControlData {
     bool backgroundButtonToggle = false;
     float cameraFov = 45;
     float mouseSensitivity = 2.f;
+    float cameraMovementSpeed = 1.0f;
 
     std::atomic<bool> initGraphData = false;
 

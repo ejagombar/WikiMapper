@@ -21,8 +21,13 @@ class GraphEngine {
     void setupGraph(GS::Graph &db, bool genData = true);
 
   private:
+    struct ExpansionResult {
+        std::vector<NodeData> linkedPages;
+        GraphUpdateData interconnections;
+    };
+
     struct PendingNodeExpansion {
-        std::future<std::vector<NodeData>> m_future;
+        std::future<ExpansionResult> m_future;
         uint32_t m_sourceNodeId;
         std::string m_nodeName;
     };

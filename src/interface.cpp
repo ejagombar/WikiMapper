@@ -180,16 +180,15 @@ GraphUpdateData Neo4jInterface::GetLocalSubgraph(const std::string &centerPageNa
     if (!m_connected)
         return {};
 
-    const std::string cypher = limit > 0
-        ? "MATCH (n:PAGE)-[r]-(m:PAGE) "
-          "WHERE n.pageName = toLower($name) "
-          "RETURN {pageName: n.pageName, title: n.title} as source, "
-          "       {pageName: m.pageName, title: m.title} as target "
-          "LIMIT $limit"
-        : "MATCH (n:PAGE)-[r]-(m:PAGE) "
-          "WHERE n.pageName = toLower($name) "
-          "RETURN {pageName: n.pageName, title: n.title} as source, "
-          "       {pageName: m.pageName, title: m.title} as target";
+    const std::string cypher = limit > 0 ? "MATCH (n:PAGE)-[r]-(m:PAGE) "
+                                           "WHERE n.pageName = toLower($name) "
+                                           "RETURN {pageName: n.pageName, title: n.title} as source, "
+                                           "       {pageName: m.pageName, title: m.title} as target "
+                                           "LIMIT $limit"
+                                         : "MATCH (n:PAGE)-[r]-(m:PAGE) "
+                                           "WHERE n.pageName = toLower($name) "
+                                           "RETURN {pageName: n.pageName, title: n.title} as source, "
+                                           "       {pageName: m.pageName, title: m.title} as target";
 
     try {
         json params = {{"name", centerPageName}};
@@ -209,18 +208,17 @@ GraphUpdateData Neo4jInterface::GetInterconnections(const std::vector<std::strin
         return {};
 
     // UNWIND lets each lookup hit the pageName index instead of doing a full edge scan.
-    const std::string cypher = limit > 0
-        ? "UNWIND $names AS name "
-          "MATCH (a:PAGE {pageName: name})-[]->(b:PAGE) "
-          "WHERE b.pageName IN $names "
-          "RETURN {pageName: a.pageName, title: a.title} as source, "
-          "       {pageName: b.pageName, title: b.title} as target "
-          "LIMIT $limit"
-        : "UNWIND $names AS name "
-          "MATCH (a:PAGE {pageName: name})-[]->(b:PAGE) "
-          "WHERE b.pageName IN $names "
-          "RETURN {pageName: a.pageName, title: a.title} as source, "
-          "       {pageName: b.pageName, title: b.title} as target";
+    const std::string cypher = limit > 0 ? "UNWIND $names AS name "
+                                           "MATCH (a:PAGE {pageName: name})-[]->(b:PAGE) "
+                                           "WHERE b.pageName IN $names "
+                                           "RETURN {pageName: a.pageName, title: a.title} as source, "
+                                           "       {pageName: b.pageName, title: b.title} as target "
+                                           "LIMIT $limit"
+                                         : "UNWIND $names AS name "
+                                           "MATCH (a:PAGE {pageName: name})-[]->(b:PAGE) "
+                                           "WHERE b.pageName IN $names "
+                                           "RETURN {pageName: a.pageName, title: a.title} as source, "
+                                           "       {pageName: b.pageName, title: b.title} as target";
 
     try {
         json params = {{"names", activeNodeNames}};
@@ -247,8 +245,7 @@ bool Neo4jInterface::Authenticate(const std::string &username, const std::string
 
         // Ensure a range index exists on pageName for fast prefix search
         try {
-            ExecuteCypherQuery(
-                "CREATE INDEX page_pageName_idx IF NOT EXISTS FOR (n:PAGE) ON (n.pageName)", {});
+            ExecuteCypherQuery("CREATE INDEX page_pageName_idx IF NOT EXISTS FOR (n:PAGE) ON (n.pageName)", {});
         } catch (const std::exception &e) {
             globalLogger->warn("Could not create pageName index: {}", e.what());
         }
@@ -313,6 +310,27 @@ std::vector<NodeData> Neo4jInterface::GetLinkingPages(const std::string &pageNam
     }
 }
 
+std::vector<NodeData> Neo4jInterface::GetRandomConnectedPage(const std::vector<std::string> &existingNames) {
+    if (!m_connected || existingNames.empty())
+        return {};
+
+    const std::string cypher = "UNWIND $names AS name "
+                               "MATCH (a:PAGE {pageName: name})-[]-(neighbor:PAGE) "
+                               "WHERE NOT neighbor.pageName IN $names "
+                               "WITH neighbor, rand() AS r "
+                               "ORDER BY r "
+                               "RETURN neighbor "
+                               "LIMIT 1";
+
+    try {
+        json data = ExecuteCypherQuery(cypher, {{"names", existingNames}});
+        return ParsePagesFromResult(data);
+    } catch (const std::exception &e) {
+        globalLogger->error("GetRandomConnectedPage failed: {}", e.what());
+        return {};
+    }
+}
+
 std::vector<NodeData> Neo4jInterface::GetRandomPages(uint32_t count) {
     if (!m_connected) {
         return {};
@@ -342,11 +360,10 @@ std::vector<NodeData> Neo4jInterface::SearchPages(const std::string &queryString
     }
 
     try {
-        const std::string cypher =
-            "MATCH (p:PAGE) "
-            "WHERE p.pageName STARTS WITH toLower($query) "
-            "RETURN p.pageName AS pageName, p.title AS title "
-            "LIMIT 25";
+        const std::string cypher = "MATCH (p:PAGE) "
+                                   "WHERE p.pageName STARTS WITH toLower($query) "
+                                   "RETURN p.pageName AS pageName, p.title AS title "
+                                   "LIMIT 25";
 
         json data = ExecuteCypherQuery(cypher, {{"query", queryString}});
 
@@ -480,6 +497,28 @@ std::vector<NodeData> HttpInterface::FindShortestPath(const std::string &startPa
     } catch (const std::exception &e) {
         throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage +
                                  "': " + std::string(e.what()));
+        return {};
+    }
+}
+
+std::vector<NodeData> HttpInterface::GetRandomConnectedPage(const std::vector<std::string> &existingNames) {
+    if (!m_connected || existingNames.empty())
+        return {};
+
+    try {
+        json body = {{"names", existingNames}};
+        std::string bodyStr = body.dump();
+
+        auto res = m_httpClient->Post("/random-connected-page", bodyStr, "application/json");
+        if (!res)
+            throw std::runtime_error("No response from server");
+        if (res->status != httplib::StatusCode::OK_200)
+            throw std::runtime_error("HTTP error " + std::to_string(res->status));
+
+        json data = json::parse(res->body);
+        return HttpParsePagesFromResult(data);
+    } catch (const std::exception &e) {
+        globalLogger->error("GetRandomConnectedPage failed: {}", e.what());
         return {};
     }
 }

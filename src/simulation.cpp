@@ -339,7 +339,7 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
         glm::vec3 toCenter = -writeG.nodes.positions[i];
         float distanceToCenter = glm::length(toCenter);
 
-        if (distanceToCenter > 10.0f) {
+        if (distanceToCenter > 1.0f) {
             float centeringStrength = effectiveCenteringForce * std::log(1.0f + distanceToCenter / 10.0f);
             writeG.nodes.forces[i] += (toCenter / distanceToCenter) * centeringStrength;
         }
@@ -471,12 +471,12 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             globalLogger->info("[search] +{}ms: calling setupGraph ({} nodes)", ms(), writeGraph->nodes.titles.size());
             setupGraph(*writeGraph, false);
 
+            m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
             m_graphBuf.PublishAll();
             globalLogger->info("[search] +{}ms: published — signalling render thread", ms());
 
             readGraph = m_graphBuf.GetCurrent();
             writeGraph = m_graphBuf.GetWriteBuffer();
-            m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
             readGraph->edges.InvalidateCSR();
         } catch (const std::exception &e) {
             globalLogger->error("[search] fetch failed: {}", e.what());
@@ -493,9 +493,30 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         if (!m_pendingExpansion.has_value()) {
             std::string nodeName = readGraph->nodes.titles.at(sourceNode);
 
-            auto future = std::async(std::launch::async, [nodeName, this]() -> std::vector<NodeData> {
+            // Snapshot existing node names so the async task can compute interconnections
+            std::vector<std::string> existingNames;
+            existingNames.reserve(readGraph->nodes.titles.size());
+            for (const auto &title : readGraph->nodes.titles)
+                existingNames.push_back(toLower(title));
+
+            int limit = m_controlData.engine.searchResultLimit;
+            auto future = std::async(std::launch::async, [nodeName, existingNames, limit, this]() -> ExpansionResult {
                 std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
-                return m_dB->GetLinkedPages(toLower(nodeName));
+
+                std::vector<NodeData> linkedPages = m_dB->GetLinkedPages(toLower(nodeName));
+
+                // Build combined name list: existing nodes + source + newly linked pages
+                std::vector<std::string> names = existingNames;
+                names.push_back(toLower(nodeName));
+                for (const auto &page : linkedPages)
+                    names.push_back(page.pageName);
+                std::sort(names.begin(), names.end());
+                names.erase(std::unique(names.begin(), names.end()), names.end());
+
+                GraphUpdateData interconnections = m_dB->GetInterconnections(names, limit);
+                globalLogger->info("[expansion] GetInterconnections returned {} edges", interconnections.edges.size());
+
+                return ExpansionResult{std::move(linkedPages), std::move(interconnections)};
             });
 
             m_pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
@@ -511,15 +532,23 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
 
         if (expansion.m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             try {
-                auto linkedPages = expansion.m_future.get();
+                auto result = expansion.m_future.get();
 
                 if (expansion.m_sourceNodeId < writeGraph->nodes.titles.size()) {
-                    for (const auto &page : linkedPages) {
-                        globalLogger->info("Page" + page.title);
-                        const uint32_t idx = writeGraph->AddNode(page.title);
-                        writeGraph->AddEdge(expansion.m_sourceNodeId, idx);
-                        writeGraph->nodes.sizes[expansion.m_sourceNodeId]++;
-                    }
+                    GraphLoader loader(writeGraph);
+                    for (uint32_t i = 0; i < writeGraph->nodes.titles.size(); i++)
+                        loader.RegisterExistingNode(toLower(writeGraph->nodes.titles[i]), i);
+
+                    // Add new nodes from linked pages
+                    GraphUpdateData newNodes;
+                    newNodes.nodes = result.linkedPages;
+                    loader.IngestData(newNodes);
+
+                    // Add all interconnecting edges (existing↔new and new↔new)
+                    loader.IngestData(result.interconnections);
+
+                    globalLogger->info("[expansion] added {} linked pages, {} interconnection edges",
+                                       result.linkedPages.size(), result.interconnections.edges.size());
                 } else {
                     globalLogger->warn("[expansion] source node {} no longer valid (graph has {} nodes), discarding",
                                        expansion.m_sourceNodeId, writeGraph->nodes.titles.size());
@@ -559,12 +588,17 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         auto future = std::async(std::launch::async, [existingNames, limit, this]() -> RandomPageResult {
             std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
 
-            auto randomPages = m_dB->GetRandomPages(1);
-            if (randomPages.empty())
+            // Find a random page that already has at least one connection to the current graph.
+            // Falls back to a purely random page if the graph is empty or no connected page is found.
+            std::vector<NodeData> candidates = existingNames.empty()
+                ? m_dB->GetRandomPages(1)
+                : m_dB->GetRandomConnectedPage(existingNames);
+
+            if (candidates.empty())
                 return {};
 
-            NodeData newPage = randomPages.front();
-            globalLogger->info("[random] selected page: '{}'", newPage.title);
+            NodeData newPage = candidates.front();
+            globalLogger->info("[random] selected connected page: '{}'", newPage.title);
 
             std::vector<std::string> names = existingNames;
             names.push_back(newPage.pageName);
@@ -597,11 +631,11 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
                     loader.IngestData(newPageData);
                     loader.IngestData(result.interconnections);
 
+                    m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
                     m_graphBuf.PublishAll();
                     readGraph = m_graphBuf.GetCurrent();
                     writeGraph = m_graphBuf.GetWriteBuffer();
                     readGraph->edges.InvalidateCSR();
-                    m_controlData.engine.initGraphData.store(true, std::memory_order_relaxed);
                     globalLogger->info("[random] added '{}' to graph", result.newPage.title);
                     graphChanged = true;
                 }

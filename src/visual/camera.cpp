@@ -52,7 +52,7 @@ void Camera::ProcessMouseMovement(const double xoffset, const double yoffset) {
 }
 
 void Camera::ProcessMovement(const float deltaTime) {
-    float clampedDeltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 20.0f);
+    float clampedDeltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 5.0f);
 
     if (glm::length(m_inputForce) > 0.0f) {
         m_inputForce = glm::normalize(m_inputForce);

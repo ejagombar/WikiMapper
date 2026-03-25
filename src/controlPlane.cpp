@@ -38,6 +38,7 @@ void to_json(json &j, const EngineControlData &e) {
              {"backgroundButtonToggle", e.backgroundButtonToggle},
              {"cameraFov", e.cameraFov},
              {"mouseSensitivity", e.mouseSensitivity},
+             {"cameraMovementSpeed", e.cameraMovementSpeed},
              {"initGraphData", e.initGraphData.load()},
              {"customVals", std::vector<float>(std::begin(e.customVals), std::end(e.customVals))},
              {"labelDistanceThreshold", e.labelDistanceThreshold},
@@ -55,6 +56,7 @@ void from_json(const json &j, EngineControlData &e) {
     e.backgroundButtonToggle = j.at("backgroundButtonToggle").get<bool>();
     e.cameraFov = j.at("cameraFov").get<float>();
     e.mouseSensitivity = j.at("mouseSensitivity").get<float>();
+    e.cameraMovementSpeed = j.value("cameraMovementSpeed", 1.0f);
     e.initGraphData.store(j.at("initGraphData").get<bool>());
 
     auto arr = j.at("customVals").get<std::vector<float>>();

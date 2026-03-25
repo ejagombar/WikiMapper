@@ -44,6 +44,7 @@ class dBInterface {
     virtual std::vector<NodeData> GetLinkingPages(const std::string &queryString) = 0;
     virtual std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) = 0;
     virtual std::vector<NodeData> GetRandomPages(uint32_t count) = 0;
+    virtual std::vector<NodeData> GetRandomConnectedPage(const std::vector<std::string> &existingNames) = 0;
     virtual std::vector<NodeData> SearchPages(const std::string &queryString) = 0;
 
     virtual GraphUpdateData GetLocalSubgraph(const std::string &centerPageName, int limit = 500) = 0;
@@ -63,6 +64,7 @@ class Neo4jInterface : public dBInterface {
     std::vector<NodeData> GetLinkingPages(const std::string &queryString) override;
     std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
     std::vector<NodeData> GetRandomPages(uint32_t count) override;
+    std::vector<NodeData> GetRandomConnectedPage(const std::vector<std::string> &existingNames) override;
     std::vector<NodeData> SearchPages(const std::string &queryString) override;
 
     GraphUpdateData GetLocalSubgraph(const std::string &centerPageName, int limit) override;
@@ -89,10 +91,13 @@ class HttpInterface : public dBInterface {
     std::vector<NodeData> GetLinkingPages(const std::string &pageName) override;
     std::vector<NodeData> FindShortestPath(const std::string &startPage, const std::string &endPage) override;
     std::vector<NodeData> GetRandomPages(uint32_t count) override;
+    std::vector<NodeData> GetRandomConnectedPage(const std::vector<std::string> &existingNames) override;
     std::vector<NodeData> SearchPages(const std::string &queryString) override;
 
-    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName, int limit) override { return {}; };
-    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames, int limit) override { return {}; };
+    GraphUpdateData GetLocalSubgraph([[maybe_unused]] const std::string &centerPageName,
+                                     [[maybe_unused]] int limit) override { return {}; };
+    GraphUpdateData GetInterconnections([[maybe_unused]] const std::vector<std::string> &activeNodeNames,
+                                        [[maybe_unused]] int limit) override { return {}; };
 
   private:
     json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);

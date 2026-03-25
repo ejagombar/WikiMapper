@@ -556,6 +556,8 @@ void RenderEngine::loop() {
 
     m_camera.SetFov(m_controlData.engine.cameraFov);
     m_camera.SetMouseSensitivity(m_controlData.engine.mouseSensitivity);
+    m_camera.SetThrustForce(300.0f * m_controlData.engine.cameraMovementSpeed);
+    m_camera.SetMaxVelocity(600.0f * m_controlData.engine.cameraMovementSpeed);
     m_gui->RenderFPSWidget();
 
     processEngineInput(m_window);
@@ -572,6 +574,14 @@ void RenderEngine::loop() {
     uint32_t currentVersion = m_graphBuf.Version();
     if (currentVersion != m_lastVersion) {
         m_graph = m_graphBuf.GetCurrent();
+        // Discard stale label node indices that are out of range for the new graph.
+        // Runs at most once per physics tick (cheap: ≤ maxLabelCount entries).
+        const size_t newNodeCount = m_graph->nodes.positions.size();
+        if (!m_currentLabelNodes.empty()) {
+            const uint32_t maxIdx = *std::max_element(m_currentLabelNodes.begin(), m_currentLabelNodes.end());
+            if (maxIdx >= newNodeCount)
+                m_currentLabelNodes.clear();
+        }
         updateParticles(*m_graph);
         m_lastVersion = currentVersion;
     }

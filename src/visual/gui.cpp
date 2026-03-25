@@ -700,6 +700,11 @@ void GUI::RenderDebugMenu() {
         ImGui::SliderFloat("Ambient", &colors[2], 0.0f, 1.0f, "%.3f");
 
         ImGui::Spacing();
+        ImGui::Text("Camera");
+        ImGui::Separator();
+        ImGui::SliderFloat("Movement Speed", &m_controlData.engine.cameraMovementSpeed, 0.1f, 10.0f, "%.2f");
+
+        ImGui::Spacing();
         ImGui::Text("Node Size");
         ImGui::Separator();
         ImGui::SliderFloat("Node Scale", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 20.0f, "%.2f");
