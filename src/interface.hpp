@@ -94,10 +94,8 @@ class HttpInterface : public dBInterface {
     std::vector<NodeData> GetRandomConnectedPage(const std::vector<std::string> &existingNames) override;
     std::vector<NodeData> SearchPages(const std::string &queryString) override;
 
-    GraphUpdateData GetLocalSubgraph([[maybe_unused]] const std::string &centerPageName,
-                                     [[maybe_unused]] int limit) override { return {}; };
-    GraphUpdateData GetInterconnections([[maybe_unused]] const std::vector<std::string> &activeNodeNames,
-                                        [[maybe_unused]] int limit) override { return {}; };
+    GraphUpdateData GetLocalSubgraph(const std::string &centerPageName, int limit) override;
+    GraphUpdateData GetInterconnections(const std::vector<std::string> &activeNodeNames, int limit) override;
 
   private:
     json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);

@@ -413,6 +413,26 @@ std::vector<NodeData> HttpParsePagesFromResult(const json &data) {
     return pages;
 }
 
+GraphUpdateData HttpParseGraphResult(const json &data) {
+    GraphUpdateData update;
+
+    if (!data.is_object() || !data.contains("nodes") || !data.contains("edges"))
+        return update;
+
+    try {
+        for (const auto &node : data["nodes"]) {
+            update.nodes.push_back({node["pageName"].get<std::string>(), node["title"].get<std::string>()});
+        }
+        for (const auto &edge : data["edges"]) {
+            update.edges.push_back({edge["source"].get<std::string>(), edge["target"].get<std::string>()});
+        }
+    } catch (const json::exception &e) {
+        throw std::runtime_error("Failed to parse graph result: " + std::string(e.what()));
+    }
+
+    return update;
+}
+
 HttpInterface::HttpInterface(const std::string domain) {
     std::string dom = domain;
     if (dom.ends_with("/")) {
@@ -529,7 +549,7 @@ std::vector<NodeData> HttpInterface::GetRandomPages(uint32_t count) {
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/random-pages/" + std::to_string(count)));
+        return HttpParsePagesFromResult(GetHttpResults("/random-pages?count=" + std::to_string(count)));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetRandomPages failed : " + std::string(e.what()));
         return {};
@@ -550,6 +570,44 @@ bool HttpInterface::connected() {
     }
 
     return m_connected;
+}
+
+GraphUpdateData HttpInterface::GetLocalSubgraph(const std::string &centerPageName, int limit) {
+    if (!m_connected)
+        return {};
+
+    try {
+        json body = {{"name", centerPageName}, {"limit", limit}};
+        auto res = m_httpClient->Post("/local-subgraph", body.dump(), "application/json");
+        if (!res)
+            throw std::runtime_error("No response from server");
+        if (res->status != httplib::StatusCode::OK_200)
+            throw std::runtime_error("HTTP error " + std::to_string(res->status));
+        json data = json::parse(res->body);
+        return HttpParseGraphResult(data);
+    } catch (const std::exception &e) {
+        globalLogger->error("GetLocalSubgraph failed: {}", e.what());
+        return {};
+    }
+}
+
+GraphUpdateData HttpInterface::GetInterconnections(const std::vector<std::string> &activeNodeNames, int limit) {
+    if (!m_connected || activeNodeNames.empty())
+        return {};
+
+    try {
+        json body = {{"names", activeNodeNames}, {"limit", limit}};
+        auto res = m_httpClient->Post("/interconnections", body.dump(), "application/json");
+        if (!res)
+            throw std::runtime_error("No response from server");
+        if (res->status != httplib::StatusCode::OK_200)
+            throw std::runtime_error("HTTP error " + std::to_string(res->status));
+        json data = json::parse(res->body);
+        return HttpParseGraphResult(data);
+    } catch (const std::exception &e) {
+        globalLogger->error("GetInterconnections failed: {}", e.what());
+        return {};
+    }
 }
 
 std::vector<NodeData> HttpInterface::SearchPages(const std::string &queryString) {

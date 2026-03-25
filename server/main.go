@@ -83,6 +83,16 @@ func (c *Neo4jClient) ExecuteCypher(cypher string, params map[string]any) (map[s
 	return data, nil
 }
 
+type GraphEdge struct {
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+type GraphResult struct {
+	Nodes []LinkedPage `json:"nodes"`
+	Edges []GraphEdge  `json:"edges"`
+}
+
 // ParsePages parses Cypher result into LinkedPage slice.
 func ParsePages(data map[string]any) ([]LinkedPage, error) {
 	var pages []LinkedPage
@@ -106,6 +116,36 @@ func ParsePages(data map[string]any) ([]LinkedPage, error) {
 	return pages, nil
 }
 
+// ParseGraphResult parses a Cypher result where each row is [sourceNode, targetNode].
+func ParseGraphResult(data map[string]any) (GraphResult, error) {
+	var result GraphResult
+	results, ok := data["results"].([]any)
+	if !ok || len(results) == 0 {
+		return result, nil
+	}
+	first := results[0].(map[string]any)
+	rows, _ := first["data"].([]any)
+	for _, r := range rows {
+		row, ok := r.(map[string]any)["row"].([]any)
+		if !ok || len(row) < 2 {
+			continue
+		}
+		src, ok1 := row[0].(map[string]any)
+		tgt, ok2 := row[1].(map[string]any)
+		if !ok1 || !ok2 {
+			continue
+		}
+		srcName, _ := src["pageName"].(string)
+		srcTitle, _ := src["title"].(string)
+		tgtName, _ := tgt["pageName"].(string)
+		tgtTitle, _ := tgt["title"].(string)
+		result.Nodes = append(result.Nodes, LinkedPage{PageName: srcName, Title: srcTitle})
+		result.Nodes = append(result.Nodes, LinkedPage{PageName: tgtName, Title: tgtTitle})
+		result.Edges = append(result.Edges, GraphEdge{Source: srcName, Target: tgtName})
+	}
+	return result, nil
+}
+
 func linkedPagesHandler(client *Neo4jClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
@@ -115,7 +155,7 @@ func linkedPagesHandler(client *Neo4jClient) http.HandlerFunc {
 		}
 		name := parts[2]
 
-		cypher := `MATCH (:PAGE {pageName: $name})-[]->(related:PAGE) RETURN related`
+		cypher := `MATCH (p:PAGE)-[]->(related:PAGE) WHERE p.pageName = $name OR p.title = $name RETURN related`
 		params := map[string]any{"name": name}
 
 		data, err := client.ExecuteCypher(cypher, params)
@@ -221,6 +261,48 @@ func randomPagesHandler(client *Neo4jClient) http.HandlerFunc {
 	}
 }
 
+func randomConnectedPageHandler(client *Neo4jClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST required", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var body struct {
+			Names []string `json:"names"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.Names) == 0 {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		cypher := `
+			UNWIND $names AS name
+			MATCH (a:PAGE {pageName: name})-[]-(neighbor:PAGE)
+			WHERE NOT neighbor.pageName IN $names
+			WITH neighbor, rand() AS r
+			ORDER BY r
+			RETURN neighbor
+			LIMIT 1`
+		params := map[string]any{"names": body.Names}
+
+		data, err := client.ExecuteCypher(cypher, params)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		pages, err := ParsePages(data)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(pages)
+	}
+}
+
 func connectedHandler(client *Neo4jClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cypher := `RETURN 1 AS test`
@@ -267,7 +349,7 @@ func searchPagesHandler(client *Neo4jClient) http.HandlerFunc {
 
 		cypher := `
             MATCH (p:PAGE)
-            WHERE toLower(p.pageName) CONTAINS toLower($query)
+            WHERE p.pageName STARTS WITH toLower($query)
             RETURN p.pageName AS pageName, p.title AS title
             LIMIT 25
         `
@@ -302,6 +384,95 @@ func searchPagesHandler(client *Neo4jClient) http.HandlerFunc {
 	}
 }
 
+func localSubgraphHandler(client *Neo4jClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST required", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var body struct {
+			Name  string `json:"name"`
+			Limit int    `json:"limit"`
+		}
+		body.Limit = 500
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		if body.Limit <= 0 {
+			body.Limit = 500
+		}
+
+		cypher := `MATCH (n:PAGE)-[r]-(m:PAGE)
+WHERE n.pageName = toLower($name)
+RETURN {pageName: n.pageName, title: n.title} AS source,
+       {pageName: m.pageName, title: m.title} AS target
+LIMIT $limit`
+		params := map[string]any{"name": body.Name, "limit": body.Limit}
+
+		data, err := client.ExecuteCypher(cypher, params)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		result, err := ParseGraphResult(data)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+	}
+}
+
+func interconnectionsHandler(client *Neo4jClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST required", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var body struct {
+			Names []string `json:"names"`
+			Limit int      `json:"limit"`
+		}
+		body.Limit = 500
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.Names) == 0 {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		if body.Limit <= 0 {
+			body.Limit = 500
+		}
+
+		cypher := `UNWIND $names AS name
+MATCH (a:PAGE {pageName: name})-[]->(b:PAGE)
+WHERE b.pageName IN $names
+RETURN {pageName: a.pageName, title: a.title} AS source,
+       {pageName: b.pageName, title: b.title} AS target
+LIMIT $limit`
+		params := map[string]any{"names": body.Names, "limit": body.Limit}
+
+		data, err := client.ExecuteCypher(cypher, params)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		result, err := ParseGraphResult(data)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+	}
+}
+
 func main() {
 	neo4jURL := os.Getenv("NEO4J_URL")
 	username := os.Getenv("NEO4J_USER")
@@ -319,8 +490,11 @@ func main() {
 	mux.HandleFunc("/linking-pages/", linkingPagesHandler(client))
 	mux.HandleFunc("/shortest-path", shortestPathHandler(client))
 	mux.HandleFunc("/random-pages", randomPagesHandler(client))
+	mux.HandleFunc("/random-connected-page", randomConnectedPageHandler(client))
 	mux.HandleFunc("/connected", connectedHandler(client))
 	mux.HandleFunc("/search-pages", searchPagesHandler(client))
+	mux.HandleFunc("/local-subgraph", localSubgraphHandler(client))
+	mux.HandleFunc("/interconnections", interconnectionsHandler(client))
 
 	server := &http.Server{
 		Addr:    ":" + port,
