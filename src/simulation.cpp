@@ -329,9 +329,6 @@ void updateGraphPositionsBarnesHut(GS::Graph &writeG, float dt, const Simulation
             float desiredDistance = parameters.targetDistance * 10.0f;
             float springForce = effectiveAttractionStrength * (distance - desiredDistance);
 
-            // Limit spring force
-            springForce = std::max(-10.0f, std::min(10.0f, springForce));
-
             if (distance > 1e-10f) {
                 writeG.nodes.forces[i] += (delta / distance) * springForce;
             }
