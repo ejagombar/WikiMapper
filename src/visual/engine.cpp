@@ -258,6 +258,7 @@ void RenderEngine::updateNodes(GS::Graph &graph) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_nodeData.size() * sizeof(NodeData), m_nodeData.data());
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    m_controlData.engine.nodeCount.store(static_cast<int32_t>(nodeCount), std::memory_order_relaxed);
     globalLogger->info("Finish updating nodes");
 }
 
@@ -289,6 +290,7 @@ void RenderEngine::updateEdges(GS::Graph &graph) {
     glBufferData(GL_ARRAY_BUFFER, m_edgeData.size() * sizeof(EdgeData), nullptr, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_edgeData.size() * sizeof(EdgeData), m_edgeData.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    m_controlData.engine.edgeCount.store(static_cast<int32_t>(edgeCount), std::memory_order_relaxed);
     globalLogger->info("Finish updating edges");
 }
 
@@ -558,7 +560,6 @@ void RenderEngine::loop() {
     m_camera.SetMouseSensitivity(m_controlData.engine.mouseSensitivity);
     m_camera.SetThrustForce(300.0f * m_controlData.engine.cameraMovementSpeed);
     m_camera.SetMaxVelocity(600.0f * m_controlData.engine.cameraMovementSpeed);
-    m_gui->RenderFPSWidget();
 
     processEngineInput(m_window);
 
@@ -665,12 +666,8 @@ void RenderEngine::loop() {
         glBindFramebuffer(GL_FRAMEBUFFER, m_blur->GetOriginalFBO());
         glEnable(GL_DEPTH_TEST);
 
-        m_gui->RenderSearchBar();
+        m_gui->RenderTopBar();
         m_gui->RenderBottomLeftBox();
-
-        if (m_gui->GUIValues().debugMode) {
-            m_gui->RenderDebugMenu();
-        }
 
         m_blur->Display();
 
@@ -682,12 +679,8 @@ void RenderEngine::loop() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glEnable(GL_DEPTH_TEST);
 
-        m_gui->RenderSearchBar();
+        m_gui->RenderTopBar();
         m_gui->RenderBottomLeftBox();
-
-        if (m_gui->GUIValues().debugMode) {
-            m_gui->RenderDebugMenu();
-        }
     }
 
     m_gui->EndFrame();

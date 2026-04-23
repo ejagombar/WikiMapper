@@ -10,7 +10,6 @@
 #include "imgui.h"
 
 struct GUISettings {
-    bool debugMode = false;
     bool showFPS = true;
     float searchTimeElapsed = 0.0f;
 };
@@ -25,15 +24,13 @@ class GUI {
     void EndFrame();
     void EndFrameProper();
     void RenderMenu();
-    void RenderDebugMenu();
     void AckReset();
     void SearchCompleted(std::string resultTitle);
-    void RenderSearchBar();
+    void RenderTopBar();
     void RenderBottomLeftBox();
     void SetActiveNodeInfo(std::string activeNodeTitle);
     void SetOriginNodeInfo(std::string originNodeTitle);
     void setupTheme();
-    void RenderFPSWidget();
 
     bool Active();
 
@@ -57,6 +54,9 @@ class GUI {
     GLuint m_graphIconTexture = 0;
     GLuint m_diceIconTexture = 0;
     GLuint m_backgroundIconTexture = 0;
+    GLuint m_nodeIconTexture = 0;
+    GLuint m_edgeIconTexture = 0;
+    GLuint m_dbIconTexture = 0;
 };
 
 #endif // GUI_H

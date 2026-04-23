@@ -42,6 +42,10 @@ struct GraphControlData {
 };
 
 struct EngineControlData {
+    std::atomic<int32_t> nodeCount = 0;
+    std::atomic<int32_t> edgeCount = 0;
+    std::atomic<float> simulationFPS = 0.0f;
+
     bool vSync = true;
     bool backgroundButtonToggle = false;
     float cameraFov = 45;

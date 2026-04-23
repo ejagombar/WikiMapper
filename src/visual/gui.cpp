@@ -2,7 +2,6 @@
 #include <atomic>
 #include <cmath>
 #include <imgui.h>
-#include <iostream>
 #include <mutex>
 #include <string>
 
@@ -121,52 +120,22 @@ void GUI::SetActiveNodeInfo(std::string activeNodeTitle) { m_activeNodeTitle = a
 
 void GUI::SetOriginNodeInfo(std::string originNodeTitle) { m_originNodeTitle = originNodeTitle; }
 
-void GUI::RenderFPSWidget() {
-    if (!m_settings.showFPS)
-        return;
-
-    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowViewport(mainViewport->ID);
-
-    ImVec2 widgetSize = ImVec2(98, 68);
-    ImVec2 widgetPos = ImVec2(mainViewport->Pos.x + mainViewport->Size.x - widgetSize.x - 25, mainViewport->Pos.y + 25);
-
-    ImGui::SetNextWindowPos(widgetPos, ImGuiCond_Always);
-    ImGui::SetNextWindowSize(widgetSize, ImGuiCond_Always);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 20.0f);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
-    ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
-
-    ImGui::Begin("##FPSWidget", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoInputs);
-
-    float fps = ImGui::GetIO().Framerate;
-    ImGui::PushFont(m_subTitleFont);
-    ImGui::SetCursorPos(ImVec2(12, 13));
-    ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
-    ImGui::Text("%.0f", static_cast<double>(fps));
-    ImGui::PopStyleColor();
-    ImGui::PopFont();
-
-    ImGui::End();
-
-    ImGui::PopStyleColor(2);
-    ImGui::PopStyleVar(1);
-}
-
 void GUI::loadIconTextures() {
     try {
         m_graphIconTexture = LoadTexture("graph_icon.png");
         m_diceIconTexture = LoadTexture("dice_icon.png");
         m_backgroundIconTexture = LoadTexture("background.png");
+        m_nodeIconTexture = LoadTexture("fa-file.png");
+        m_edgeIconTexture = LoadTexture("fa-link.png");
+        m_dbIconTexture = LoadTexture("fa-database.png");
     } catch (const std::exception &e) {
         globalLogger->error("Failed to load icon textures: ", e.what());
         m_graphIconTexture = 0;
         m_diceIconTexture = 0;
         m_backgroundIconTexture = 0;
+        m_nodeIconTexture = 0;
+        m_edgeIconTexture = 0;
+        m_dbIconTexture = 0;
     }
 }
 
@@ -281,7 +250,6 @@ void GUI::RenderMenu() {
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8, 8));
     ImGui::Checkbox("V-Sync", &m_controlData.engine.vSync);
     ImGui::Checkbox("Show FPS", &m_settings.showFPS);
-    ImGui::Checkbox("Debug Controls", &m_settings.debugMode);
     ImGui::Checkbox("Size Nodes by Link Count", &m_controlData.engine.sizeByDegree);
     ImGui::PopStyleVar();
 
@@ -464,170 +432,399 @@ void GUI::RenderBottomLeftBox() {
     ImGui::PopStyleColor(2);
 }
 
-static std::vector<const char *> sSuggestions = {"Albert Einstein", "Isaac Newton",   "Marie Curie",
-                                                 "Charles Darwin",  "Nikola Tesla",   "Ada Lovelace",
-                                                 "Stephen Hawking", "Galileo Galilei"};
+void GUI::RenderTopBar() {
+    ImGuiViewport *vp = ImGui::GetMainViewport();
+    const float frameH = ImGui::GetFrameHeight();
+    const float barH = frameH + 20.0f;
+    const float btnGap = 8.0f;
+    const float searchWidth = 350.0f;
 
-void GUI::RenderSearchBar() {
-    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowViewport(mainViewport->ID);
+    // Panel width: slider(280) + inner spacing + longest label + window padding on both sides.
+    // AlwaysAutoResize handles height; SizeConstraints fixes width so labels are never clipped.
+    const float panelSliderW = 280.0f;
+    const float panelPad = 14.0f;
+    const float panelW = panelSliderW + ImGui::GetStyle().ItemInnerSpacing.x +
+                         ImGui::CalcTextSize("Repulsion Strength").x + 2.0f * panelPad;
 
-    ImVec2 searchBarSize = ImVec2(585, 0);
-    ImVec2 localPos = ImVec2(25, 25);
-    ImVec2 searchBarPos = ImVec2(mainViewport->Pos.x + localPos.x, mainViewport->Pos.y + localPos.y);
+    ImGui::SetNextWindowViewport(vp->ID);
+    ImGui::SetNextWindowPos(ImVec2(vp->Pos.x, vp->Pos.y), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(vp->Size.x, barH), ImGuiCond_Always);
 
-    // Glow effect while searching
-    ImVec4 searchBarColor = ColorScheme::Surface;
-    if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
-        float pulse =
-            static_cast<float>(sin(static_cast<double>(m_settings.searchTimeElapsed * 2.0f))) * 0.5f + 0.5f * 0.3f;
-        searchBarColor = ImVec4(ColorScheme::Primary.x * pulse + searchBarColor.x * (1.0f - pulse),
-                                ColorScheme::Primary.y * pulse + searchBarColor.y * (1.0f - pulse),
-                                ColorScheme::Primary.z * pulse + searchBarColor.z * (1.0f - pulse), 0.95f);
-        m_settings.searchTimeElapsed += ImGui::GetIO().DeltaTime * 3.0f;
-    }
-
-    ImGui::SetNextWindowPos(searchBarPos, ImGuiCond_Always);
-    ImGui::SetNextWindowSize(searchBarSize);
-    ImGui::SetNextWindowViewport(mainViewport->ID);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 20.0f);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, searchBarColor);
-    ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
-
-    static const char *selectedString;
-    static bool suggestionsVisible = true;
-
-    ImGui::Begin("##searchpopup", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
-                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-
-    if (ImSearch::BeginSearch()) {
-        ImSearch::SearchBar("Search Wikipedia...");
-
-        // IsItemDeactivatedAfterEdit fires when Enter is pressed in the InputText
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            std::string query;
-            if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
-                if (!m_controlData.app.searchSuggestions.empty()) {
-                    query = m_controlData.app.searchSuggestions.front();
-                    ImSearch::SetUserQuery(query.c_str());
-                    suggestionsVisible = false;
-                }
-                m_controlData.app.searchSuggestionsMutex.unlock();
-            }
-            if (query.empty()) {
-                query = ImSearch::GetUserQuery();
-            }
-            if (!query.empty()) {
-                m_controlData.graph.searchString = query;
-                m_controlData.graph.searching.store(true);
-            }
-        }
-
-        if (ImGui::IsItemEdited() || ImGui::IsItemClicked()) {
-            suggestionsVisible = true;
-        }
-
-        // Close suggestions when the user clicks outside the search window
-        if (suggestionsVisible && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered()) {
-            suggestionsVisible = false;
-        }
-
-        if (suggestionsVisible && m_controlData.app.searchSuggestionsMutex.try_lock()) {
-            for (const auto &suggestion : m_controlData.app.searchSuggestions) {
-                if (suggestion.size() == 0) {
-                    continue;
-                }
-
-                ImSearch::SearchableItem(suggestion.c_str(), [&](const char *name) {
-                    bool isSelected = (selectedString == name);
-                    if (ImGui::Selectable(name, isSelected)) {
-                        ImSearch::SetUserQuery(name);
-                        suggestionsVisible = false;
-                        m_controlData.graph.searchString = name;
-                        m_controlData.graph.searching.store(true);
-                        selectedString = name;
-                    }
-                });
-            }
-            m_controlData.app.searchSuggestionsMutex.unlock();
-        }
-
-        if (ImGui::IsItemEdited()) {
-            std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
-            m_controlData.graph.searchString = ImSearch::GetUserQuery();
-        }
-
-        ImSearch::EndSearch();
-    }
-
-    ImGui::End();
-    ImGui::PopStyleColor(2);
-    ImGui::PopStyleVar(1);
-
-    ImVec2 actionPanelSize = ImVec2(126 + 68, 68);
-    ImVec2 actionPanelPos = ImVec2(searchBarPos.x + searchBarSize.x + 15, searchBarPos.y);
-
-    ImGui::SetNextWindowPos(actionPanelPos, ImGuiCond_Always);
-    ImGui::SetNextWindowSize(actionPanelSize);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 20.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(14.0f, 10.0f));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
-    ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
 
-    ImGui::Begin("##actionpanel", nullptr,
+    ImGui::Begin("##TopBar", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
                      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+    // Bottom border
+    {
+        ImVec2 wp = ImGui::GetWindowPos();
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(wp.x, wp.y + barH - 1.0f),
+                                           ImVec2(wp.x + vp->Size.x, wp.y + barH - 1.0f),
+                                           ImGui::ColorConvertFloat4ToU32(ColorScheme::Border), 1.0f);
+    }
+
+    auto VSep = [&]() {
+        ImGui::SameLine(0, 12.0f);
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x + 0.5f, p.y), ImVec2(p.x + 0.5f, p.y + frameH),
+                                           ImGui::ColorConvertFloat4ToU32(ColorScheme::Separator), 1.0f);
+        ImGui::Dummy(ImVec2(1.0f, frameH));
+        ImGui::SameLine(0, 12.0f);
+    };
+
+    // ── Physics / Rendering toggle buttons ────────────────────────────────────
+    static bool s_physicsOpen = false;
+    static bool s_renderingOpen = false;
+    ImVec2 physicsPanelPos, renderingPanelPos;
+    const float barBottom = ImGui::GetWindowPos().y + barH;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, s_physicsOpen ? ColorScheme::Primary : ColorScheme::SurfaceLight);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::PrimaryHover);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
+    if (ImGui::Button("Physics")) {
+        s_physicsOpen = !s_physicsOpen;
+        if (s_physicsOpen) s_renderingOpen = false;
+    }
+    physicsPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom + 2.0f);
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine(0, btnGap);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, s_renderingOpen ? ColorScheme::Primary : ColorScheme::SurfaceLight);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::PrimaryHover);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
+    if (ImGui::Button("Rendering")) {
+        s_renderingOpen = !s_renderingOpen;
+        if (s_renderingOpen) s_physicsOpen = false;
+    }
+    renderingPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom + 2.0f);
+    ImGui::PopStyleColor(3);
+
+    ImGui::PopStyleVar();
+
+    VSep();
+
+    // ── Search bar ────────────────────────────────────────────────────────────
+    // ImSearch::SearchBar calls SetNextItemWidth(-FLT_MIN) internally, so we wrap
+    // it in a child window to constrain the width.
+    ImVec4 searchBg = ColorScheme::SurfaceLight;
+    if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
+        float pulse = (sinf(m_settings.searchTimeElapsed * 4.0f) * 0.5f + 0.5f) * 0.35f;
+        searchBg = ImVec4(ColorScheme::Primary.x * pulse + searchBg.x * (1.0f - pulse),
+                          ColorScheme::Primary.y * pulse + searchBg.y * (1.0f - pulse),
+                          ColorScheme::Primary.z * pulse + searchBg.z * (1.0f - pulse), 1.0f);
+        m_settings.searchTimeElapsed += ImGui::GetIO().DeltaTime * 3.0f;
+    } else {
+        m_settings.searchTimeElapsed = 0.0f;
+    }
+
+    ImVec2 searchScreenPos = ImGui::GetCursorScreenPos();
+
+    static bool suggestionsVisible = false;
+    static std::string s_cachedUserQuery;
+    static std::string s_pendingSetQuery;
+    bool itemEdited = false, itemSubmitted = false, itemClicked = false;
+
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, searchBg);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, searchBg);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.22f, 0.22f, 0.24f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f);
+    if (ImGui::BeginChild("##searchbox", ImVec2(searchWidth, frameH), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+        if (ImSearch::BeginSearch()) {
+            if (!s_pendingSetQuery.empty()) {
+                ImSearch::SetUserQuery(s_pendingSetQuery.c_str());
+                s_pendingSetQuery.clear();
+            }
+            ImSearch::SearchBar("Search Wikipedia...");
+            itemSubmitted = ImGui::IsItemDeactivatedAfterEdit();
+            itemEdited = ImGui::IsItemEdited();
+            itemClicked = ImGui::IsItemClicked();
+            s_cachedUserQuery = ImSearch::GetUserQuery();
+            ImSearch::EndSearch();
+        }
+    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(3);
+
+    if (itemSubmitted) {
+        std::string query;
+        if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
+            if (!m_controlData.app.searchSuggestions.empty()) {
+                query = m_controlData.app.searchSuggestions.front();
+                s_pendingSetQuery = query;
+            }
+            m_controlData.app.searchSuggestionsMutex.unlock();
+        }
+        if (query.empty())
+            query = s_cachedUserQuery;
+        if (!query.empty()) {
+            m_controlData.graph.searchString = query;
+            m_controlData.graph.searching.store(true);
+        }
+        suggestionsVisible = false;
+    }
+
+    if (itemEdited || itemClicked)
+        suggestionsVisible = true;
+
+    if (itemEdited) {
+        std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
+        m_controlData.graph.searchString = s_cachedUserQuery;
+    }
+
+    // ── Action buttons ────────────────────────────────────────────────────────
+    ImGui::SameLine(0, btnGap);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
     ImGui::PushStyleColor(ImGuiCol_Button, ColorScheme::SurfaceLight);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::Primary);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
 
-    float buttonSize = 48.0f;
-    float spacing = 10.0f;
-
-    float totalWidth = (buttonSize * 3) + spacing * 3;
-    float startX = (actionPanelSize.x - totalWidth) * 0.5f;
-    ImGui::SetCursorPosX(startX);
-
-    if (ImGui::ImageButton("##graph", (ImTextureID)m_graphIconTexture, ImVec2(32, 32))) {
-        std::cout << "Graph overview button clicked!" << std::endl;
-    }
-
-    if (ImGui::IsItemHovered()) {
+    ImGui::ImageButton("##graph", (ImTextureID)m_graphIconTexture, ImVec2(32, 32));
+    if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Shuffle Layout");
-    }
 
-    ImGui::SameLine(0, spacing);
-
-    if (ImGui::ImageButton("##dice", (ImTextureID)m_diceIconTexture, ImVec2(32, 32))) {
+    ImGui::SameLine(0, btnGap);
+    if (ImGui::ImageButton("##dice", (ImTextureID)m_diceIconTexture, ImVec2(32, 32)))
         m_controlData.graph.addRandomPage.store(true, std::memory_order_relaxed);
-    }
-
-    if (ImGui::IsItemHovered()) {
+    if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Add Random Page");
-    }
 
-    ImGui::SameLine(0, spacing);
-
-    if (ImGui::ImageButton("##background", static_cast<ImTextureID>(m_backgroundIconTexture), ImVec2(32, 32))) {
+    ImGui::SameLine(0, btnGap);
+    if (ImGui::ImageButton("##background", (ImTextureID)m_backgroundIconTexture, ImVec2(32, 32)))
         m_controlData.engine.backgroundButtonToggle = !m_controlData.engine.backgroundButtonToggle;
-    }
-
-    if (ImGui::IsItemHovered()) {
+    if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Cycle Background");
-    }
 
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar();
 
-    ImGui::End();
+    // ── Stats (far right) ────────────────────────────────────────────────────
+    {
+        bool connected = m_controlData.app.dataSource.connectedToDataSource;
+        int32_t nodes = m_controlData.engine.nodeCount.load(std::memory_order_relaxed);
+        int32_t edges = m_controlData.engine.edgeCount.load(std::memory_order_relaxed);
+        float simFPS = m_controlData.engine.simulationFPS.load(std::memory_order_relaxed);
 
-    ImGui::PopStyleVar(1);
-    ImGui::PopStyleColor(2);
+        // Icon size matches text line height so no vertical adjustment is needed
+        const float iconSz = ImGui::GetTextLineHeight();
+        const float sep = 16.0f;  // gap between stat groups
+        const float iconTextGap = 6.0f;
+        const ImVec4 mutedTint(0.7f, 0.7f, 0.73f, 1.0f);
+        const ImVec4 dbTint = connected ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) : ImVec4(0.8f, 0.3f, 0.3f, 1.0f);
+
+        char nodeBuf[32], edgeBuf[32], simBuf[32], fpsBuf[32];
+        const char *dbLabel = connected ? "Connected" : "Disconnected";
+        snprintf(nodeBuf, sizeof(nodeBuf), "%d", nodes);
+        snprintf(edgeBuf, sizeof(edgeBuf), "%d", edges);
+        snprintf(simBuf, sizeof(simBuf), "sim %.0f fps", static_cast<double>(simFPS));
+        snprintf(fpsBuf, sizeof(fpsBuf), "%.0f fps", static_cast<double>(ImGui::GetIO().Framerate));
+
+        // Measure total width for right-alignment
+        auto statW = [&](const char *label) {
+            return iconSz + iconTextGap + ImGui::CalcTextSize(label).x;
+        };
+        float totalW = statW(dbLabel) + sep + statW(nodeBuf) + sep + statW(edgeBuf) + sep +
+                       ImGui::CalcTextSize(simBuf).x;
+        if (m_settings.showFPS)
+            totalW += sep + ImGui::CalcTextSize(fpsBuf).x;
+        totalW += ImGui::GetStyle().WindowPadding.x;
+
+        ImGui::SameLine(ImGui::GetWindowWidth() - totalW);
+
+        // Draw icon + label, then advance with a separator gap
+        auto IconStat = [&](GLuint tex, ImVec4 tint, const char *label) {
+            ImGui::ImageWithBg((ImTextureID)(uintptr_t)tex, ImVec2(iconSz, iconSz),
+                               ImVec2(0,0), ImVec2(1,1), ImVec4(0,0,0,0), tint);
+            ImGui::SameLine(0, iconTextGap);
+            ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
+            ImGui::Text("%s", label);
+            ImGui::PopStyleColor();
+            ImGui::SameLine(0, sep);
+        };
+
+        IconStat(m_dbIconTexture,   dbTint,    dbLabel);
+        IconStat(m_nodeIconTexture, mutedTint, nodeBuf);
+        IconStat(m_edgeIconTexture, mutedTint, edgeBuf);
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
+        ImGui::Text("%s", simBuf);
+        if (m_settings.showFPS) {
+            ImGui::SameLine(0, sep);
+            ImGui::Text("%s", fpsBuf);
+        }
+        ImGui::PopStyleColor();
+    }
+
+    ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(3);
+
+    // ── Physics panel (docked, persistent) ───────────────────────────────────
+    if (s_physicsOpen) {
+        ImGui::SetNextWindowViewport(vp->ID);
+        ImGui::SetNextWindowPos(physicsPanelPos, ImGuiCond_Always);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(panelW, 0.0f), ImVec2(panelW, FLT_MAX));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(panelPad, 12.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Background);
+        ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
+        ImGui::Begin("##physics_panel", nullptr,
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing);
+
+        ImGui::PushItemWidth(panelSliderW);
+        ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
+
+        subtitle("Physics");
+
+        auto localSim = m_controlData.sim.parameters.load(std::memory_order_relaxed);
+        bool updated[7] = {};
+
+        ImGui::Text("Forces");
+        ImGui::Separator();
+        updated[0] = ImGui::SliderFloat("Repulsion Strength", &localSim.repulsionStrength, 0.01f, 100.f, "%.3f");
+        updated[1] = ImGui::SliderFloat("Attraction Strength", &localSim.attractionStrength, 0.01f, 100.0f, "%.3f");
+        updated[2] = ImGui::SliderFloat("Centering Force", &localSim.centeringForce, 0.1f, 50.0f, "%.3f");
+        updated[5] = ImGui::SliderFloat("Max Force", &localSim.maxForce, 0.1f, 200.0f, "%.3f");
+
+        ImGui::Spacing();
+        ImGui::Text("Simulation");
+        ImGui::Separator();
+        updated[3] = ImGui::SliderFloat("Time Step", &localSim.timeStep, .01f, 1000.0f, "%.4f");
+        updated[4] = ImGui::SliderFloat("Force Multiplier", &localSim.forceMultiplier, 0.1f, 10.0f, "%.3f");
+        updated[6] = ImGui::SliderFloat("Target Distance", &localSim.targetDistance, .01f, 100.0f, "%.3f");
+
+        if (updated[0] || updated[1] || updated[2] || updated[3] || updated[4] || updated[5] || updated[6])
+            m_controlData.sim.parameters.store(localSim, std::memory_order_relaxed);
+
+        ImGui::Spacing();
+        ImGui::Text("Cooling");
+        ImGui::Separator();
+        ImGui::Checkbox("Enable Cooling", &m_controlData.engine.enableCooling);
+        if (m_controlData.engine.enableCooling)
+            ImGui::SliderFloat("Cooling Rate", &m_controlData.engine.coolingRate, 0.01f, 5.0f, "%.2f");
+
+        ImGui::PopStyleColor();
+        ImGui::PopItemWidth();
+        ImGui::End();
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar(2);
+    }
+
+    // ── Rendering panel (docked, persistent) ─────────────────────────────────
+    if (s_renderingOpen) {
+        ImGui::SetNextWindowViewport(vp->ID);
+        ImGui::SetNextWindowPos(renderingPanelPos, ImGuiCond_Always);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(panelW, 0.0f), ImVec2(panelW, FLT_MAX));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(panelPad, 12.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Background);
+        ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
+        ImGui::Begin("##rendering_panel", nullptr,
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing);
+
+        ImGui::PushItemWidth(panelSliderW);
+        ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
+
+        subtitle("Rendering");
+
+        auto &cv = m_controlData.engine.customVals;
+
+        ImGui::Text("Lighting");
+        ImGui::Separator();
+        ImGui::SliderFloat("Specular Strength", &cv[0], 0.0f, 1.0f, "%.3f");
+        ImGui::SliderFloat("Shininess", &cv[1], 0.0f, 512.0f, "%.1f");
+        ImGui::SliderFloat("Ambient", &cv[2], 0.0f, 1.0f, "%.3f");
+
+        ImGui::Spacing();
+        ImGui::Text("Camera");
+        ImGui::Separator();
+        ImGui::SliderFloat("Movement Speed", &m_controlData.engine.cameraMovementSpeed, 0.1f, 10.0f, "%.2f");
+
+        ImGui::Spacing();
+        ImGui::Text("Nodes");
+        ImGui::Separator();
+        ImGui::SliderFloat("Node Scale", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 20.0f, "%.2f");
+        ImGui::SliderInt("Search Result Limit", &m_controlData.engine.searchResultLimit, 0, 2000,
+                         m_controlData.engine.searchResultLimit == 0 ? "unlimited" : "%d");
+
+        ImGui::Spacing();
+        ImGui::Text("Labels");
+        ImGui::Separator();
+        ImGui::SliderFloat("Label Scale", &m_controlData.engine.labelSizeMultiplier, 0.1f, 10.0f, "%.2f");
+        ImGui::SliderFloat("Label Distance", &m_controlData.engine.labelDistanceThreshold, 10.0f, 500.0f, "%.0f");
+        ImGui::SliderInt("Max Labels", &m_controlData.engine.maxLabelCount, 10, 1000);
+
+        ImGui::PopStyleColor();
+        ImGui::PopItemWidth();
+        ImGui::End();
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar(2);
+    }
+
+    // ── Suggestions (floating window below search input) ──────────────────────
+    if (suggestionsVisible) {
+        bool hasSuggestions = false;
+        if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
+            hasSuggestions = !m_controlData.app.searchSuggestions.empty();
+            m_controlData.app.searchSuggestionsMutex.unlock();
+        }
+
+        if (hasSuggestions) {
+            ImGui::SetNextWindowViewport(vp->ID);
+            ImGui::SetNextWindowPos(ImVec2(searchScreenPos.x, searchScreenPos.y + frameH + 2.0f), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(searchWidth, 0.0f), ImGuiCond_Always);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
+            ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
+            ImGui::Begin("##suggestions", nullptr,
+                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                             ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar |
+                             ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings |
+                             ImGuiWindowFlags_NoDocking);
+
+            if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
+                for (const auto &s : m_controlData.app.searchSuggestions) {
+                    if (s.empty())
+                        continue;
+                    if (ImGui::Selectable(s.c_str())) {
+                        ImSearch::SetUserQuery(s.c_str());
+                        m_controlData.graph.searchString = s;
+                        m_controlData.graph.searching.store(true);
+                        suggestionsVisible = false;
+                    }
+                }
+                m_controlData.app.searchSuggestionsMutex.unlock();
+            }
+
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered() &&
+                !ImGui::IsMouseHoveringRect(searchScreenPos,
+                                            ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH),
+                                            false)) {
+                suggestionsVisible = false;
+            }
+
+            ImGui::End();
+            ImGui::PopStyleColor(2);
+            ImGui::PopStyleVar(2);
+        } else {
+            suggestionsVisible = false;
+        }
+    }
 }
 
 void GUI::EndFrame() {
@@ -641,92 +838,4 @@ void GUI::EndFrame() {
         ImGui::RenderPlatformWindowsDefault();
         glfwMakeContextCurrent(backup_current_context);
     }
-}
-
-void GUI::RenderDebugMenu() {
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Background);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
-
-    ImGuiViewport *mainViewport = ImGui::GetMainViewport();
-    ImVec2 center =
-        ImVec2(mainViewport->Pos.x + mainViewport->Size.x * 0.5f, mainViewport->Pos.y + mainViewport->Size.y * 0.5f);
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-    ImGui::Begin("Debug Controls", &m_settings.debugMode);
-
-    ImGui::PushItemWidth(300.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
-
-    auto localSim = m_controlData.sim.parameters.load(std::memory_order_relaxed);
-
-    if (ImGui::CollapsingHeader("Physics Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
-        bool valUpdated[7];
-
-        ImGui::Text("Force Settings");
-        ImGui::Separator();
-        valUpdated[0] = ImGui::SliderFloat("Repulsion Strength", &localSim.repulsionStrength, 0.01f, 100.f, "%.3f");
-        valUpdated[1] = ImGui::SliderFloat("Attraction Strength", &localSim.attractionStrength, 0.01f, 100.0f, "%.3f");
-        valUpdated[2] = ImGui::SliderFloat("Centering Force", &localSim.centeringForce, 0.1f, 50.0f, "%.3f");
-        valUpdated[5] = ImGui::SliderFloat("Max Force", &localSim.maxForce, 0.1f, 200.0f, "%.3f");
-
-        ImGui::Spacing();
-        ImGui::Text("Simulation Settings");
-        ImGui::Separator();
-        valUpdated[3] = ImGui::SliderFloat("Time Step", &localSim.timeStep, .01f, 1000.0f, "%.4f");
-        valUpdated[4] = ImGui::SliderFloat("Force Multiplier", &localSim.forceMultiplier, 0.1f, 10.0f, "%.3f");
-        valUpdated[6] = ImGui::SliderFloat("Target Distance", &localSim.targetDistance, .01f, 100.0f, "%.3f");
-
-        if (valUpdated[0] | valUpdated[1] | valUpdated[2] | valUpdated[3] | valUpdated[4] | valUpdated[5] |
-            valUpdated[6]) {
-            m_controlData.sim.parameters.store(localSim, std::memory_order_relaxed);
-        }
-
-        ImGui::Spacing();
-        ImGui::Text("Cooling");
-        ImGui::Separator();
-        ImGui::Checkbox("Enable Cooling", &m_controlData.engine.enableCooling);
-        if (m_controlData.engine.enableCooling) {
-            ImGui::SliderFloat("Cooling Rate", &m_controlData.engine.coolingRate, 0.01f, 5.0f, "%.2f");
-        }
-    }
-
-    if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen)) {
-        auto &colors = m_controlData.engine.customVals;
-
-        ImGui::Text("Lighting");
-        ImGui::Separator();
-        ImGui::SliderFloat("Specular Strength", &colors[0], 0.0f, 1.0f, "%.3f");
-        ImGui::SliderFloat("Shininess", &colors[1], 0.0f, 512.0f, "%.1f");
-        ImGui::SliderFloat("Ambient", &colors[2], 0.0f, 1.0f, "%.3f");
-
-        ImGui::Spacing();
-        ImGui::Text("Camera");
-        ImGui::Separator();
-        ImGui::SliderFloat("Movement Speed", &m_controlData.engine.cameraMovementSpeed, 0.1f, 10.0f, "%.2f");
-
-        ImGui::Spacing();
-        ImGui::Text("Node Size");
-        ImGui::Separator();
-        ImGui::SliderFloat("Node Scale", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 20.0f, "%.2f");
-
-        ImGui::Spacing();
-        ImGui::Text("Search");
-        ImGui::Separator();
-        ImGui::SliderInt("Result Limit", &m_controlData.engine.searchResultLimit, 0, 2000,
-                         m_controlData.engine.searchResultLimit == 0 ? "unlimited" : "%d");
-
-        ImGui::Spacing();
-        ImGui::Text("Labels");
-        ImGui::Separator();
-        ImGui::SliderFloat("Label Scale", &m_controlData.engine.labelSizeMultiplier, 0.1f, 10.0f, "%.2f");
-        ImGui::SliderFloat("Label Distance", &m_controlData.engine.labelDistanceThreshold, 10.0f, 500.0f, "%.0f");
-        ImGui::SliderInt("Max Labels", &m_controlData.engine.maxLabelCount, 10, 1000);
-    }
-
-    ImGui::PopStyleColor();
-    ImGui::PopItemWidth();
-    ImGui::End();
-
-    ImGui::PopStyleVar();
-    ImGui::PopStyleColor();
 }

@@ -666,6 +666,8 @@ void GraphEngine::graphPositionSimulation() {
         auto frameEnd = std::chrono::system_clock::now();
         double elapsed_seconds = std::chrono::duration<double>(frameEnd - frameStart).count();
         frameStart = frameEnd;
+        if (elapsed_seconds > 0.0)
+            m_controlData.engine.simulationFPS.store(static_cast<float>(1.0 / elapsed_seconds), std::memory_order_relaxed);
 
         // Detect drag state changes — any new interaction resets temperature to 1
         int32_t currentDragId = m_controlData.sim.draggingNode.load(std::memory_order_relaxed).id;
