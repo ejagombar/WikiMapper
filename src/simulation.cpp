@@ -705,7 +705,12 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
 
     std::lock_guard<std::mutex> lock(m_dBInterfaceMutex);
 
-    linkedPages = m_dB->GetLinkedPages("physics");
+    try {
+        linkedPages = m_dB->GetLinkedPages("physics");
+    } catch (const std::exception &e) {
+        std::cerr << "[WARNING] DB unavailable, starting with empty graph: " << e.what() << "\n";
+        return;
+    }
 
     auto x = graph.AddNode("Physics");
 
@@ -720,7 +725,13 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
         }
     }
 
-    linkedPages = m_dB->GetLinkedPages("multiverse");
+    try {
+        linkedPages = m_dB->GetLinkedPages("multiverse");
+    } catch (const std::exception &e) {
+        std::cerr << "[WARNING] DB unavailable fetching 'multiverse': " << e.what() << "\n";
+        graph.SaveBinary("physics.wiki");
+        return;
+    }
 
     i = 0;
     for (const auto &page : linkedPages) {
@@ -736,7 +747,13 @@ void GraphEngine::generateRealData(GS::Graph &graph) {
 
     i = 0;
 
-    linkedPages = m_dB->GetLinkedPages("atom");
+    try {
+        linkedPages = m_dB->GetLinkedPages("atom");
+    } catch (const std::exception &e) {
+        std::cerr << "[WARNING] DB unavailable fetching 'atom': " << e.what() << "\n";
+        graph.SaveBinary("physics.wiki");
+        return;
+    }
 
     for (const auto &page : linkedPages) {
         i++;

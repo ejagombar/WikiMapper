@@ -480,34 +480,54 @@ void GUI::RenderTopBar() {
     // ── Physics / Rendering toggle buttons ────────────────────────────────────
     static bool s_physicsOpen = false;
     static bool s_renderingOpen = false;
+    static float s_physicsCloseTimer = 0.0f;
+    static float s_renderingCloseTimer = 0.0f;
     ImVec2 physicsPanelPos, renderingPanelPos;
     const float barBottom = ImGui::GetWindowPos().y + barH;
 
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    bool physicsTabHovered = false;
+    bool renderingTabHovered = false;
 
-    ImGui::PushStyleColor(ImGuiCol_Button, s_physicsOpen ? ColorScheme::Primary : ColorScheme::SurfaceLight);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::PrimaryHover);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
-    if (ImGui::Button("Physics")) {
-        s_physicsOpen = !s_physicsOpen;
-        if (s_physicsOpen) s_renderingOpen = false;
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+
+    // Physics tab
+    ImGui::PushStyleColor(ImGuiCol_Button, s_physicsOpen ? ColorScheme::SurfaceLight : ImVec4(1, 1, 1, 0.05f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::SurfaceLight);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::SurfaceLight);
+    ImGui::PushStyleColor(ImGuiCol_Text, s_physicsOpen ? ColorScheme::TextPrimary : ColorScheme::TextSecondary);
+    ImGui::Button("Physics");
+    physicsTabHovered = ImGui::IsItemHovered();
+    if (physicsTabHovered) { s_physicsOpen = true; s_renderingOpen = false; }
+    if (s_physicsOpen) {
+        ImVec2 rmin = ImGui::GetItemRectMin();
+        ImVec2 rmax = ImGui::GetItemRectMax();
+        ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(rmin.x, rmax.y - 2.0f), rmax,
+                                                  ImGui::ColorConvertFloat4ToU32(ColorScheme::Primary));
     }
-    physicsPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom + 2.0f);
-    ImGui::PopStyleColor(3);
+    physicsPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom);
+    ImGui::PopStyleColor(4);
 
-    ImGui::SameLine(0, btnGap);
+    ImGui::SameLine(0, 2.0f);
 
-    ImGui::PushStyleColor(ImGuiCol_Button, s_renderingOpen ? ColorScheme::Primary : ColorScheme::SurfaceLight);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::PrimaryHover);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
-    if (ImGui::Button("Rendering")) {
-        s_renderingOpen = !s_renderingOpen;
-        if (s_renderingOpen) s_physicsOpen = false;
+    // Rendering tab
+    ImGui::PushStyleColor(ImGuiCol_Button, s_renderingOpen ? ColorScheme::SurfaceLight : ImVec4(1, 1, 1, 0.05f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::SurfaceLight);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::SurfaceLight);
+    ImGui::PushStyleColor(ImGuiCol_Text, s_renderingOpen ? ColorScheme::TextPrimary : ColorScheme::TextSecondary);
+    ImGui::Button("Rendering");
+    renderingTabHovered = ImGui::IsItemHovered();
+    if (renderingTabHovered) { s_renderingOpen = true; s_physicsOpen = false; }
+    if (s_renderingOpen) {
+        ImVec2 rmin = ImGui::GetItemRectMin();
+        ImVec2 rmax = ImGui::GetItemRectMax();
+        ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(rmin.x, rmax.y - 2.0f), rmax,
+                                                  ImGui::ColorConvertFloat4ToU32(ColorScheme::Primary));
     }
-    renderingPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom + 2.0f);
-    ImGui::PopStyleColor(3);
+    renderingPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom);
+    ImGui::PopStyleColor(4);
 
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
 
     VSep();
 
@@ -686,8 +706,6 @@ void GUI::RenderTopBar() {
         ImGui::PushItemWidth(panelSliderW);
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
 
-        subtitle("Physics");
-
         auto localSim = m_controlData.sim.parameters.load(std::memory_order_relaxed);
         bool updated[7] = {};
 
@@ -717,9 +735,17 @@ void GUI::RenderTopBar() {
 
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
+        bool physicsWindowHovered =
+            ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
         ImGui::End();
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(2);
+        if (!physicsTabHovered && !physicsWindowHovered) {
+            s_physicsCloseTimer += ImGui::GetIO().DeltaTime;
+            if (s_physicsCloseTimer >= 0.15f) { s_physicsOpen = false; s_physicsCloseTimer = 0.0f; }
+        } else {
+            s_physicsCloseTimer = 0.0f;
+        }
     }
 
     // ── Rendering panel (docked, persistent) ─────────────────────────────────
@@ -738,8 +764,6 @@ void GUI::RenderTopBar() {
 
         ImGui::PushItemWidth(panelSliderW);
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
-
-        subtitle("Rendering");
 
         auto &cv = m_controlData.engine.customVals;
 
@@ -770,9 +794,17 @@ void GUI::RenderTopBar() {
 
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
+        bool renderingWindowHovered =
+            ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
         ImGui::End();
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(2);
+        if (!renderingTabHovered && !renderingWindowHovered) {
+            s_renderingCloseTimer += ImGui::GetIO().DeltaTime;
+            if (s_renderingCloseTimer >= 0.15f) { s_renderingOpen = false; s_renderingCloseTimer = 0.0f; }
+        } else {
+            s_renderingCloseTimer = 0.0f;
+        }
     }
 
     // ── Suggestions (floating window below search input) ──────────────────────
