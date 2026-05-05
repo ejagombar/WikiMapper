@@ -13,9 +13,9 @@ namespace ColorScheme {
 const ImVec4 Background = ImVec4(0.04f, 0.04f, 0.05f, 0.97f);
 const ImVec4 Surface = ImVec4(0.08f, 0.08f, 0.10f, 1.0f);
 const ImVec4 SurfaceLight = ImVec4(0.12f, 0.12f, 0.14f, 1.0f);
-const ImVec4 Primary = ImVec4(0.16f, 0.38f, 0.60f, 1.0f);
-const ImVec4 PrimaryHover = ImVec4(0.20f, 0.46f, 0.70f, 1.0f);
-const ImVec4 PrimaryActive = ImVec4(0.13f, 0.33f, 0.52f, 1.0f);
+const ImVec4 Primary = ImVec4(0.0275f, 0.5059f, 0.7961f, 1.0f); // #0781cb
+const ImVec4 PrimaryHover = ImVec4(0.0392f, 0.3019f, 0.9529f, 1.0f);
+const ImVec4 PrimaryActive = ImVec4(0.0235f, 0.4314f, 0.6784f, 1.0f);
 const ImVec4 Accent = ImVec4(0.60f, 0.30f, 0.55f, 1.0f);
 const ImVec4 TextPrimary = ImVec4(0.94f, 0.94f, 0.95f, 1.0f);
 const ImVec4 TextSecondary = ImVec4(0.70f, 0.70f, 0.73f, 1.0f);
@@ -128,6 +128,8 @@ void GUI::loadIconTextures() {
         m_nodeIconTexture = LoadTexture("fa-file.png");
         m_edgeIconTexture = LoadTexture("fa-link.png");
         m_dbIconTexture = LoadTexture("fa-database.png");
+        m_eyeIconTexture = LoadTexture("fa-eye.png");
+        m_atomIconTexture = LoadTexture("fa-atom.png");
     } catch (const std::exception &e) {
         globalLogger->error("Failed to load icon textures: ", e.what());
         m_graphIconTexture = 0;
@@ -192,15 +194,13 @@ void GUI::RenderMenu() {
 
     ImVec2 settingsSize(1060, 901);
 
-    ImVec2 settingsPos = ImVec2(mainViewport->Pos.x + (mainViewport->Size.x - settingsSize.x) * 0.5f + 5,
-                                mainViewport->Pos.y + (mainViewport->Size.y - settingsSize.y) * 0.5f + 27);
+    ImVec2 settingsPos = ImVec2(mainViewport->Pos.x + (mainViewport->Size.x - settingsSize.x) * 0.5f + 5, mainViewport->Pos.y + (mainViewport->Size.y - settingsSize.y) * 0.5f + 27);
     ImGui::SetNextWindowPos(settingsPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(settingsSize, ImGuiCond_Always);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(40, 30));
     ImGui::Begin("Settings", nullptr,
-                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
+                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
                      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
     ImGui::PushFont(m_titleFont);
@@ -233,8 +233,7 @@ void GUI::RenderMenu() {
     ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
 
     ImGui::Text("Mouse Sensitivity");
-    ImGui::SliderFloat("##mouseSens", &m_controlData.engine.mouseSensitivity, 0.1f, 10.0f, "%.1f",
-                       ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat("##mouseSens", &m_controlData.engine.mouseSensitivity, 0.1f, 10.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::Spacing();
     ImGui::Text("Field of View");
@@ -298,8 +297,7 @@ void GUI::RenderMenu() {
             char buffer[256];
             strncpy(buffer, m_controlData.app.dataSource.dbPassword.c_str(), sizeof(buffer));
             buffer[sizeof(buffer) - 1] = '\0';
-            if (ImGui::InputTextWithHint("##neo4jPassword", "Enter password", buffer, IM_ARRAYSIZE(buffer),
-                                         ImGuiInputTextFlags_Password)) {
+            if (ImGui::InputTextWithHint("##neo4jPassword", "Enter password", buffer, IM_ARRAYSIZE(buffer), ImGuiInputTextFlags_Password)) {
                 m_controlData.app.dataSource.dbPassword = buffer;
             }
         }
@@ -342,8 +340,7 @@ void GUI::RenderMenu() {
     circlePos.y += 25;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
-    ImVec4 statusColor = m_controlData.app.dataSource.connectedToDataSource ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f)
-                                                                            : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
+    ImVec4 statusColor = m_controlData.app.dataSource.connectedToDataSource ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
 
     drawList->AddCircleFilled(circlePos, 8.0f, ImGui::ColorConvertFloat4ToU32(statusColor));
 
@@ -379,10 +376,8 @@ void GUI::RenderBottomLeftBox() {
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
     ImGui::Begin("##bottomLeftBox", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
     if (!m_activeNodeTitle.empty()) {
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
@@ -404,10 +399,8 @@ void GUI::RenderBottomLeftBox() {
         ImGui::SetNextWindowSize(boxSize);
 
         ImGui::Begin("##bottomLeftBox2", nullptr,
-                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                         ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar |
-                         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
-                         ImGuiWindowFlags_NoBringToFrontOnFocus);
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar |
+                         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::Primary);
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
@@ -443,8 +436,7 @@ void GUI::RenderTopBar() {
     // AlwaysAutoResize handles height; SizeConstraints fixes width so labels are never clipped.
     const float panelSliderW = 280.0f;
     const float panelPad = 14.0f;
-    const float panelW = panelSliderW + ImGui::GetStyle().ItemInnerSpacing.x +
-                         ImGui::CalcTextSize("Repulsion Strength").x + 2.0f * panelPad;
+    const float panelW = panelSliderW + ImGui::GetStyle().ItemInnerSpacing.x + ImGui::CalcTextSize("Repulsion Strength").x + 2.0f * panelPad;
 
     ImGui::SetNextWindowViewport(vp->ID);
     ImGui::SetNextWindowPos(ImVec2(vp->Pos.x, vp->Pos.y), ImGuiCond_Always);
@@ -456,23 +448,19 @@ void GUI::RenderTopBar() {
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
 
     ImGui::Begin("##TopBar", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
                      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
     // Bottom border
     {
         ImVec2 wp = ImGui::GetWindowPos();
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(wp.x, wp.y + barH - 1.0f),
-                                           ImVec2(wp.x + vp->Size.x, wp.y + barH - 1.0f),
-                                           ImGui::ColorConvertFloat4ToU32(ColorScheme::Border), 1.0f);
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(wp.x, wp.y + barH - 1.0f), ImVec2(wp.x + vp->Size.x, wp.y + barH - 1.0f), ImGui::ColorConvertFloat4ToU32(ColorScheme::Border), 1.0f);
     }
 
     auto VSep = [&]() {
         ImGui::SameLine(0, 12.0f);
         ImVec2 p = ImGui::GetCursorScreenPos();
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x + 0.5f, p.y), ImVec2(p.x + 0.5f, p.y + frameH),
-                                           ImGui::ColorConvertFloat4ToU32(ColorScheme::Separator), 1.0f);
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x + 0.5f, p.y), ImVec2(p.x + 0.5f, p.y + frameH), ImGui::ColorConvertFloat4ToU32(ColorScheme::Separator), 1.0f);
         ImGui::Dummy(ImVec2(1.0f, frameH));
         ImGui::SameLine(0, 12.0f);
     };
@@ -491,41 +479,70 @@ void GUI::RenderTopBar() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
-    // Physics tab
-    ImGui::PushStyleColor(ImGuiCol_Button, s_physicsOpen ? ColorScheme::SurfaceLight : ImVec4(1, 1, 1, 0.05f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::SurfaceLight);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::SurfaceLight);
-    ImGui::PushStyleColor(ImGuiCol_Text, s_physicsOpen ? ColorScheme::TextPrimary : ColorScheme::TextSecondary);
-    ImGui::Button("Physics");
-    physicsTabHovered = ImGui::IsItemHovered();
-    if (physicsTabHovered) { s_physicsOpen = true; s_renderingOpen = false; }
-    if (s_physicsOpen) {
-        ImVec2 rmin = ImGui::GetItemRectMin();
-        ImVec2 rmax = ImGui::GetItemRectMax();
-        ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(rmin.x, rmax.y - 2.0f), rmax,
-                                                  ImGui::ColorConvertFloat4ToU32(ColorScheme::Primary));
-    }
-    physicsPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom);
-    ImGui::PopStyleColor(4);
+    // Per-corner rounding requires drawing the bg manually before the Button call so
+    // that the button text renders on top of our custom background.
+    const float tabRounding = 6.0f;
+    ImDrawList *dl = ImGui::GetWindowDrawList();
+    const ImVec2 mousePos = ImGui::GetIO().MousePos;
+    const ImGuiStyle &st = ImGui::GetStyle();
 
-    ImGui::SameLine(0, 2.0f);
+    // Physics tab — left corners rounded, right corners square
+    {
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImVec2 sz = ImGui::CalcTextSize("Physics");
+        ImVec2 bMax = ImVec2(p.x + sz.x + st.FramePadding.x * 2, p.y + sz.y + st.FramePadding.y * 2);
+        bool hov = mousePos.x >= p.x && mousePos.x <= bMax.x && mousePos.y >= p.y && mousePos.y <= bMax.y;
+        ImU32 bg = ImGui::ColorConvertFloat4ToU32((s_physicsOpen || hov) ? ColorScheme::SurfaceLight : ImVec4(1, 1, 1, 0.05f));
+        dl->AddRectFilled(p, bMax, bg, tabRounding, ImDrawFlags_RoundCornersLeft);
 
-    // Rendering tab
-    ImGui::PushStyleColor(ImGuiCol_Button, s_renderingOpen ? ColorScheme::SurfaceLight : ImVec4(1, 1, 1, 0.05f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::SurfaceLight);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::SurfaceLight);
-    ImGui::PushStyleColor(ImGuiCol_Text, s_renderingOpen ? ColorScheme::TextPrimary : ColorScheme::TextSecondary);
-    ImGui::Button("Rendering");
-    renderingTabHovered = ImGui::IsItemHovered();
-    if (renderingTabHovered) { s_renderingOpen = true; s_physicsOpen = false; }
-    if (s_renderingOpen) {
-        ImVec2 rmin = ImGui::GetItemRectMin();
-        ImVec2 rmax = ImGui::GetItemRectMax();
-        ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(rmin.x, rmax.y - 2.0f), rmax,
-                                                  ImGui::ColorConvertFloat4ToU32(ColorScheme::Primary));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Text, s_physicsOpen ? ColorScheme::TextPrimary : ColorScheme::TextSecondary);
+        ImGui::Button("Physics");
+        physicsTabHovered = ImGui::IsItemHovered();
+        if (physicsTabHovered) {
+            s_physicsOpen = true;
+            s_renderingOpen = false;
+        }
+        if (s_physicsOpen) {
+            ImVec2 rmin = ImGui::GetItemRectMin();
+            ImVec2 rmax = ImGui::GetItemRectMax();
+            dl->AddRectFilled(ImVec2(rmin.x, rmax.y - 2.0f), rmax, ImGui::ColorConvertFloat4ToU32(ColorScheme::Primary));
+        }
+        physicsPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom);
+        ImGui::PopStyleColor(4);
     }
-    renderingPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom);
-    ImGui::PopStyleColor(4);
+
+    ImGui::SameLine(0, 0.0f);
+
+    // Rendering tab — right corners rounded, left corners square
+    {
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImVec2 sz = ImGui::CalcTextSize("Rendering");
+        ImVec2 bMax = ImVec2(p.x + sz.x + st.FramePadding.x * 2, p.y + sz.y + st.FramePadding.y * 2);
+        bool hov = mousePos.x >= p.x && mousePos.x <= bMax.x && mousePos.y >= p.y && mousePos.y <= bMax.y;
+        ImU32 bg = ImGui::ColorConvertFloat4ToU32((s_renderingOpen || hov) ? ColorScheme::SurfaceLight : ImVec4(1, 1, 1, 0.05f));
+        dl->AddRectFilled(p, bMax, bg, tabRounding, ImDrawFlags_RoundCornersRight);
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Text, s_renderingOpen ? ColorScheme::TextPrimary : ColorScheme::TextSecondary);
+        ImGui::Button("Rendering");
+        renderingTabHovered = ImGui::IsItemHovered();
+        if (renderingTabHovered) {
+            s_renderingOpen = true;
+            s_physicsOpen = false;
+        }
+        if (s_renderingOpen) {
+            ImVec2 rmin = ImGui::GetItemRectMin();
+            ImVec2 rmax = ImGui::GetItemRectMax();
+            dl->AddRectFilled(ImVec2(rmin.x, rmax.y - 2.0f), rmax, ImGui::ColorConvertFloat4ToU32(ColorScheme::Primary));
+        }
+        renderingPanelPos = ImVec2(ImGui::GetItemRectMin().x, barBottom);
+        ImGui::PopStyleColor(4);
+    }
 
     ImGui::PopStyleVar(2);
 
@@ -537,8 +554,7 @@ void GUI::RenderTopBar() {
     ImVec4 searchBg = ColorScheme::SurfaceLight;
     if (m_controlData.graph.searching.load(std::memory_order_relaxed)) {
         float pulse = (sinf(m_settings.searchTimeElapsed * 4.0f) * 0.5f + 0.5f) * 0.35f;
-        searchBg = ImVec4(ColorScheme::Primary.x * pulse + searchBg.x * (1.0f - pulse),
-                          ColorScheme::Primary.y * pulse + searchBg.y * (1.0f - pulse),
+        searchBg = ImVec4(ColorScheme::Primary.x * pulse + searchBg.x * (1.0f - pulse), ColorScheme::Primary.y * pulse + searchBg.y * (1.0f - pulse),
                           ColorScheme::Primary.z * pulse + searchBg.z * (1.0f - pulse), 1.0f);
         m_settings.searchTimeElapsed += ImGui::GetIO().DeltaTime * 3.0f;
     } else {
@@ -557,8 +573,7 @@ void GUI::RenderTopBar() {
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.22f, 0.22f, 0.24f, 1.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f);
-    if (ImGui::BeginChild("##searchbox", ImVec2(searchWidth, frameH), false,
-                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+    if (ImGui::BeginChild("##searchbox", ImVec2(searchWidth, frameH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
         if (ImSearch::BeginSearch()) {
             if (!s_pendingSetQuery.empty()) {
                 ImSearch::SetUserQuery(s_pendingSetQuery.c_str());
@@ -630,59 +645,115 @@ void GUI::RenderTopBar() {
 
     // ── Stats (far right) ────────────────────────────────────────────────────
     {
+
         bool connected = m_controlData.app.dataSource.connectedToDataSource;
         int32_t nodes = m_controlData.engine.nodeCount.load(std::memory_order_relaxed);
         int32_t edges = m_controlData.engine.edgeCount.load(std::memory_order_relaxed);
         float simFPS = m_controlData.engine.simulationFPS.load(std::memory_order_relaxed);
 
-        // Icon size matches text line height so no vertical adjustment is needed
         const float iconSz = ImGui::GetTextLineHeight();
-        const float sep = 16.0f;  // gap between stat groups
-        const float iconTextGap = 6.0f;
-        const ImVec4 mutedTint(0.7f, 0.7f, 0.73f, 1.0f);
+        const float sep = 14.0f;
+        const float iconTextGap = 5.0f;
+        const ImVec4 iconTint = ColorScheme::Primary;
         const ImVec4 dbTint = connected ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) : ImVec4(0.8f, 0.3f, 0.3f, 1.0f);
 
         char nodeBuf[32], edgeBuf[32], simBuf[32], fpsBuf[32];
-        const char *dbLabel = connected ? "Connected" : "Disconnected";
         snprintf(nodeBuf, sizeof(nodeBuf), "%d", nodes);
         snprintf(edgeBuf, sizeof(edgeBuf), "%d", edges);
-        snprintf(simBuf, sizeof(simBuf), "sim %.0f fps", static_cast<double>(simFPS));
-        snprintf(fpsBuf, sizeof(fpsBuf), "%.0f fps", static_cast<double>(ImGui::GetIO().Framerate));
+        snprintf(simBuf, sizeof(simBuf), "%d fps", std::min(static_cast<int>(simFPS), 9999));
+        snprintf(fpsBuf, sizeof(fpsBuf), "%d fps", std::min(static_cast<int>(ImGui::GetIO().Framerate), 9999));
 
-        // Measure total width for right-alignment
-        auto statW = [&](const char *label) {
-            return iconSz + iconTextGap + ImGui::CalcTextSize(label).x;
-        };
-        float totalW = statW(dbLabel) + sep + statW(nodeBuf) + sep + statW(edgeBuf) + sep +
-                       ImGui::CalcTextSize(simBuf).x;
-        if (m_settings.showFPS)
-            totalW += sep + ImGui::CalcTextSize(fpsBuf).x;
-        totalW += ImGui::GetStyle().WindowPadding.x;
+        // FPS icons are 75% of the bar icon size, centred vertically within each line
+        const float fpsIconSz = iconSz * 0.75f;
+        float fpsFixedTextW = ImGui::CalcTextSize("9999 fps").x;
+        float fpsGroupW = fpsIconSz + iconTextGap + fpsFixedTextW;
+
+        float totalW =
+            iconSz + sep + iconSz + iconTextGap + ImGui::CalcTextSize(nodeBuf).x + sep + iconSz + iconTextGap + ImGui::CalcTextSize(edgeBuf).x + sep + fpsGroupW + ImGui::GetStyle().WindowPadding.x;
+
+        // centredY is set explicitly before every icon so SameLine Y-propagation
+        // quirks (e.g. after SetTooltip) cannot shift individual items
+
+        const float centredY = (barH - iconSz) * 0.5f;
+
+        {
+            ImVec2 wp = ImGui::GetWindowPos();
+            float sepX = wp.x + ImGui::GetWindowWidth() - totalW - 12.5f;
+            float sepY0 = wp.y + (barH - frameH) * 0.5f;
+            dl->AddLine(ImVec2(sepX, sepY0), ImVec2(sepX, sepY0 + frameH), ImGui::ColorConvertFloat4ToU32(ColorScheme::Separator), 1.0f);
+        }
 
         ImGui::SameLine(ImGui::GetWindowWidth() - totalW);
+        ImGui::SetCursorPosY(centredY);
 
-        // Draw icon + label, then advance with a separator gap
-        auto IconStat = [&](GLuint tex, ImVec4 tint, const char *label) {
-            ImGui::ImageWithBg((ImTextureID)(uintptr_t)tex, ImVec2(iconSz, iconSz),
-                               ImVec2(0,0), ImVec2(1,1), ImVec4(0,0,0,0), tint);
-            ImGui::SameLine(0, iconTextGap);
-            ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
-            ImGui::Text("%s", label);
-            ImGui::PopStyleColor();
-            ImGui::SameLine(0, sep);
-        };
+        // DB icon — red/green tint, tooltip on hover
+        ImGui::ImageWithBg((ImTextureID)(uintptr_t)m_dbIconTexture, ImVec2(iconSz, iconSz), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), dbTint);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(connected ? "DB Connected" : "DB Disconnected");
 
-        IconStat(m_dbIconTexture,   dbTint,    dbLabel);
-        IconStat(m_nodeIconTexture, mutedTint, nodeBuf);
-        IconStat(m_edgeIconTexture, mutedTint, edgeBuf);
+        ImGui::SameLine(0, sep);
+        ImGui::SetCursorPosY(centredY);
 
+        // Node (page) icon + count
+        ImGui::ImageWithBg((ImTextureID)(uintptr_t)m_nodeIconTexture, ImVec2(iconSz, iconSz), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), iconTint);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Page Count");
+        ImGui::SameLine(0, iconTextGap);
         ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
-        ImGui::Text("%s", simBuf);
-        if (m_settings.showFPS) {
-            ImGui::SameLine(0, sep);
-            ImGui::Text("%s", fpsBuf);
-        }
+        ImGui::Text("%s", nodeBuf);
         ImGui::PopStyleColor();
+
+        ImGui::SameLine(0, sep);
+        ImGui::SetCursorPosY(centredY);
+
+        // Edge (link) icon + count
+        ImGui::ImageWithBg((ImTextureID)(uintptr_t)m_edgeIconTexture, ImVec2(iconSz, iconSz), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), iconTint);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Link Count");
+        ImGui::SameLine(0, iconTextGap);
+        ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextMuted);
+        ImGui::Text("%s", edgeBuf);
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine(0, sep);
+
+        // Stacked FPS — eye icon + render fps / atom icon + sim fps
+        // Drawn with the window draw list so two lines fit within the single-row bar.
+        // Dummy reserves horizontal space in ImGui's layout.
+
+        VSep();
+
+        {
+            ImVec2 p = ImGui::GetCursorScreenPos();
+            float textH = ImGui::GetTextLineHeight();
+            float barCenterY = ImGui::GetWindowPos().y + barH * 0.5f;
+            ImU32 textCol = ImGui::ColorConvertFloat4ToU32(ColorScheme::TextMuted);
+            float textRightX = p.x + fpsGroupW;
+
+            // Icons are 75% of text height; offset centres them vertically within each line
+            const float iOff = (textH - fpsIconSz) * 0.5f;
+
+            if (m_settings.showFPS) {
+                float groupH = textH * 2.0f + 2.0f;
+                float lineY0 = barCenterY - groupH * 0.5f;
+                float lineY1 = lineY0 + textH + 2.0f;
+
+                // Eye icon + render fps
+                dl->AddImage((ImTextureID)(uintptr_t)m_eyeIconTexture, ImVec2(p.x, lineY0 + iOff), ImVec2(p.x + fpsIconSz, lineY0 + iOff + fpsIconSz), ImVec2(0, 0), ImVec2(1, 1), textCol);
+                dl->AddText(ImVec2(textRightX - ImGui::CalcTextSize(fpsBuf).x, lineY0), textCol, fpsBuf);
+
+                // Atom icon + sim fps
+                dl->AddImage((ImTextureID)(uintptr_t)m_atomIconTexture, ImVec2(p.x, lineY1 + iOff), ImVec2(p.x + fpsIconSz, lineY1 + iOff + fpsIconSz), ImVec2(0, 0), ImVec2(1, 1), textCol);
+                dl->AddText(ImVec2(textRightX - ImGui::CalcTextSize(simBuf).x, lineY1), textCol, simBuf);
+
+                if (ImGui::IsMouseHoveringRect(ImVec2(p.x, lineY0), ImVec2(textRightX, lineY0 + textH)))
+                    ImGui::SetTooltip("FPS");
+                if (ImGui::IsMouseHoveringRect(ImVec2(p.x, lineY1), ImVec2(textRightX, lineY1 + textH)))
+                    ImGui::SetTooltip("Simulation FPS");
+            }
+
+            ImGui::Dummy(ImVec2(fpsGroupW, iconSz));
+        }
     }
 
     ImGui::End();
@@ -699,8 +770,7 @@ void GUI::RenderTopBar() {
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Background);
         ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
         ImGui::Begin("##physics_panel", nullptr,
-                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
                          ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing);
 
         ImGui::PushItemWidth(panelSliderW);
@@ -735,14 +805,16 @@ void GUI::RenderTopBar() {
 
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
-        bool physicsWindowHovered =
-            ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+        bool physicsWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
         ImGui::End();
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(2);
         if (!physicsTabHovered && !physicsWindowHovered) {
             s_physicsCloseTimer += ImGui::GetIO().DeltaTime;
-            if (s_physicsCloseTimer >= 0.15f) { s_physicsOpen = false; s_physicsCloseTimer = 0.0f; }
+            if (s_physicsCloseTimer >= 0.15f) {
+                s_physicsOpen = false;
+                s_physicsCloseTimer = 0.0f;
+            }
         } else {
             s_physicsCloseTimer = 0.0f;
         }
@@ -758,8 +830,7 @@ void GUI::RenderTopBar() {
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Background);
         ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
         ImGui::Begin("##rendering_panel", nullptr,
-                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
                          ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing);
 
         ImGui::PushItemWidth(panelSliderW);
@@ -782,8 +853,7 @@ void GUI::RenderTopBar() {
         ImGui::Text("Nodes");
         ImGui::Separator();
         ImGui::SliderFloat("Node Scale", &m_controlData.engine.nodeSizeMultiplier, 0.1f, 20.0f, "%.2f");
-        ImGui::SliderInt("Search Result Limit", &m_controlData.engine.searchResultLimit, 0, 2000,
-                         m_controlData.engine.searchResultLimit == 0 ? "unlimited" : "%d");
+        ImGui::SliderInt("Search Result Limit", &m_controlData.engine.searchResultLimit, 0, 2000, m_controlData.engine.searchResultLimit == 0 ? "unlimited" : "%d");
 
         ImGui::Spacing();
         ImGui::Text("Labels");
@@ -794,14 +864,16 @@ void GUI::RenderTopBar() {
 
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
-        bool renderingWindowHovered =
-            ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+        bool renderingWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
         ImGui::End();
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(2);
         if (!renderingTabHovered && !renderingWindowHovered) {
             s_renderingCloseTimer += ImGui::GetIO().DeltaTime;
-            if (s_renderingCloseTimer >= 0.15f) { s_renderingOpen = false; s_renderingCloseTimer = 0.0f; }
+            if (s_renderingCloseTimer >= 0.15f) {
+                s_renderingOpen = false;
+                s_renderingCloseTimer = 0.0f;
+            }
         } else {
             s_renderingCloseTimer = 0.0f;
         }
@@ -824,10 +896,8 @@ void GUI::RenderTopBar() {
             ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
             ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
             ImGui::Begin("##suggestions", nullptr,
-                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                             ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar |
-                             ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings |
-                             ImGuiWindowFlags_NoDocking);
+                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar |
+                             ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking);
 
             if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
                 for (const auto &s : m_controlData.app.searchSuggestions) {
@@ -844,9 +914,7 @@ void GUI::RenderTopBar() {
             }
 
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered() &&
-                !ImGui::IsMouseHoveringRect(searchScreenPos,
-                                            ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH),
-                                            false)) {
+                !ImGui::IsMouseHoveringRect(searchScreenPos, ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH), false)) {
                 suggestionsVisible = false;
             }
 

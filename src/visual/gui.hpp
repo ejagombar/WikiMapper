@@ -57,6 +57,8 @@ class GUI {
     GLuint m_nodeIconTexture = 0;
     GLuint m_edgeIconTexture = 0;
     GLuint m_dbIconTexture = 0;
+    GLuint m_eyeIconTexture = 0;
+    GLuint m_atomIconTexture = 0;
 };
 
 #endif // GUI_H
