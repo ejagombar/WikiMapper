@@ -28,8 +28,7 @@
 
 // This constructor sets up the graphical window, initialises buffers and textures, and creates the GUI. The debugData
 // and associated mutex is quite messy and a temporary solution. This shall be changed eventually.
-RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlData)
-    : m_controlData(controlData), m_graphBuf(graphBuf) {
+RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlData) : m_controlData(controlData), m_graphBuf(graphBuf) {
 
     globalLogger->info("Initialising Engine");
 
@@ -56,6 +55,8 @@ RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlDa
     glfwSetKeyCallback(m_window, key_callback_static);
     glfwSetMouseButtonCallback(m_window, mouse_button_callback_static);
     glfwSetCursorPosCallback(m_window, mouse_callback_static);
+    glfwSetWindowIconifyCallback(m_window, window_iconify_callback_static);
+    glfwSetWindowFocusCallback(m_window, window_focus_callback_static);
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 
@@ -79,9 +80,7 @@ RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlDa
     updateNodes(*graph);
     updateEdges(*graph);
 
-    m_currentLabelNodes =
-        computeClosestNodeIndices(m_camera.GetCameraPosition(), m_controlData.engine.labelDistanceThreshold,
-                                  m_controlData.engine.maxLabelCount, graph->nodes.positions);
+    m_currentLabelNodes = computeClosestNodeIndices(m_camera.GetCameraPosition(), m_controlData.engine.labelDistanceThreshold, m_controlData.engine.maxLabelCount, graph->nodes.positions);
     std::vector<std::string> filteredTitles;
     filteredTitles.reserve(m_currentLabelNodes.size());
 
@@ -91,8 +90,7 @@ RenderEngine::RenderEngine(GS::GraphTripleBuf &graphBuf, ControlPlane &controlDa
 
     auto out = m_text->PrepareLabelAtlases(filteredTitles);
     m_text->UploadLabelAtlasesToGPU(out);
-    m_text->UpdateLabelPositions(m_currentLabelNodes, graph->nodes.positions, m_effectiveNodeSizes,
-                                 m_controlData.engine.labelSizeMultiplier);
+    m_text->UpdateLabelPositions(m_currentLabelNodes, graph->nodes.positions, m_effectiveNodeSizes, m_controlData.engine.labelSizeMultiplier);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
@@ -110,8 +108,7 @@ void RenderEngine::setupShaders() {
     m_shader.cylinder = std::make_unique<Shader>("cylinder.vert", "cylinder.frag", "cylinder.geom");
     m_picking->pickingShader = std::make_unique<Shader>("selector.vert", "selector.frag", "selector.geom");
 
-    m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight),
-                                            glm::ivec2(1000, 800), 20, false, .5f, 14, 0.92f);
+    m_blur = std::make_unique<Filter::Blur>(*m_shader.screenBlur, glm::ivec2(m_scrWidth, m_scrHeight), glm::ivec2(40000, 10000), 20, false, .5f, 14, 0.92f);
 
     m_bloom = std::make_unique<Filter::Bloom>(glm::ivec2(m_scrWidth, m_scrHeight), 0.5f, 0.25f, 6, 1.5f);
 
@@ -119,12 +116,9 @@ void RenderEngine::setupShaders() {
 
     m_text = std::make_unique<LabelEngine>(m_font, "label.vert", "label.frag", "label.geom");
 
-    m_shader.cameraMatricesUBO =
-        std::make_unique<UBOManager<CameraMatrices>>(m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
-    m_shader.environmentUBO =
-        std::make_unique<UBOManager<EnvironmentLighting>>(m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
-    m_shader.materialUBO =
-        std::make_unique<UBOManager<MaterialProperties>>(m_shader.MATERIAL_PROPERTIES_UBO_BINDING_POINT);
+    m_shader.cameraMatricesUBO = std::make_unique<UBOManager<CameraMatrices>>(m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
+    m_shader.environmentUBO = std::make_unique<UBOManager<EnvironmentLighting>>(m_shader.ENVIRONMENT_LIGHTING_UBO_BINDING_POINT);
+    m_shader.materialUBO = std::make_unique<UBOManager<MaterialProperties>>(m_shader.MATERIAL_PROPERTIES_UBO_BINDING_POINT);
 
     m_shader.sphere->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
     m_shader.cylinder->LinkUBO("GlobalUniforms", m_shader.CAMERA_MATRICES_UBO_BINDING_POINT);
@@ -142,8 +136,7 @@ void RenderEngine::initNodeBuffers() {
 
     GLint colorRadiusAttr = m_shader.sphere->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(colorRadiusAttr);
-    glVertexAttribPointer(colorRadiusAttr, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData),
-                          reinterpret_cast<void *>(offsetof(NodeData, r)));
+    glVertexAttribPointer(colorRadiusAttr, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(NodeData), reinterpret_cast<void *>(offsetof(NodeData, r)));
 
     const size_t nodePosOffset = offsetof(NodeData, position);
 
@@ -160,8 +153,7 @@ void RenderEngine::initEdgeBuffers() {
 
     GLint colorRadiusAttrib = m_shader.cylinder->GetAttribLocation("aRGBRadius");
     glEnableVertexAttribArray(colorRadiusAttrib);
-    glVertexAttribPointer(colorRadiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData),
-                          reinterpret_cast<void *>(offsetof(EdgeData, r)));
+    glVertexAttribPointer(colorRadiusAttrib, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(EdgeData), reinterpret_cast<void *>(offsetof(EdgeData, r)));
 
     const size_t edgePosOffset = offsetof(EdgeData, position);
 
@@ -346,8 +338,7 @@ void RenderEngine::updateParticles(GS::Graph &graph) {
         dst[2] = src.z;
     }
 
-    m_text->UpdateLabelPositions(m_currentLabelNodes, graph.nodes.positions, m_effectiveNodeSizes,
-                                 m_controlData.engine.labelSizeMultiplier);
+    m_text->UpdateLabelPositions(m_currentLabelNodes, graph.nodes.positions, m_effectiveNodeSizes, m_controlData.engine.labelSizeMultiplier);
 
     uint32_t minEdgeCount = std::min(m_edgeData.size() / 2, graph.edges.startIdxs.size());
     for (uint32_t i = 0; i < minEdgeCount; i++) {
@@ -396,8 +387,7 @@ void RenderEngine::computeLighting(glm::vec3 cameraPosition) {
 
     uniforms.pointLight[0] = {cameraPosition, glm::vec3(1.0f, 1.0f, 1.0f), 0.006f, 0.013f, 0.089f};
 
-    if (m_previousHoveredNodeID >= 0 && m_previousHoveredNodeID < static_cast<int>(m_graph->nodes.titles.size()) &&
-        m_inTransition) {
+    if (m_previousHoveredNodeID >= 0 && m_previousHoveredNodeID < static_cast<int>(m_graph->nodes.titles.size()) && m_inTransition) {
 
         glm::vec3 prevNodePos = m_graph->nodes.positions[m_previousHoveredNodeID];
         glm::vec3 dirToCamera = cameraPosition - prevNodePos;
@@ -454,6 +444,40 @@ uint32_t RenderEngine::Run() {
     uint32_t backgroundOption = 0;
     while (!glfwWindowShouldClose(m_window)) {
 
+        // Auto-pause after focus has been absent long enough.
+        if (!m_windowFocused && m_state == play) {
+            if (glfwGetTime() - m_focusLostTimestamp >= AUTO_PAUSE_FOCUS_TIMEOUT)
+                autoPause();
+        }
+
+        // Lightweight pause path: reblit the frozen frame then sleep for events.
+        // Skips all 3D rendering, label work, and buffer uploads.
+        if (m_state == stop && !m_pauseFrameDirty) {
+            // Iconified — nothing to render at all; wait longer to save resources.
+            if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) {
+                glfwWaitEventsTimeout(1.0);
+                continue;
+            }
+
+            m_gui->BeginFrame();
+            m_blur->Display();
+            bool topBarClicked = m_gui->RenderTopBar();
+            m_gui->RenderBottomLeftBox();
+            m_gui->RenderMenu();
+            m_gui->EndFrame();
+
+            if (topBarClicked) {
+                m_state = play;
+                m_blur->SetEnabled(false);
+                m_controlData.sim.paused.store(false, std::memory_order_relaxed);
+                m_autoPaused = false;
+            }
+
+            glfwSwapBuffers(m_window);
+            glfwWaitEventsTimeout(0.05);
+            continue;
+        }
+
         if (vSyncOld != m_controlData.engine.vSync) {
             glfwSwapInterval(m_controlData.engine.vSync);
             vSyncOld = m_controlData.engine.vSync;
@@ -478,8 +502,7 @@ uint32_t RenderEngine::Run() {
             m_lastLabelRebuildTime = -999.0f;
         }
 
-        if (m_controlData.engine.sizeByDegree != m_sizeByDegreeOld ||
-            m_controlData.engine.nodeSizeMultiplier != m_nodeSizeMultiplierOld) {
+        if (m_controlData.engine.sizeByDegree != m_sizeByDegreeOld || m_controlData.engine.nodeSizeMultiplier != m_nodeSizeMultiplierOld) {
             m_sizeByDegreeOld = m_controlData.engine.sizeByDegree;
             m_nodeSizeMultiplierOld = m_controlData.engine.nodeSizeMultiplier;
             GS::Graph *graph = m_graphBuf.GetCurrent();
@@ -505,8 +528,7 @@ uint32_t RenderEngine::Run() {
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
 
-        if (m_candidateFuture.valid() &&
-            m_candidateFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        if (m_candidateFuture.valid() && m_candidateFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             std::vector<uint32_t> candidates = m_candidateFuture.get();
             if (shouldRebuildLabelAtlas(candidates)) {
                 m_pendingLabelNodes = candidates;
@@ -515,9 +537,7 @@ uint32_t RenderEngine::Run() {
                 titles.reserve(m_pendingLabelNodes.size());
                 for (uint32_t idx : m_pendingLabelNodes)
                     titles.push_back(graph->nodes.titles[idx]);
-                m_labelFuture = std::async(std::launch::async, [engine = m_text.get(), t = std::move(titles)]() {
-                    return engine->PrepareLabelAtlases(t);
-                });
+                m_labelFuture = std::async(std::launch::async, [engine = m_text.get(), t = std::move(titles)]() { return engine->PrepareLabelAtlases(t); });
             }
         }
 
@@ -528,21 +548,22 @@ uint32_t RenderEngine::Run() {
         }
 
         float now = static_cast<float>(glfwGetTime());
-        if (!m_candidateFuture.valid() && !m_labelFuture.valid() &&
-            (now - m_lastLabelRebuildTime) > LABEL_REBUILD_INTERVAL) {
+        if (!m_candidateFuture.valid() && !m_labelFuture.valid() && (now - m_lastLabelRebuildTime) > LABEL_REBUILD_INTERVAL) {
             GS::Graph *graph = m_graphBuf.GetCurrent();
             glm::vec3 camPos = m_camera.GetCameraPosition();
             float threshold = m_controlData.engine.labelDistanceThreshold;
             int maxCount = m_controlData.engine.maxLabelCount;
             std::vector<glm::vec3> positions = graph->nodes.positions; // snapshot: one allocation + memcpy
             m_candidateFuture =
-                std::async(std::launch::async, [camPos, threshold, maxCount, positions = std::move(positions)]() {
-                    return computeClosestNodeIndices(camPos, threshold, maxCount, positions);
-                });
+                std::async(std::launch::async, [camPos, threshold, maxCount, positions = std::move(positions)]() { return computeClosestNodeIndices(camPos, threshold, maxCount, positions); });
             m_lastLabelRebuildTime = now;
         }
 
         loop();
+
+        // After the first full render in pause mode, the freeze frame is captured.
+        if (m_state == stop)
+            m_pauseFrameDirty = false;
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
@@ -627,8 +648,7 @@ void RenderEngine::loop() {
     m_shader.sphere->Use();
     m_shader.sphere->SetFloat("time", currentFrame);
 
-    MaterialProperties properties = {m_controlData.engine.customVals[0], m_controlData.engine.customVals[1],
-                                     m_controlData.engine.customVals[2]};
+    MaterialProperties properties = {m_controlData.engine.customVals[0], m_controlData.engine.customVals[1], m_controlData.engine.customVals[2]};
 
     m_shader.materialUBO->Update(properties);
 
@@ -660,17 +680,14 @@ void RenderEngine::loop() {
     m_bloom->ExtractAndBlur(m_sceneTexture);
 
     if (m_blur->GetEnabled()) {
-        // Composite bloom into blur's originalFBO so menu blur operates on bloomed scene
+        // Composite bloom into blur's originalFBO (scene only — no UI baked in)
         m_bloom->Composite(m_sceneTexture, m_blur->GetOriginalFBO());
 
-        glBindFramebuffer(GL_FRAMEBUFFER, m_blur->GetOriginalFBO());
-        glEnable(GL_DEPTH_TEST);
+        // Blit blurred frozen frame to FBO 0, then layer crisp UI on top
+        m_blur->Display();
 
         m_gui->RenderTopBar();
         m_gui->RenderBottomLeftBox();
-
-        m_blur->Display();
-
         m_gui->RenderMenu();
     } else {
         // Composite bloom directly to default framebuffer
@@ -747,22 +764,71 @@ void RenderEngine::mouse_button_callback_static(GLFWwindow *window, int button, 
     }
 }
 
+void RenderEngine::window_iconify_callback_static(GLFWwindow *window, int iconified) {
+    RenderEngine *instance = static_cast<RenderEngine *>(glfwGetWindowUserPointer(window));
+    if (instance)
+        instance->window_iconify_callback(window, iconified);
+}
+
+void RenderEngine::window_focus_callback_static(GLFWwindow *window, int focused) {
+    RenderEngine *instance = static_cast<RenderEngine *>(glfwGetWindowUserPointer(window));
+    if (instance)
+        instance->window_focus_callback(window, focused);
+}
+
+void RenderEngine::autoPause() {
+    if (m_state == play) {
+        m_state = stop;
+        m_blur->SetEnabled(true);
+        m_pauseFrameDirty = true;
+        m_controlData.sim.paused.store(true, std::memory_order_relaxed);
+        m_autoPaused = true;
+    }
+}
+
+void RenderEngine::autoResume() {
+    if (m_autoPaused) {
+        m_state = play;
+        m_blur->SetEnabled(false);
+        m_controlData.sim.paused.store(false, std::memory_order_relaxed);
+        m_autoPaused = false;
+    }
+}
+
+void RenderEngine::window_iconify_callback([[maybe_unused]] GLFWwindow *window, int iconified) {
+    if (iconified)
+        autoPause();
+    // Restore is handled by the focus callback when the window regains focus.
+}
+
+void RenderEngine::window_focus_callback([[maybe_unused]] GLFWwindow *window, int focused) {
+    m_windowFocused = focused != 0;
+    if (m_windowFocused) {
+        autoResume();
+    } else {
+        m_focusLostTimestamp = glfwGetTime();
+    }
+}
+
 // -------------------------------- Callbacks --------------------------------
 
 // A check if made to the GUI to see if it is active before processing the key strokes. If it is active, the
 // function will return early. The "q" key is an exception to this as this opens and closes the menu so this should
 // work when the menu is active or not. This leads to a very small bug when typing into the search box, if you press
 // q and the menu is open, it will close the menu, but this will not happen for any other letter.
-void RenderEngine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action,
-                                [[maybe_unused]] int mods) {
+void RenderEngine::key_callback([[maybe_unused]] GLFWwindow *window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) {
 
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         if (m_state == play && !m_gui->Active()) {
             m_state = stop;
             m_blur->SetEnabled(true);
+            m_pauseFrameDirty = true;
+            m_controlData.sim.paused.store(true, std::memory_order_relaxed);
         } else {
             m_state = play;
             m_blur->SetEnabled(false);
+            m_controlData.sim.paused.store(false, std::memory_order_relaxed);
+            m_autoPaused = false;
         }
     }
 
@@ -781,13 +847,15 @@ void RenderEngine::framebuffer_size_callback([[maybe_unused]] GLFWwindow *window
     m_camera.SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
     m_blur->ScreenResize(glm::ivec2(width, height));
     m_bloom->ScreenResize(glm::ivec2(width, height));
-    // m_text2d->UpdateScreenSize(static_cast<float>(width), static_cast<float>(height));
     m_picking->Resize(width, height);
 
     m_scrWidth = width;
     m_scrHeight = height;
 
     initSceneFBO();
+
+    if (m_state == stop)
+        m_pauseFrameDirty = true;
 }
 
 // Called when there is mouse movement
@@ -813,9 +881,7 @@ void RenderEngine::mouse_callback([[maybe_unused]] GLFWwindow *window, double xp
     m_camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void RenderEngine::doubleClickCalled() {
-    m_controlData.graph.sourceNode.store(m_hoveredNodeID, std::memory_order_relaxed);
-}
+void RenderEngine::doubleClickCalled() { m_controlData.graph.sourceNode.store(m_hoveredNodeID, std::memory_order_relaxed); }
 
 void RenderEngine::handleClickHold(int action) {
     if (action == GLFW_PRESS && m_hoveredNodeID != -1) {
@@ -861,8 +927,7 @@ void RenderEngine::handleDoubleClick(int action) {
     }
 }
 
-void RenderEngine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int button, int action,
-                                         [[maybe_unused]] int mods) {
+void RenderEngine::mouse_button_callback([[maybe_unused]] GLFWwindow *window, int button, int action, [[maybe_unused]] int mods) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         m_firstMouse = true;
@@ -920,8 +985,7 @@ void RenderEngine::processEngineInput(GLFWwindow *window) {
         m_camera.ProcessKeyboard(CameraMovement::RIGHT);
 }
 
-std::vector<uint32_t> RenderEngine::computeClosestNodeIndices(glm::vec3 camPos, float threshold, int maxCount,
-                                                              const std::vector<glm::vec3> &positions) {
+std::vector<uint32_t> RenderEngine::computeClosestNodeIndices(glm::vec3 camPos, float threshold, int maxCount, const std::vector<glm::vec3> &positions) {
     const size_t N = positions.size();
 
     std::vector<std::pair<float, uint32_t>> candidates;

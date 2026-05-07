@@ -8,8 +8,8 @@
 
 #include "../controlPlane.hpp"
 #include "../graph.hpp"
-#include "./camera.hpp"
 #include "./bloom.hpp"
+#include "./camera.hpp"
 #include "./filter.hpp"
 #include "./gui.hpp"
 #include "./label.hpp"
@@ -19,11 +19,11 @@
 #include "./uniformBufferObject.hpp"
 #include <GL/gl.h> // This header isn't required as glad already provides it, however if it is not here, then the the language server automatically adds it when autocomplete is used on a OpenGL function
 #include <GLFW/glfw3.h>
+#include <future>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <math.h>
-#include <future>
 #include <memory>
 #include <unordered_set>
 
@@ -99,11 +99,18 @@ class RenderEngine {
     static void mouse_callback_static(GLFWwindow *window, double xpos, double ypos);
     static void key_callback_static(GLFWwindow *window, int key, int scancode, int action, int mods);
     static void mouse_button_callback_static(GLFWwindow *window, int button, int action, int mods);
+    static void window_iconify_callback_static(GLFWwindow *window, int iconified);
+    static void window_focus_callback_static(GLFWwindow *window, int focused);
 
     void framebuffer_size_callback(GLFWwindow *window, int width, int height);
     void mouse_callback(GLFWwindow *window, double xpos, double ypos);
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
+    void window_iconify_callback(GLFWwindow *window, int iconified);
+    void window_focus_callback(GLFWwindow *window, int focused);
+
+    void autoPause();
+    void autoResume();
 
     void handleDoubleClick(int action);
     void handleClickHold(int action);
@@ -131,8 +138,7 @@ class RenderEngine {
 
     void computeHoverTransition(float deltaTime);
 
-    static std::vector<uint32_t> computeClosestNodeIndices(glm::vec3 camPos, float threshold, int maxCount,
-                                                            const std::vector<glm::vec3> &positions);
+    static std::vector<uint32_t> computeClosestNodeIndices(glm::vec3 camPos, float threshold, int maxCount, const std::vector<glm::vec3> &positions);
     bool shouldRebuildLabelAtlas(const std::vector<uint32_t> &candidates) const;
 
     void handleDragging(double mouseX, double mouseY);
@@ -153,6 +159,12 @@ class RenderEngine {
 
     State m_state = play;
     bool m_mouseActive = false;
+    bool m_pauseFrameDirty = false;
+    bool m_autoPaused = false;
+    bool m_windowFocused = true;
+    double m_focusLostTimestamp = 0.0;
+
+    static constexpr double AUTO_PAUSE_FOCUS_TIMEOUT = 10.0;
 
     ShaderData m_shader;
 

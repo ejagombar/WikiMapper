@@ -25,6 +25,7 @@ struct DraggingNode {
 
 struct SimulationControlData {
     bool resetSimulation = false;
+    std::atomic<bool> paused = false;
 
     std::atomic<DraggingNode> draggingNode;
 

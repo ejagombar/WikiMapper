@@ -67,14 +67,14 @@ void main() {
     vec3 originalResult = texture(originalTexture, TexCoords).rgb;
 
     if (lastPass) {
-        if (isInsideRoundedRectangle(gl_FragCoord.xy, screenSize / 2, width, height, radius)) {
-            FragColor = vec4(blurResult, 1.0);
-        }
-        else if (isInsideRoundedRectangle(gl_FragCoord.xy, screenSize / 2, width + 6, height + 6, radius)) {
-            FragColor = vec4(0.584, 0.584, 0.584, 0.9);
-        } else {
-            FragColor = vec4(mix(originalResult, blurResult, 0.6), 1.0);
-        }
+        // if (isInsideRoundedRectangle(gl_FragCoord.xy, screenSize / 2, width, height, radius)) {
+        //     FragColor = vec4(blurResult, 1.0);
+        // }
+        // else if (isInsideRoundedRectangle(gl_FragCoord.xy, screenSize / 2, width + 6, height + 6, radius)) {
+        //     FragColor = vec4(0.584, 0.584, 0.584, 0.9);
+        // } else {
+        FragColor = vec4(mix(originalResult, blurResult, 0.6), 1.0);
+        // }
     } else {
         FragColor = vec4(blurResult, 1.0);
     }

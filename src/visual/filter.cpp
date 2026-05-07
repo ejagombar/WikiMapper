@@ -5,10 +5,8 @@
 
 namespace Filter {
 
-Blur::Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint radius, bool enabled, GLfloat scale,
-           uint32_t blurPasses, GLfloat brightnessModifier)
-    : m_blurShader(blurShader), m_screenSize(screenSize), m_enabled(enabled), m_size(size), m_radius(radius),
-      m_scale(scale), m_passes(blurPasses), m_brightnessModifier(brightnessModifier) {
+Blur::Blur(Shader &blurShader, glm::ivec2 screenSize, glm::ivec2 size, GLuint radius, bool enabled, GLfloat scale, uint32_t blurPasses, GLfloat brightnessModifier)
+    : m_blurShader(blurShader), m_screenSize(screenSize), m_enabled(enabled), m_size(size), m_radius(radius), m_scale(scale), m_passes(blurPasses), m_brightnessModifier(brightnessModifier) {
 
     // Two triangles that will cover the full screen when rendered in screen space.
     float quadVertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
@@ -48,6 +46,8 @@ void Blur::initSizeDependantBuffers() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenSize.x, m_screenSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_blurTexture[i], 0);
 
         // Create the Renderbuffer and initialise with enough memory
@@ -68,6 +68,8 @@ void Blur::initSizeDependantBuffers() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_screenSize.x, m_screenSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_originalFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_originalTexture, 0);

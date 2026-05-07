@@ -660,6 +660,12 @@ void GraphEngine::graphPositionSimulation() {
     int32_t lastDragId = -1;
 
     while (!m_shouldTerminate) {
+        if (m_controlData.sim.paused.load(std::memory_order_relaxed)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            frameStart = std::chrono::system_clock::now();
+            continue;
+        }
+
         GS::Graph *readGraph = m_graphBuf.GetCurrent();
         GS::Graph *writeGraph = m_graphBuf.GetWriteBuffer();
 

@@ -191,176 +191,26 @@ void GUI::BeginFrame() {
 void GUI::RenderMenu() {
     ImGuiViewport *mainViewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowViewport(mainViewport->ID);
+    ImGui::SetNextWindowPos(mainViewport->Pos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(mainViewport->Size, ImGuiCond_Always);
 
-    ImVec2 settingsSize(1060, 901);
-
-    ImVec2 settingsPos = ImVec2(mainViewport->Pos.x + (mainViewport->Size.x - settingsSize.x) * 0.5f + 5, mainViewport->Pos.y + (mainViewport->Size.y - settingsSize.y) * 0.5f + 27);
-    ImGui::SetNextWindowPos(settingsPos, ImGuiCond_Always);
-    ImGui::SetNextWindowSize(settingsSize, ImGuiCond_Always);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(40, 30));
-    ImGui::Begin("Settings", nullptr,
-                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+    ImGui::Begin("##menuOverlay", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
+                     ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
 
     ImGui::PushFont(m_titleFont);
     ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextPrimary);
-    float titleWidth = ImGui::CalcTextSize("WikiMapper").x;
-    ImGui::SetCursorPosX((settingsSize.x - titleWidth) * 0.5f);
-    ImGui::Text("WikiMapper");
+    const char *title = "II";
+    ImVec2 titleSz = ImGui::CalcTextSize(title);
+    ImGui::SetCursorPos(ImVec2((mainViewport->Size.x - titleSz.x) * 0.5f, (mainViewport->Size.y - titleSz.y) * 0.5f));
+    ImGui::Text("%s", title);
     ImGui::PopStyleColor();
     ImGui::PopFont();
 
-    ImVec2 contentSize = ImVec2(settingsSize.x - 80, settingsSize.y - 200);
-
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0)); // Fully transparent
-    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
-    ImGui::BeginChild("ContentCard", contentSize, false); // No border
-
-    subtitle("About");
-    ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
-    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + contentSize.x - 80);
-    ImGui::TextWrapped("WikiMapper is an interactive explorer for traversing Wikipedia through a graph view. Each node "
-                       "represents a page while the edges represent links between pages.");
-    ImGui::PopTextWrapPos();
-    ImGui::PopStyleColor();
-
-    separator();
-
-    // Camera Settings Section
-    subtitle("Camera Settings");
-    ImGui::PushItemWidth(350.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
-
-    ImGui::Text("Mouse Sensitivity");
-    ImGui::SliderFloat("##mouseSens", &m_controlData.engine.mouseSensitivity, 0.1f, 10.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
-
-    ImGui::Spacing();
-    ImGui::Text("Field of View");
-    ImGui::SliderFloat("##fov", &m_controlData.engine.cameraFov, 30.0f, 120.0f, "%.1f°", ImGuiSliderFlags_AlwaysClamp);
-
-    ImGui::PopStyleColor();
-    ImGui::PopItemWidth();
-
-    separator();
-
-    subtitle("Options");
-
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8, 8));
-    ImGui::Checkbox("V-Sync", &m_controlData.engine.vSync);
-    ImGui::Checkbox("Show FPS", &m_settings.showFPS);
-    ImGui::Checkbox("Size Nodes by Link Count", &m_controlData.engine.sizeByDegree);
-    ImGui::PopStyleVar();
-
-    ImGui::Spacing();
-    ImGui::Spacing();
-
-    separator();
-    subtitle("Graph Data Source");
-
-    ImGui::PushItemWidth(500.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
-
-    std::lock_guard<std::mutex> lock(m_controlData.app.dataSourceMutex);
-
-    // Data source type dropdown
-    int currentSourceType = static_cast<int>(m_controlData.app.dataSource.sourceType);
-    const char *sourceTypes[] = {"HTTP Server", "Database (Neo4j)"};
-
-    ImGui::Text("Data Source");
-    ImGui::PushItemWidth(180.0f);
-    if (ImGui::Combo("##sourceType", &currentSourceType, sourceTypes, IM_ARRAYSIZE(sourceTypes))) {
-        m_controlData.app.dataSource.sourceType = static_cast<dbInterfaceType>(currentSourceType);
-    }
-
-    ImGui::Spacing();
-
-    const int boxWidth = 280;
-
-    if (m_controlData.app.dataSource.sourceType == dbInterfaceType::DB) {
-        ImGui::Text("URL");
-        ImGui::PushItemWidth(boxWidth);
-        {
-            std::string urlBuffer = m_controlData.app.dataSource.dbUrl;
-            char buffer[256];
-            strncpy(buffer, urlBuffer.c_str(), sizeof(buffer));
-            buffer[sizeof(buffer) - 1] = '\0';
-            if (ImGui::InputTextWithHint("##neo4jUrl", "bolt://localhost", buffer, IM_ARRAYSIZE(buffer))) {
-                m_controlData.app.dataSource.dbUrl = buffer;
-            }
-        }
-        ImGui::PopItemWidth();
-
-        ImGui::Text("Password");
-        ImGui::PushItemWidth(boxWidth);
-        {
-            char buffer[256];
-            strncpy(buffer, m_controlData.app.dataSource.dbPassword.c_str(), sizeof(buffer));
-            buffer[sizeof(buffer) - 1] = '\0';
-            if (ImGui::InputTextWithHint("##neo4jPassword", "Enter password", buffer, IM_ARRAYSIZE(buffer), ImGuiInputTextFlags_Password)) {
-                m_controlData.app.dataSource.dbPassword = buffer;
-            }
-        }
-        ImGui::PopItemWidth();
-
-    } else if (m_controlData.app.dataSource.sourceType == dbInterfaceType::HTTP) {
-        ImGui::Text("URL");
-        ImGui::PushItemWidth(boxWidth);
-        {
-            char buffer[256];
-            strncpy(buffer, m_controlData.app.dataSource.serverUrl.c_str(), sizeof(buffer));
-            buffer[sizeof(buffer) - 1] = '\0';
-            if (ImGui::InputTextWithHint("##httpUrl", "http://eagombar.uk", buffer, IM_ARRAYSIZE(buffer))) {
-                m_controlData.app.dataSource.serverUrl = buffer;
-            }
-        }
-        ImGui::PopItemWidth();
-    }
-
-    ImGui::Spacing();
-
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-    ImGui::PushStyleColor(ImGuiCol_Button, ColorScheme::Primary);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::PrimaryHover);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
-
-    if (ImGui::Button("Save & Connect", ImVec2(205, 50))) {
-        m_controlData.app.dataSource.attemptDataConnection = true;
-    }
-
-    ImGui::PopStyleColor(3);
-    ImGui::PopStyleVar();
-
-    ImGui::SameLine();
-    ImGui::Spacing();
-    ImGui::SameLine();
-
-    ImVec2 circlePos = ImGui::GetCursorScreenPos();
-    circlePos.x += 10;
-    circlePos.y += 25;
-
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
-    ImVec4 statusColor = m_controlData.app.dataSource.connectedToDataSource ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
-
-    drawList->AddCircleFilled(circlePos, 8.0f, ImGui::ColorConvertFloat4ToU32(statusColor));
-
-    // Status text
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 25);
-    ImGui::PushStyleColor(ImGuiCol_Text, statusColor);
-    ImGui::Text("%s", m_controlData.app.dataSource.connectedToDataSource ? "Connected" : "Disconnected");
-    ImGui::PopStyleColor();
-
-    ImGui::PopStyleColor();
-    ImGui::PopItemWidth();
-
-    ImGui::Spacing();
-    ImGui::Spacing();
-
-    ImGui::EndChild();
-    ImGui::PopStyleVar();
-    ImGui::PopStyleColor();
-    ImGui::PopStyleVar();
     ImGui::End();
+    ImGui::PopStyleColor(2);
 }
 
 void GUI::RenderBottomLeftBox() {
@@ -425,7 +275,10 @@ void GUI::RenderBottomLeftBox() {
     ImGui::PopStyleColor(2);
 }
 
-void GUI::RenderTopBar() {
+bool GUI::RenderTopBar() {
+    ImGuiIO &io = ImGui::GetIO();
+    bool interacted = io.MouseClicked[0] && io.WantCaptureMouse;
+
     ImGuiViewport *vp = ImGui::GetMainViewport();
     const float frameH = ImGui::GetFrameHeight();
     const float barH = frameH + 20.0f;
@@ -468,9 +321,12 @@ void GUI::RenderTopBar() {
     // ── Physics / Rendering toggle buttons ────────────────────────────────────
     static bool s_physicsOpen = false;
     static bool s_renderingOpen = false;
+    static bool s_dbOpen = false;
     static float s_physicsCloseTimer = 0.0f;
     static float s_renderingCloseTimer = 0.0f;
-    ImVec2 physicsPanelPos, renderingPanelPos;
+    static float s_dbCloseTimer = 0.0f;
+    ImVec2 physicsPanelPos, renderingPanelPos, dbPanelPos;
+    bool dbBtnHovered = false;
     const float barBottom = ImGui::GetWindowPos().y + barH;
 
     bool physicsTabHovered = false;
@@ -645,7 +501,6 @@ void GUI::RenderTopBar() {
 
     // ── Stats (far right) ────────────────────────────────────────────────────
     {
-
         bool connected = m_controlData.app.dataSource.connectedToDataSource;
         int32_t nodes = m_controlData.engine.nodeCount.load(std::memory_order_relaxed);
         int32_t edges = m_controlData.engine.edgeCount.load(std::memory_order_relaxed);
@@ -663,16 +518,13 @@ void GUI::RenderTopBar() {
         snprintf(simBuf, sizeof(simBuf), "%d fps", std::min(static_cast<int>(simFPS), 9999));
         snprintf(fpsBuf, sizeof(fpsBuf), "%d fps", std::min(static_cast<int>(ImGui::GetIO().Framerate), 9999));
 
-        // FPS icons are 75% of the bar icon size, centred vertically within each line
         const float fpsIconSz = iconSz * 0.75f;
         float fpsFixedTextW = ImGui::CalcTextSize("9999 fps").x;
         float fpsGroupW = fpsIconSz + iconTextGap + fpsFixedTextW;
+        float fpsSectionW = m_settings.showFPS ? (sep + fpsGroupW) : 0.0f;
 
         float totalW =
-            iconSz + sep + iconSz + iconTextGap + ImGui::CalcTextSize(nodeBuf).x + sep + iconSz + iconTextGap + ImGui::CalcTextSize(edgeBuf).x + sep + fpsGroupW + ImGui::GetStyle().WindowPadding.x;
-
-        // centredY is set explicitly before every icon so SameLine Y-propagation
-        // quirks (e.g. after SetTooltip) cannot shift individual items
+            iconSz + sep + iconSz + iconTextGap + ImGui::CalcTextSize(nodeBuf).x + sep + iconSz + iconTextGap + ImGui::CalcTextSize(edgeBuf).x + fpsSectionW + ImGui::GetStyle().WindowPadding.x;
 
         const float centredY = (barH - iconSz) * 0.5f;
 
@@ -686,10 +538,24 @@ void GUI::RenderTopBar() {
         ImGui::SameLine(ImGui::GetWindowWidth() - totalW);
         ImGui::SetCursorPosY(centredY);
 
-        // DB icon — red/green tint, tooltip on hover
-        ImGui::ImageWithBg((ImTextureID)(uintptr_t)m_dbIconTexture, ImVec2(iconSz, iconSz), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), dbTint);
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(connected ? "DB Connected" : "DB Disconnected");
+        // DB icon — pressable button, red/green tint for connection status
+        {
+            ImVec2 p = ImGui::GetCursorScreenPos();
+            ImVec2 bMax = ImVec2(p.x + iconSz, p.y + iconSz);
+            bool hov = mousePos.x >= p.x && mousePos.x <= bMax.x && mousePos.y >= p.y && mousePos.y <= bMax.y;
+            if (hov || s_dbOpen)
+                dl->AddRectFilled(p, bMax, ImGui::ColorConvertFloat4ToU32(ColorScheme::SurfaceLight), 4.0f);
+            dl->AddImage((ImTextureID)(uintptr_t)m_dbIconTexture, p, bMax, ImVec2(0, 0), ImVec2(1, 1), ImGui::ColorConvertFloat4ToU32(dbTint));
+            ImGui::InvisibleButton("##dbBtn", ImVec2(iconSz, iconSz));
+            if (ImGui::IsItemClicked())
+                s_dbOpen = !s_dbOpen;
+            dbBtnHovered = ImGui::IsItemHovered();
+            if (dbBtnHovered) {
+                s_dbOpen = true;
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            }
+            dbPanelPos = ImVec2(p.x + iconSz, barBottom);
+        }
 
         ImGui::SameLine(0, sep);
         ImGui::SetCursorPosY(centredY);
@@ -715,25 +581,18 @@ void GUI::RenderTopBar() {
         ImGui::Text("%s", edgeBuf);
         ImGui::PopStyleColor();
 
-        ImGui::SameLine(0, sep);
+        if (m_settings.showFPS) {
+            ImGui::SameLine(0, sep);
+            VSep();
 
-        // Stacked FPS — eye icon + render fps / atom icon + sim fps
-        // Drawn with the window draw list so two lines fit within the single-row bar.
-        // Dummy reserves horizontal space in ImGui's layout.
+            {
+                ImVec2 p = ImGui::GetCursorScreenPos();
+                float textH = ImGui::GetTextLineHeight();
+                float barCenterY = ImGui::GetWindowPos().y + barH * 0.5f;
+                ImU32 textCol = ImGui::ColorConvertFloat4ToU32(ColorScheme::TextMuted);
+                float textRightX = p.x + fpsGroupW;
 
-        VSep();
-
-        {
-            ImVec2 p = ImGui::GetCursorScreenPos();
-            float textH = ImGui::GetTextLineHeight();
-            float barCenterY = ImGui::GetWindowPos().y + barH * 0.5f;
-            ImU32 textCol = ImGui::ColorConvertFloat4ToU32(ColorScheme::TextMuted);
-            float textRightX = p.x + fpsGroupW;
-
-            // Icons are 75% of text height; offset centres them vertically within each line
-            const float iOff = (textH - fpsIconSz) * 0.5f;
-
-            if (m_settings.showFPS) {
+                const float iOff = (textH - fpsIconSz) * 0.5f;
                 float groupH = textH * 2.0f + 2.0f;
                 float lineY0 = barCenterY - groupH * 0.5f;
                 float lineY1 = lineY0 + textH + 2.0f;
@@ -750,9 +609,9 @@ void GUI::RenderTopBar() {
                     ImGui::SetTooltip("FPS");
                 if (ImGui::IsMouseHoveringRect(ImVec2(p.x, lineY1), ImVec2(textRightX, lineY1 + textH)))
                     ImGui::SetTooltip("Simulation FPS");
-            }
 
-            ImGui::Dummy(ImVec2(fpsGroupW, iconSz));
+                ImGui::Dummy(ImVec2(fpsGroupW, iconSz));
+            }
         }
     }
 
@@ -848,6 +707,8 @@ void GUI::RenderTopBar() {
         ImGui::Text("Camera");
         ImGui::Separator();
         ImGui::SliderFloat("Movement Speed", &m_controlData.engine.cameraMovementSpeed, 0.1f, 10.0f, "%.2f");
+        ImGui::SliderFloat("Mouse Sensitivity", &m_controlData.engine.mouseSensitivity, 0.1f, 10.0f, "%.1f");
+        ImGui::SliderFloat("Field of View", &m_controlData.engine.cameraFov, 30.0f, 120.0f, "%.1f°");
 
         ImGui::Spacing();
         ImGui::Text("Nodes");
@@ -861,6 +722,13 @@ void GUI::RenderTopBar() {
         ImGui::SliderFloat("Label Scale", &m_controlData.engine.labelSizeMultiplier, 0.1f, 10.0f, "%.2f");
         ImGui::SliderFloat("Label Distance", &m_controlData.engine.labelDistanceThreshold, 10.0f, 500.0f, "%.0f");
         ImGui::SliderInt("Max Labels", &m_controlData.engine.maxLabelCount, 10, 1000);
+
+        ImGui::Spacing();
+        ImGui::Text("Options");
+        ImGui::Separator();
+        ImGui::Checkbox("V-Sync", &m_controlData.engine.vSync);
+        ImGui::Checkbox("Show FPS", &m_settings.showFPS);
+        ImGui::Checkbox("Size Nodes by Link Count", &m_controlData.engine.sizeByDegree);
 
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -876,6 +744,105 @@ void GUI::RenderTopBar() {
             }
         } else {
             s_renderingCloseTimer = 0.0f;
+        }
+    }
+
+    // ── DB panel (dropdown below DB icon) ────────────────────────────────────
+    if (s_dbOpen) {
+        const float dbPanelW = 380.0f;
+        const float dbPanelPad = 16.0f;
+        ImGui::SetNextWindowViewport(vp->ID);
+        ImGui::SetNextWindowPos(ImVec2(dbPanelPos.x - dbPanelW, dbPanelPos.y), ImGuiCond_Always);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(dbPanelW, 0.0f), ImVec2(dbPanelW, FLT_MAX));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(dbPanelPad, 12.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Background);
+        ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
+        ImGui::Begin("##db_panel", nullptr,
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar |
+                         ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing);
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ColorScheme::TextSecondary);
+        ImGui::PushItemWidth(dbPanelW - dbPanelPad * 2.0f);
+
+        std::lock_guard<std::mutex> lock(m_controlData.app.dataSourceMutex);
+        bool connected = m_controlData.app.dataSource.connectedToDataSource;
+
+        int currentSourceType = static_cast<int>(m_controlData.app.dataSource.sourceType);
+        const char *sourceTypes[] = {"HTTP Server", "Database (Neo4j)"};
+        ImGui::Text("Data Source");
+        if (ImGui::Combo("##sourceType", &currentSourceType, sourceTypes, IM_ARRAYSIZE(sourceTypes)))
+            m_controlData.app.dataSource.sourceType = static_cast<dbInterfaceType>(currentSourceType);
+
+        ImGui::Spacing();
+
+        if (m_controlData.app.dataSource.sourceType == dbInterfaceType::DB) {
+            ImGui::Text("URL");
+            {
+                char buffer[256];
+                strncpy(buffer, m_controlData.app.dataSource.dbUrl.c_str(), sizeof(buffer));
+                buffer[sizeof(buffer) - 1] = '\0';
+                if (ImGui::InputTextWithHint("##neo4jUrl", "bolt://localhost", buffer, IM_ARRAYSIZE(buffer)))
+                    m_controlData.app.dataSource.dbUrl = buffer;
+            }
+            ImGui::Text("Password");
+            {
+                char buffer[256];
+                strncpy(buffer, m_controlData.app.dataSource.dbPassword.c_str(), sizeof(buffer));
+                buffer[sizeof(buffer) - 1] = '\0';
+                if (ImGui::InputTextWithHint("##neo4jPassword", "Enter password", buffer, IM_ARRAYSIZE(buffer), ImGuiInputTextFlags_Password))
+                    m_controlData.app.dataSource.dbPassword = buffer;
+            }
+        } else if (m_controlData.app.dataSource.sourceType == dbInterfaceType::HTTP) {
+            ImGui::Text("URL");
+            {
+                char buffer[256];
+                strncpy(buffer, m_controlData.app.dataSource.serverUrl.c_str(), sizeof(buffer));
+                buffer[sizeof(buffer) - 1] = '\0';
+                if (ImGui::InputTextWithHint("##httpUrl", "http://eagombar.uk", buffer, IM_ARRAYSIZE(buffer)))
+                    m_controlData.app.dataSource.serverUrl = buffer;
+            }
+        }
+
+        ImGui::Spacing();
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, ColorScheme::Primary);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::PrimaryHover);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
+        if (ImGui::Button("Save & Connect", ImVec2(-FLT_MIN, 0)))
+            m_controlData.app.dataSource.attemptDataConnection = true;
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar();
+
+        ImGui::Spacing();
+
+        ImDrawList *dbDl = ImGui::GetWindowDrawList();
+        ImVec2 circlePos = ImGui::GetCursorScreenPos();
+        circlePos.x += 8;
+        circlePos.y += ImGui::GetTextLineHeight() * 0.5f;
+        ImVec4 statusColor = connected ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
+        dbDl->AddCircleFilled(circlePos, 6.0f, ImGui::ColorConvertFloat4ToU32(statusColor));
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20);
+        ImGui::PushStyleColor(ImGuiCol_Text, statusColor);
+        ImGui::Text("%s", connected ? "Connected" : "Disconnected");
+        ImGui::PopStyleColor();
+
+        ImGui::PopItemWidth();
+        ImGui::PopStyleColor();
+        bool dbWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
+        bool dbPopupOpen = ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+        ImGui::End();
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar(2);
+        if (!dbBtnHovered && !dbWindowHovered && !dbPopupOpen) {
+            s_dbCloseTimer += ImGui::GetIO().DeltaTime;
+            if (s_dbCloseTimer >= 0.15f) {
+                s_dbOpen = false;
+                s_dbCloseTimer = 0.0f;
+            }
+        } else {
+            s_dbCloseTimer = 0.0f;
         }
     }
 
@@ -925,6 +892,8 @@ void GUI::RenderTopBar() {
             suggestionsVisible = false;
         }
     }
+
+    return interacted;
 }
 
 void GUI::EndFrame() {

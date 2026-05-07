@@ -26,7 +26,7 @@ class GUI {
     void RenderMenu();
     void AckReset();
     void SearchCompleted(std::string resultTitle);
-    void RenderTopBar();
+    bool RenderTopBar();
     void RenderBottomLeftBox();
     void SetActiveNodeInfo(std::string activeNodeTitle);
     void SetOriginNodeInfo(std::string originNodeTitle);
