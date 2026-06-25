@@ -17,7 +17,7 @@ A real-time 3D graph visualization tool for exploring Wikipedia page connections
 ## Installation
 
 ### Prerequisites
-- C++20 compatible compiler 
+- C++20 compatible compiler
 - CMake 3.20 or higher
 - OpenGL 4.5+ compatible graphics driver
 - **Optional**: Wikipedia [Neo4j database](https://github.com/ejagombar/WikiLoader) *(Public server available at http://eagombar.uk:6348)*
@@ -34,7 +34,6 @@ All dependencies are automatically fetched by CMake:
 - nlohmann/json for JSON parsing
 
 ### Build Instructions (Linux)
-
 
 ```bash
 # Install dependencies (Example: Ubuntu)
@@ -68,7 +67,7 @@ mkdir build
 # Enter build directory
 cd build
 
-# Configure project 
+# Configure project
 cmake .. -G "Visual Studio 17 2022" -A x64
 
 # Build project
@@ -83,9 +82,9 @@ cmake --build . --config Release
 ### Basic Controls
 - **Right-click + drag** - Rotate camera view
 - **WASD** - Move camera position
-- **Space/Ctrl** - Move camera up/down
-- **Left Shift** - Crouch mode for slower movement
-- **Q** - Toggle settings menu
+- **Space / Ctrl** - Move camera up/down
+- **Left Shift** - Slower movement
+- **Q** - Toggle pause
 - **X** - Exit application
 
 ### Graph Interaction
@@ -93,6 +92,17 @@ cmake --build . --config Release
 - **Double-click** - Expand node connections
 - **Hover** - Highlight nodes with visual feedback
 - **Search bar** - Find and jump to specific Wikipedia pages
+
+### Top Bar
+- **Physics** - Dropdown panel for adjusting force-directed simulation parameters: repulsion, attraction, centering force, time step, force multiplier, target distance, and temperature cooling.
+- **Rendering** - Dropdown panel for lighting (specular, shininess, ambient), camera (movement speed, mouse sensitivity, field of view), node scale, search result limit, label scale and distance, and display options (V-Sync, FPS counter, size nodes by link count).
+- **Database icon** - Pressable button that opens a dropdown for configuring the data source. Supports both an HTTP server and a direct Neo4j database connection. The icon is tinted green when connected and red when disconnected.
+- **Node and edge counts** - Live display of the current graph size.
+- **FPS counters** - Render FPS and simulation FPS displayed as a stacked pair. Can be hidden from the Rendering panel, which reclaims the space in the bar.
+
+### Pause Mode
+
+Pressing **Q** pauses both the physics simulation and the renderer, significantly reducing CPU and GPU usage.
 
 ## Roadmap
 
@@ -110,31 +120,32 @@ cmake --build . --config Release
 ## Architecture
 
 ### Multi-threading
-- **Rendering thread** handles all OpenGL operations and user interface
-- **Physics thread** runs force-directed layout simulation independently
+- **Rendering thread** handles all OpenGL operations and the user interface
+- **Physics thread** runs force-directed layout simulation independently, and respects a pause flag to sleep with minimal CPU usage when the application is paused
 - **Triple buffer system** ensures thread-safe data exchange without blocking
 
 ### Rendering Pipeline
 - **Uniform Buffer Objects (UBOs)** for efficient shader data management
 - **Instanced rendering** for optimal GPU utilization
-- **Custom Imposter shaders** for sphere and cylinder to massively reduce vertex count
-- **Framebuffer effects** including blur filters and post-processing
+- **Custom imposter shaders** for spheres and cylinders to massively reduce vertex count
+- **Bloom post-processing** extracts bright pixels at half resolution, applies a multi-pass Gaussian blur, and composites the result back into the scene
+- **Framebuffer blur** used for the pause overlay; samples are clamped to edge to prevent wrap-around artifacts at screen borders
 
 ### Core Components
 - **Graph System** - Node/edge data structures with spatial indexing
-- **Physics Simulation** - Force-directed layout with oscillation detection
+- **Physics Simulation** - Barnes-Hut force-directed layout with temperature-based cooling
 - **Visual Engine** - OpenGL rendering with modern techniques
-- **UI System** - ImGui integration with custom styling
-- **Database Layer** - Neo4j HTTP API wrapper
+- **UI System** - ImGui integration with custom top-bar layout and dropdown panels
+- **Database Layer** - Neo4j HTTP API wrapper with live connection status
 
 ### Opportunities for Optimisation
-There are many potential optimisations with this project. At the moment, I am focusing on adding new features and performance will be slightly sidelined. Some important performance choices have been made, such as using imposter spheres instead of sphere meshes. This allows for 500,000 of spheres to be created and run at over 200fps. However, many optimisations have been left to later. One of the main reasons for this is to allow me to implement new features faster and eventaully compare the performance between the future optimised version and non-optimised version.
+There are many potential optimisations with this project. At the moment, the focus is on adding new features and performance is slightly sidelined. Some important performance choices have already been made, such as using imposter spheres instead of sphere meshes, which allows 500,000 spheres to render at over 200 fps.
 
-- [ ] Deferred shading.
-- [ ] Use cylinder imposters for close by links and use flat line for futher ones.
-- [ ] Store nodes data in contiguous memory for few cache misses and better SIMD execution. For example, node positions could be stored in an array directly as opposed to storing the position as part of a struct in an array. 
-- [x] Prerender text labels to a texture.
-- [x] Uniform buffer objects. Some varaibles are constant across shaders every frame, such as the camera position or view and projection matrices. This is a small improvement, and is more about making it clear than increasing performance but using UBOs will mean that they only have to be set once. Not all variables have been moved to this, just the very common ones.
+- [ ] Deferred shading
+- [ ] Use cylinder imposters for nearby links and flat lines for distant ones
+- [ ] Store node data in contiguous structure-of-arrays layout for fewer cache misses and better SIMD execution
+- [x] Prerender text labels to a texture atlas
+- [x] Uniform buffer objects for common per-frame shader constants (camera matrices, lighting)
 
 ## License
 
@@ -153,7 +164,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Imposter Sphere](https://community.khronos.org/t/imposter-sphere/71189) - Additional community insights and implementation details
 
 ### General Guides
-
 - [learnopengl.com](https://learnopengl.com/) - Comprehensive modern OpenGL tutorials that provided the foundation for the rendering pipeline
 - [opengl-tutorial.org](http://www.opengl-tutorial.org/) - Initial OpenGL tutorials, particularly Tutorial 18: Billboards and Particles
 - [Learning GLSL](https://github.com/ssloy/glsltuto/tree/master) - Shader programming techniques and best practices

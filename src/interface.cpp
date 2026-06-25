@@ -277,10 +277,9 @@ std::vector<NodeData> Neo4jInterface::FindShortestPath(const std::string &startP
     if (!m_connected)
         return {};
 
-    const std::string cypher =
-        "MATCH path = shortestPath((start:PAGE {pageName: $startName})-[*]-(end:PAGE {pageName: $endName})) "
-        "UNWIND nodes(path) AS n "
-        "RETURN n.pageName, n.title";
+    const std::string cypher = "MATCH path = shortestPath((start:PAGE {pageName: $startName})-[*]-(end:PAGE {pageName: $endName})) "
+                               "UNWIND nodes(path) AS n "
+                               "RETURN n.pageName, n.title";
 
     try {
         json data = ExecuteCypherQuery(cypher, {{"startName", startPage}, {"endName", endPage}});
@@ -515,8 +514,7 @@ std::vector<NodeData> HttpInterface::FindShortestPath(const std::string &startPa
     try {
         return HttpParsePagesFromResult(GetHttpResults("/shortest-path?start=" + startPage + "&end=" + endPage));
     } catch (const std::exception &e) {
-        throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage +
-                                 "': " + std::string(e.what()));
+        throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage + "': " + std::string(e.what()));
         return {};
     }
 }

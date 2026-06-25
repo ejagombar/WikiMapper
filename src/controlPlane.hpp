@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <mutex>
 #include <string>
 #include <vector>
 
