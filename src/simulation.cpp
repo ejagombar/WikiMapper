@@ -449,6 +449,10 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         });
 
         m_pendingSearch = PendingSearch{std::move(future), query, startTime};
+
+        snprintf(m_controlData.engine.asyncOpDesc, sizeof(m_controlData.engine.asyncOpDesc),
+                 "Searching '%s'...", query.c_str());
+        m_controlData.engine.asyncOpActive.store(true, std::memory_order_release);
     }
 
     // ── Process completed search result ──────────────────────────────────────
@@ -484,6 +488,7 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
 
         graphChanged = true;
         m_pendingSearch.reset();
+        m_controlData.engine.asyncOpActive.store(false, std::memory_order_release);
     }
 
     int32_t sourceNode = m_controlData.graph.sourceNode.load(std::memory_order_relaxed);
@@ -520,6 +525,10 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             });
 
             m_pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
+
+            snprintf(m_controlData.engine.asyncOpDesc, sizeof(m_controlData.engine.asyncOpDesc),
+                     "Expanding '%s'...", nodeName.c_str());
+            m_controlData.engine.asyncOpActive.store(true, std::memory_order_release);
 
             globalLogger->info("Started async node expansion for: " + nodeName);
         } else {
@@ -570,6 +579,7 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             }
 
             m_pendingExpansion.reset();
+            m_controlData.engine.asyncOpActive.store(false, std::memory_order_release);
         }
     }
 
@@ -612,6 +622,11 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         });
 
         m_pendingRandomPage = PendingRandomPage{std::move(future)};
+
+        snprintf(m_controlData.engine.asyncOpDesc, sizeof(m_controlData.engine.asyncOpDesc),
+                 "Fetching random page...");
+        m_controlData.engine.asyncOpActive.store(true, std::memory_order_release);
+
         globalLogger->info("[random] started async random page fetch");
     }
 
@@ -643,6 +658,7 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
                 globalLogger->error("[random] failed: {}", e.what());
             }
             m_pendingRandomPage.reset();
+            m_controlData.engine.asyncOpActive.store(false, std::memory_order_release);
         }
     }
 

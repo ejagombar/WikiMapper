@@ -73,6 +73,10 @@ void ApplicationTasks::handle_search_autocomplete() {
         });
 
         m_pendingAutocomplete = PendingSearchAutocomplete{std::move(future), searchString};
+
+        snprintf(m_controlData.engine.asyncOpDesc, sizeof(m_controlData.engine.asyncOpDesc),
+                 "Finding suggestions...");
+        m_controlData.engine.asyncOpActive.store(true, std::memory_order_release);
     }
 
     if (m_pendingAutocomplete.has_value()) {
@@ -116,6 +120,7 @@ void ApplicationTasks::handle_search_autocomplete() {
             }
 
             m_pendingAutocomplete.reset();
+            m_controlData.engine.asyncOpActive.store(false, std::memory_order_release);
         }
     }
 

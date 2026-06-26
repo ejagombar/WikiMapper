@@ -322,6 +322,8 @@ bool GUI::RenderTopBar() {
     static bool s_physicsOpen = false;
     static bool s_renderingOpen = false;
     static bool s_dbOpen = false;
+    static int s_highlightedIdx = -1;
+    static std::vector<std::string> s_cachedSuggestions;
     static float s_physicsCloseTimer = 0.0f;
     static float s_renderingCloseTimer = 0.0f;
     static float s_dbCloseTimer = 0.0f;
@@ -459,14 +461,28 @@ bool GUI::RenderTopBar() {
         if (query.empty())
             query = s_cachedUserQuery;
         if (!query.empty()) {
-            m_controlData.graph.searchString = query;
+            {
+                std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
+                m_controlData.graph.searchString = query;
+            }
             m_controlData.graph.searching.store(true);
         }
         suggestionsVisible = false;
+        s_highlightedIdx = -1;
     }
 
-    if (itemEdited || itemClicked)
+    // Show suggestions on edit, click, or when the search bar gains focus.
+    // Also fall back to the raw mouse-click rect in case the child window
+    // intercepts IsItemClicked.
+    if (itemEdited || itemClicked || ImGui::IsItemActivated() ||
+        (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsMouseHoveringRect(searchScreenPos, ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH), false)))
         suggestionsVisible = true;
+
+    // Dismiss suggestions when the search bar loses focus
+    if (suggestionsVisible && ImGui::IsItemDeactivated()) {
+        suggestionsVisible = false;
+        s_highlightedIdx = -1;
+    }
 
     if (itemEdited) {
         std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
@@ -480,9 +496,9 @@ bool GUI::RenderTopBar() {
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::Primary);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
 
-    ImGui::ImageButton("##graph", (ImTextureID)m_graphIconTexture, ImVec2(32, 32));
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Shuffle Layout");
+    // ImGui::ImageButton("##graph", (ImTextureID)m_graphIconTexture, ImVec2(32, 32));
+    // if (ImGui::IsItemHovered())
+    //     ImGui::SetTooltip("Shuffle Layout");
 
     ImGui::SameLine(0, btnGap);
     if (ImGui::ImageButton("##dice", (ImTextureID)m_diceIconTexture, ImVec2(32, 32)))
@@ -494,7 +510,7 @@ bool GUI::RenderTopBar() {
     if (ImGui::ImageButton("##background", (ImTextureID)m_backgroundIconTexture, ImVec2(32, 32)))
         m_controlData.engine.backgroundButtonToggle = !m_controlData.engine.backgroundButtonToggle;
     if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Cycle Background");
+        ImGui::SetTooltip("Change Background");
 
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar();
@@ -533,6 +549,44 @@ bool GUI::RenderTopBar() {
             float sepX = wp.x + ImGui::GetWindowWidth() - totalW - 12.5f;
             float sepY0 = wp.y + (barH - frameH) * 0.5f;
             dl->AddLine(ImVec2(sepX, sepY0), ImVec2(sepX, sepY0 + frameH), ImGui::ColorConvertFloat4ToU32(ColorScheme::Separator), 1.0f);
+        }
+
+        // Spinner for async operations (drawn left of the separator)
+        if (m_controlData.engine.asyncOpActive.load(std::memory_order_acquire)) {
+            ImVec2 wp = ImGui::GetWindowPos();
+            float sepX = wp.x + ImGui::GetWindowWidth() - totalW - 12.5f;
+            float barCenterY = wp.y + barH * 0.5f;
+
+            const float spinnerRadius = 7.0f;
+            const float dotRadius = 1.8f;
+            const int numDots = 8;
+            const float pi = 3.14159265358979323846f;
+            float time = (float)ImGui::GetTime();
+
+            ImVec2 spinnerCenter(sepX - 8.0f - spinnerRadius, barCenterY);
+            for (int i = 0; i < numDots; i++) {
+                float angle = time * 3.0f - i * (2.0f * pi / numDots);
+                float alpha = 1.0f - (float)i / (float)numDots * 0.6f;
+                ImU32 col = ImGui::GetColorU32(ImVec4(ColorScheme::Primary.x, ColorScheme::Primary.y, ColorScheme::Primary.z, alpha));
+                float dx = cosf(angle) * spinnerRadius;
+                float dy = sinf(angle) * spinnerRadius;
+                dl->AddCircleFilled(ImVec2(spinnerCenter.x + dx, spinnerCenter.y + dy), dotRadius, col);
+            }
+
+            const float maxTextW = 250.0f;
+            std::string desc(m_controlData.engine.asyncOpDesc);
+            ImVec2 textSz = ImGui::CalcTextSize(desc.c_str());
+            if (textSz.x > maxTextW) {
+                while (desc.size() > 3 && ImGui::CalcTextSize((desc + "...").c_str()).x > maxTextW)
+                    desc.pop_back();
+                desc += "...";
+                textSz = ImGui::CalcTextSize(desc.c_str());
+            }
+
+            float textEndX = spinnerCenter.x - spinnerRadius - 8.0f;
+            float textX = textEndX - textSz.x;
+            float textY = barCenterY - textSz.y * 0.5f;
+            dl->AddText(ImVec2(textX, textY), ImGui::GetColorU32(ColorScheme::TextMuted), desc.c_str());
         }
 
         ImGui::SameLine(ImGui::GetWindowWidth() - totalW);
@@ -848,48 +902,97 @@ bool GUI::RenderTopBar() {
 
     // ── Suggestions (floating window below search input) ──────────────────────
     if (suggestionsVisible) {
-        bool hasSuggestions = false;
+        ImGui::SetNextWindowViewport(vp->ID);
+        ImGui::SetNextWindowPos(ImVec2(searchScreenPos.x, searchScreenPos.y + frameH + 2.0f), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(searchWidth, 0.0f), ImGuiCond_Always);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
+        ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
+        ImGui::Begin("##suggestions", nullptr,
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar |
+                         ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking);
+
+        std::string selectedSuggestion;
+
         if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
-            hasSuggestions = !m_controlData.app.searchSuggestions.empty();
+            s_cachedSuggestions.clear();
+            int count = 0;
+            for (size_t i = 0; i < m_controlData.app.searchSuggestions.size(); i++) {
+                if (m_controlData.app.searchSuggestions[i].empty())
+                    continue;
+                s_cachedSuggestions.push_back(m_controlData.app.searchSuggestions[i]);
+
+                if (s_highlightedIdx == count)
+                    ImGui::SetScrollHereY();
+
+                bool isHighlighted = (s_highlightedIdx == count);
+                if (isHighlighted)
+                    ImGui::PushStyleColor(ImGuiCol_Header, ColorScheme::Primary);
+
+                if (ImGui::Selectable(m_controlData.app.searchSuggestions[i].c_str(), isHighlighted)) {
+                    selectedSuggestion = m_controlData.app.searchSuggestions[i];
+                }
+
+                if (isHighlighted)
+                    ImGui::PopStyleColor();
+
+                if (ImGui::IsItemHovered())
+                    s_highlightedIdx = count;
+
+                count++;
+            }
             m_controlData.app.searchSuggestionsMutex.unlock();
+
+            if (!selectedSuggestion.empty()) {
+                s_pendingSetQuery = selectedSuggestion;
+                {
+                    std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
+                    m_controlData.graph.searchString = selectedSuggestion;
+                }
+                m_controlData.graph.searching.store(true);
+                suggestionsVisible = false;
+                s_highlightedIdx = -1;
+            }
         }
 
-        if (hasSuggestions) {
-            ImGui::SetNextWindowViewport(vp->ID);
-            ImGui::SetNextWindowPos(ImVec2(searchScreenPos.x, searchScreenPos.y + frameH + 2.0f), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(searchWidth, 0.0f), ImGuiCond_Always);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorScheme::Surface);
-            ImGui::PushStyleColor(ImGuiCol_Border, ColorScheme::Border);
-            ImGui::Begin("##suggestions", nullptr,
-                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar |
-                             ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking);
-
-            if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
-                for (const auto &s : m_controlData.app.searchSuggestions) {
-                    if (s.empty())
-                        continue;
-                    if (ImGui::Selectable(s.c_str())) {
-                        ImSearch::SetUserQuery(s.c_str());
-                        m_controlData.graph.searchString = s;
-                        m_controlData.graph.searching.store(true);
-                        suggestionsVisible = false;
-                    }
-                }
-                m_controlData.app.searchSuggestionsMutex.unlock();
-            }
-
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered() &&
-                !ImGui::IsMouseHoveringRect(searchScreenPos, ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH), false)) {
-                suggestionsVisible = false;
-            }
-
-            ImGui::End();
-            ImGui::PopStyleColor(2);
-            ImGui::PopStyleVar(2);
-        } else {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered() &&
+            !ImGui::IsMouseHoveringRect(searchScreenPos, ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH), false)) {
             suggestionsVisible = false;
+            s_highlightedIdx = -1;
+        }
+
+        ImGui::End();
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar(2);
+    }
+
+    // Keyboard navigation for suggestions (runs every frame that suggestions
+    // are visible, using cached data — not gated on the mutex lock above)
+    if (suggestionsVisible) {
+        int total = (int)s_cachedSuggestions.size();
+        if (total > 0) {
+            if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+                s_highlightedIdx = (s_highlightedIdx + 1) % total;
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+                s_highlightedIdx = (s_highlightedIdx - 1 + total) % total;
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_Tab) && s_highlightedIdx >= 0 && s_highlightedIdx < total) {
+                const std::string &chosen = s_cachedSuggestions[s_highlightedIdx];
+                s_pendingSetQuery = chosen;
+                {
+                    std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
+                    m_controlData.graph.searchString = chosen;
+                }
+                m_controlData.graph.searching.store(true);
+                suggestionsVisible = false;
+                s_highlightedIdx = -1;
+            }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            suggestionsVisible = false;
+            s_highlightedIdx = -1;
         }
     }
 

@@ -68,6 +68,10 @@ struct EngineControlData {
 
     bool enableCooling = true;
     float coolingRate = 0.5f;
+
+    // Transient async-operation status for the top-bar spinner (not persisted)
+    std::atomic<bool> asyncOpActive{false};
+    char asyncOpDesc[128] = {};
 };
 
 enum class dbInterfaceType { HTTP, DB };
