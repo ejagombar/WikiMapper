@@ -99,6 +99,7 @@ class HttpInterface : public dBInterface {
 
   private:
     json GetHttpResults(const std::string &endpoint, uint32_t timeoutMs);
+    json PostHttpResults(const std::string &endpoint, const json &body, uint32_t timeoutMs = 0);
     std::unique_ptr<httplib::Client> m_httpClient;
     uint32_t m_timeout_ms{5000};
     bool m_connected = false;

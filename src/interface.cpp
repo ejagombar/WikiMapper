@@ -435,7 +435,7 @@ GraphUpdateData HttpParseGraphResult(const json &data) {
 HttpInterface::HttpInterface(const std::string domain) {
     std::string dom = domain;
     if (dom.ends_with("/")) {
-        dom = dom.substr(0, dom.size() - 2);
+        dom = dom.substr(0, dom.size() - 1);
     }
 
     m_httpClient = std::make_unique<httplib::Client>(dom);
@@ -455,6 +455,46 @@ json HttpInterface::GetHttpResults(const std::string &endpoint, uint32_t timeout
     }
 
     if (!res) {
+        m_connected = false;
+        throw std::runtime_error("No response from server");
+    }
+
+    if (res->status != httplib::StatusCode::OK_200) {
+        throw std::runtime_error("HTTP error " + std::to_string(res->status) + ": " + res->body);
+    }
+
+    json data;
+    try {
+        data = json::parse(res->body);
+    } catch (const json::parse_error &e) {
+        throw std::runtime_error("Failed to parse JSON response: " + std::string(e.what()));
+    }
+
+    if (data.contains("errors") && !data["errors"].empty()) {
+        std::string errorMsg = "Cypher errors:";
+        for (const auto &error : data["errors"]) {
+            errorMsg += "\n[" + error["code"].get<std::string>() + "] " + error["message"].get<std::string>();
+        }
+        throw std::runtime_error(errorMsg);
+    }
+
+    return data;
+}
+
+json HttpInterface::PostHttpResults(const std::string &endpoint, const json &body, uint32_t timeoutMs) {
+    if (timeoutMs > 0) {
+        setClientTimeoutMs(m_httpClient, timeoutMs);
+    }
+
+    std::string bodyStr = body.dump();
+    auto res = m_httpClient->Post(endpoint, bodyStr, "application/json");
+
+    if (timeoutMs > 0) {
+        setClientTimeoutMs(m_httpClient, m_timeout_ms);
+    }
+
+    if (!res) {
+        m_connected = false;
         throw std::runtime_error("No response from server");
     }
 
@@ -525,15 +565,7 @@ std::vector<NodeData> HttpInterface::GetRandomConnectedPage(const std::vector<st
 
     try {
         json body = {{"names", existingNames}};
-        std::string bodyStr = body.dump();
-
-        auto res = m_httpClient->Post("/random-connected-page", bodyStr, "application/json");
-        if (!res)
-            throw std::runtime_error("No response from server");
-        if (res->status != httplib::StatusCode::OK_200)
-            throw std::runtime_error("HTTP error " + std::to_string(res->status));
-
-        json data = json::parse(res->body);
+        json data = PostHttpResults("/random-connected-page", body);
         return HttpParsePagesFromResult(data);
     } catch (const std::exception &e) {
         globalLogger->error("GetRandomConnectedPage failed: {}", e.what());
@@ -556,15 +588,19 @@ std::vector<NodeData> HttpInterface::GetRandomPages(uint32_t count) {
 
 bool HttpInterface::connected() {
     try {
-        json result = GetHttpResults("/connected", 100);
+        json result = GetHttpResults("/connected", 200);
 
         if (result.contains("connected") && result["connected"].is_boolean()) {
             m_connected = result["connected"].get<bool>();
+            globalLogger->info("Connected to HTTP server");
         } else {
             m_connected = false;
+            globalLogger->info("Not Connected to HTTP server");
         }
-    } catch (...) {
+    } catch (const std::exception &e) {
         m_connected = false;
+        globalLogger->error("Error connecting to HTTP server {}", e.what());
+        return {};
     }
 
     return m_connected;
@@ -576,12 +612,7 @@ GraphUpdateData HttpInterface::GetLocalSubgraph(const std::string &centerPageNam
 
     try {
         json body = {{"name", centerPageName}, {"limit", limit}};
-        auto res = m_httpClient->Post("/local-subgraph", body.dump(), "application/json");
-        if (!res)
-            throw std::runtime_error("No response from server");
-        if (res->status != httplib::StatusCode::OK_200)
-            throw std::runtime_error("HTTP error " + std::to_string(res->status));
-        json data = json::parse(res->body);
+        json data = PostHttpResults("/local-subgraph", body);
         return HttpParseGraphResult(data);
     } catch (const std::exception &e) {
         globalLogger->error("GetLocalSubgraph failed: {}", e.what());
@@ -595,12 +626,7 @@ GraphUpdateData HttpInterface::GetInterconnections(const std::vector<std::string
 
     try {
         json body = {{"names", activeNodeNames}, {"limit", limit}};
-        auto res = m_httpClient->Post("/interconnections", body.dump(), "application/json");
-        if (!res)
-            throw std::runtime_error("No response from server");
-        if (res->status != httplib::StatusCode::OK_200)
-            throw std::runtime_error("HTTP error " + std::to_string(res->status));
-        json data = json::parse(res->body);
+        json data = PostHttpResults("/interconnections", body);
         return HttpParseGraphResult(data);
     } catch (const std::exception &e) {
         globalLogger->error("GetInterconnections failed: {}", e.what());
