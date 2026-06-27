@@ -96,7 +96,8 @@ struct ApplicationData {
     int32_t background{0};
 
     std::mutex searchSuggestionsMutex;
-    std::vector<std::string> searchSuggestions;
+    std::vector<std::pair<std::string, std::string>> searchSuggestions; // <pageName, title>
+    std::atomic<bool> searchSuggestionsLoading{false};
 };
 
 class ControlPlane {

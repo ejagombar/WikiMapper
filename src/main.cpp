@@ -40,6 +40,7 @@ void initializeLogger(bool enableConsole) {
     }
 
     globalLogger = std::make_shared<spdlog::logger>("global", sinks.begin(), sinks.end());
+    globalLogger->set_level(spdlog::level::trace);
 
     if (enableConsole) {
         globalLogger->flush_on(spdlog::level::info);

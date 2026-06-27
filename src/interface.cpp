@@ -455,8 +455,7 @@ json HttpInterface::GetHttpResults(const std::string &endpoint, uint32_t timeout
     }
 
     if (!res) {
-        m_connected = false;
-        throw std::runtime_error("No response from server");
+        throw std::runtime_error("No response from server (GET " + endpoint + "): " + httplib::to_string(res.error()));
     }
 
     if (res->status != httplib::StatusCode::OK_200) {
@@ -494,8 +493,7 @@ json HttpInterface::PostHttpResults(const std::string &endpoint, const json &bod
     }
 
     if (!res) {
-        m_connected = false;
-        throw std::runtime_error("No response from server");
+        throw std::runtime_error("No response from server (POST " + endpoint + "): " + httplib::to_string(res.error()));
     }
 
     if (res->status != httplib::StatusCode::OK_200) {
@@ -520,13 +518,27 @@ json HttpInterface::PostHttpResults(const std::string &endpoint, const json &bod
     return data;
 }
 
+static std::string urlEncode(const std::string &s) {
+    std::string out;
+    for (char c : s) {
+        if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') {
+            out += c;
+        } else {
+            char buf[4];
+            snprintf(buf, sizeof(buf), "%%%02X", static_cast<unsigned char>(c));
+            out += buf;
+        }
+    }
+    return out;
+}
+
 std::vector<NodeData> HttpInterface::GetLinkedPages(const std::string &pageName) {
     if (!m_connected) {
         return {};
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/linked-pages/" + pageName));
+        return HttpParsePagesFromResult(GetHttpResults("/linked-pages/" + urlEncode(pageName)));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkedPages failed for '" + pageName + "': " + std::string(e.what()));
         return {};
@@ -539,7 +551,7 @@ std::vector<NodeData> HttpInterface::GetLinkingPages(const std::string &pageName
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/linking-pages/" + pageName));
+        return HttpParsePagesFromResult(GetHttpResults("/linking-pages/" + urlEncode(pageName)));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkingPages failed for '" + pageName + "': " + std::string(e.what()));
         return {};
@@ -552,7 +564,7 @@ std::vector<NodeData> HttpInterface::FindShortestPath(const std::string &startPa
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/shortest-path?start=" + startPage + "&end=" + endPage));
+        return HttpParsePagesFromResult(GetHttpResults("/shortest-path?start=" + urlEncode(startPage) + "&end=" + urlEncode(endPage)));
     } catch (const std::exception &e) {
         throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage + "': " + std::string(e.what()));
         return {};
@@ -626,7 +638,7 @@ GraphUpdateData HttpInterface::GetInterconnections(const std::vector<std::string
 
     try {
         json body = {{"names", activeNodeNames}, {"limit", limit}};
-        json data = PostHttpResults("/interconnections", body);
+        json data = PostHttpResults("/interconnections", body, 30000);
         return HttpParseGraphResult(data);
     } catch (const std::exception &e) {
         globalLogger->error("GetInterconnections failed: {}", e.what());
@@ -642,18 +654,7 @@ std::vector<NodeData> HttpInterface::SearchPages(const std::string &queryString)
     }
 
     try {
-        std::string encodedQuery;
-        for (char c : queryString) {
-            if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') {
-                encodedQuery += c;
-            } else {
-                char buf[4];
-                snprintf(buf, sizeof(buf), "%%%02X", static_cast<unsigned char>(c));
-                encodedQuery += buf;
-            }
-        }
-
-        const std::string endpoint = "/search-pages?query=" + encodedQuery;
+        const std::string endpoint = "/search-pages?query=" + urlEncode(queryString);
 
         json data = GetHttpResults(endpoint);
 

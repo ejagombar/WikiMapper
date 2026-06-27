@@ -21,8 +21,7 @@ void ApplicationTasks::handle_database_source() {
 
     std::lock_guard<std::mutex> lock(m_controlData.app.dataSourceMutex);
 
-    if (m_controlData.app.dataSource.attemptDataConnection == true ||
-        m_controlData.app.dataSource.sourceType != m_oldDataSource) {
+    if (m_controlData.app.dataSource.attemptDataConnection == true || m_controlData.app.dataSource.sourceType != m_oldDataSource) {
 
         m_controlData.app.dataSource.connectedToDataSource = false;
         std::lock_guard<std::mutex> lock2(m_dBInterfaceMutex);
@@ -32,8 +31,7 @@ void ApplicationTasks::handle_database_source() {
 
             m_dBInterface = std::make_shared<Neo4jInterface>(m_controlData.app.dataSource.dbUrl);
 
-            if (!m_dBInterface->Authenticate(m_controlData.app.dataSource.dbUsername,
-                                             m_controlData.app.dataSource.dbPassword)) {
+            if (!m_dBInterface->Authenticate(m_controlData.app.dataSource.dbUsername, m_controlData.app.dataSource.dbPassword)) {
                 globalLogger->info("Failed to Auth. URL: {}", m_controlData.app.dataSource.dbUrl);
             }
 
@@ -58,12 +56,14 @@ void ApplicationTasks::handle_search_autocomplete() {
         searchString = m_controlData.graph.searchString;
         m_controlData.graph.searchStringMutex.unlock();
     } else {
+        globalLogger->trace("[suggest] autocomplete: searchStringMutex locked — skipping");
         return;
     }
 
-    if (m_oldSearchString != searchString) {
+    if (m_oldSearchString != searchString && !searchString.empty()) {
+        globalLogger->debug("[suggest] autocomplete: query changed '{}' -> '{}'", m_oldSearchString, searchString);
         if (m_pendingAutocomplete.has_value()) {
-            globalLogger->info("Cancelling previous autocomplete for " + m_pendingAutocomplete->searchString);
+            globalLogger->debug("[suggest] autocomplete: cancelling previous fetch for '{}'", m_pendingAutocomplete->searchString);
             m_pendingAutocomplete.reset();
         }
 
@@ -73,10 +73,12 @@ void ApplicationTasks::handle_search_autocomplete() {
         });
 
         m_pendingAutocomplete = PendingSearchAutocomplete{std::move(future), searchString};
+    }
 
-        snprintf(m_controlData.engine.asyncOpDesc, sizeof(m_controlData.engine.asyncOpDesc),
-                 "Finding suggestions...");
-        m_controlData.engine.asyncOpActive.store(true, std::memory_order_release);
+    // If the user cleared the bar, keep the old suggestions so the
+    // dropdown doesn't go blank while a new query is being typed.
+    if (searchString.empty() && !m_oldSearchString.empty()) {
+        globalLogger->debug("[suggest] autocomplete: bar cleared, keeping old suggestions");
     }
 
     if (m_pendingAutocomplete.has_value()) {
@@ -87,40 +89,39 @@ void ApplicationTasks::handle_search_autocomplete() {
                 std::lock_guard<std::mutex> lock(m_controlData.app.searchSuggestionsMutex);
 
                 auto suggestedPages = autocomplete.m_future.get();
+                globalLogger->debug("[suggest] autocomplete: got {} results for '{}'", suggestedPages.size(), autocomplete.searchString);
 
                 // Rank: exact match first, then prefix match, then by title length
                 std::string lowerQuery = autocomplete.searchString;
-                std::transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(),
-                               [](unsigned char c) { return std::tolower(c); });
-                std::sort(suggestedPages.begin(), suggestedPages.end(),
-                          [&lowerQuery](const NodeData &a, const NodeData &b) {
-                              auto score = [&lowerQuery](const std::string &title) {
-                                  std::string lower = title;
-                                  std::transform(lower.begin(), lower.end(), lower.begin(),
-                                                 [](unsigned char c) { return std::tolower(c); });
-                                  if (lower == lowerQuery)
-                                      return 0;
-                                  if (lower.starts_with(lowerQuery))
-                                      return 1;
-                                  return 2;
-                              };
-                              int sa = score(a.title), sb = score(b.title);
-                              if (sa != sb)
-                                  return sa < sb;
-                              return a.title.size() < b.title.size();
-                          });
+                std::transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(), [](unsigned char c) { return std::tolower(c); });
+                std::sort(suggestedPages.begin(), suggestedPages.end(), [&lowerQuery](const NodeData &a, const NodeData &b) {
+                    auto score = [&lowerQuery](const std::string &title) {
+                        std::string lower = title;
+                        std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+                        if (lower == lowerQuery)
+                            return 0;
+                        if (lower.starts_with(lowerQuery))
+                            return 1;
+                        return 2;
+                    };
+                    int sa = score(a.title), sb = score(b.title);
+                    if (sa != sb)
+                        return sa < sb;
+                    return a.title.size() < b.title.size();
+                });
 
                 m_controlData.app.searchSuggestions.clear();
                 m_controlData.app.searchSuggestions.reserve(suggestedPages.size());
-                std::transform(suggestedPages.begin(), suggestedPages.end(),
-                               std::back_inserter(m_controlData.app.searchSuggestions),
-                               [](const NodeData &p) { return p.title; });
+                std::transform(suggestedPages.begin(), suggestedPages.end(), std::back_inserter(m_controlData.app.searchSuggestions),
+                               [](const NodeData &p) { return std::make_pair(p.pageName, p.title); });
+                globalLogger->debug("[suggest] autocomplete: stored {} results in searchSuggestions", m_controlData.app.searchSuggestions.size());
             } catch (const std::exception &e) {
-                globalLogger->error("Failed to autocomplete: " + std::string(e.what()));
+                globalLogger->error("[suggest] autocomplete failed: {}", e.what());
+                m_controlData.app.searchSuggestions.clear();
             }
 
             m_pendingAutocomplete.reset();
-            m_controlData.engine.asyncOpActive.store(false, std::memory_order_release);
+            m_controlData.app.searchSuggestionsLoading.store(false, std::memory_order_release);
         }
     }
 

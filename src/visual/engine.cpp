@@ -520,8 +520,12 @@ uint32_t RenderEngine::Run() {
 
             uint32_t edgeCount = static_cast<uint32_t>(graph->edges.startIdxs.size());
             for (uint32_t i = 0; i < edgeCount; i++) {
-                m_edgeData[2 * i].radius = m_effectiveEdgeSizes[graph->edges.startIdxs[i]];
-                m_edgeData[2 * i + 1].radius = m_effectiveEdgeSizes[graph->edges.endIdxs[i]];
+                uint32_t si = graph->edges.startIdxs[i];
+                uint32_t ei = graph->edges.endIdxs[i];
+                if (si < m_effectiveEdgeSizes.size() && ei < m_effectiveEdgeSizes.size()) {
+                    m_edgeData[2 * i].radius = m_effectiveEdgeSizes[si];
+                    m_edgeData[2 * i + 1].radius = m_effectiveEdgeSizes[ei];
+                }
             }
             glBindBuffer(GL_ARRAY_BUFFER, m_VBOs[0]);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(EdgeData) * m_edgeData.size(), m_edgeData.data());
@@ -531,12 +535,16 @@ uint32_t RenderEngine::Run() {
         if (m_candidateFuture.valid() && m_candidateFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             std::vector<uint32_t> candidates = m_candidateFuture.get();
             if (shouldRebuildLabelAtlas(candidates)) {
-                m_pendingLabelNodes = candidates;
+                m_pendingLabelNodes.clear();
                 GS::Graph *graph = m_graphBuf.GetCurrent();
                 std::vector<std::string> titles;
-                titles.reserve(m_pendingLabelNodes.size());
-                for (uint32_t idx : m_pendingLabelNodes)
-                    titles.push_back(graph->nodes.titles[idx]);
+                titles.reserve(candidates.size());
+                for (uint32_t idx : candidates) {
+                    if (idx < graph->nodes.titles.size()) {
+                        titles.push_back(graph->nodes.titles[idx]);
+                        m_pendingLabelNodes.push_back(idx);
+                    }
+                }
                 m_labelFuture = std::async(std::launch::async, [engine = m_text.get(), t = std::move(titles)]() { return engine->PrepareLabelAtlases(t); });
             }
         }

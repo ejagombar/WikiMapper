@@ -323,7 +323,7 @@ bool GUI::RenderTopBar() {
     static bool s_renderingOpen = false;
     static bool s_dbOpen = false;
     static int s_highlightedIdx = -1;
-    static std::vector<std::string> s_cachedSuggestions;
+    static std::vector<std::pair<std::string, std::string>> s_cachedSuggestions;
     static float s_physicsCloseTimer = 0.0f;
     static float s_renderingCloseTimer = 0.0f;
     static float s_dbCloseTimer = 0.0f;
@@ -449,17 +449,46 @@ bool GUI::RenderTopBar() {
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);
 
-    if (itemSubmitted) {
-        std::string query;
-        if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
-            if (!m_controlData.app.searchSuggestions.empty()) {
-                query = m_controlData.app.searchSuggestions.front();
-                s_pendingSetQuery = query;
+    // Clickable magnifying-glass region at the right edge of the search bar.
+    // ImSearch draws a  incon there; we overlay an invisible button so clicks
+    // on it trigger the search.
+    {
+        float iconW = ImGui::GetTextLineHeight();
+        ImVec2 iconMin(searchScreenPos.x + searchWidth - iconW - 6.0f, searchScreenPos.y);
+        ImVec2 iconMax(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH);
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsMouseHoveringRect(iconMin, iconMax, false) && !s_cachedUserQuery.empty()) {
+            std::string query = s_cachedUserQuery;
+            {
+                std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
+                m_controlData.graph.searchString = query;
             }
-            m_controlData.app.searchSuggestionsMutex.unlock();
+            m_controlData.graph.searching.store(true);
+            suggestionsVisible = false;
+            s_highlightedIdx = -1;
+            globalLogger->debug("[suggest] magnifying glass clicked — searching '{}'", query);
         }
-        if (query.empty())
+    }
+
+    bool enterPressed = ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter);
+
+    if (itemSubmitted || enterPressed) {
+        if (enterPressed && !itemSubmitted)
+            globalLogger->debug("[suggest] Enter key fallback — itemSubmitted was false");
+        if (itemSubmitted)
+            globalLogger->debug("[suggest] itemSubmitted=true (ImGui deactivated after edit)");
+        std::string query;
+        // Use the arrow-key-highlighted suggestion if available.
+        // Otherwise search for whatever the user actually typed — never
+        // fall back to searchSuggestions.front() which may be stale.
+        if (s_highlightedIdx >= 0 && s_highlightedIdx < (int)s_cachedSuggestions.size()) {
+            query = s_cachedSuggestions[s_highlightedIdx].first;
+            s_pendingSetQuery = s_cachedSuggestions[s_highlightedIdx].second;
+            globalLogger->info("[suggest] Enter pressed — using highlighted idx {}: '{}'", s_highlightedIdx, query);
+        } else {
             query = s_cachedUserQuery;
+            s_pendingSetQuery = s_cachedUserQuery;
+            globalLogger->debug("[suggest] Enter pressed — no highlight, using typed text '{}'", query);
+        }
         if (!query.empty()) {
             {
                 std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
@@ -475,8 +504,11 @@ bool GUI::RenderTopBar() {
     // Also fall back to the raw mouse-click rect in case the child window
     // intercepts IsItemClicked.
     if (itemEdited || itemClicked || ImGui::IsItemActivated() ||
-        (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsMouseHoveringRect(searchScreenPos, ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH), false)))
+        (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsMouseHoveringRect(searchScreenPos, ImVec2(searchScreenPos.x + searchWidth, searchScreenPos.y + frameH), false))) {
+        if (!suggestionsVisible)
+            globalLogger->debug("[suggest] autocomplete dropdown opened (edited={}, clicked={}, activated={})", itemEdited, itemClicked, (bool)ImGui::IsItemActivated());
         suggestionsVisible = true;
+    }
 
     // Dismiss suggestions when the search bar loses focus
     if (suggestionsVisible && ImGui::IsItemDeactivated()) {
@@ -484,9 +516,12 @@ bool GUI::RenderTopBar() {
         s_highlightedIdx = -1;
     }
 
-    if (itemEdited) {
+    {
         std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
-        m_controlData.graph.searchString = s_cachedUserQuery;
+        if (m_controlData.graph.searchString != s_cachedUserQuery && !m_controlData.graph.searching.load()) {
+            m_controlData.graph.searchString = s_cachedUserQuery;
+            globalLogger->debug("[suggest] text changed — set searchString to '{}'", s_cachedUserQuery);
+        }
     }
 
     // ── Action buttons ────────────────────────────────────────────────────────
@@ -496,11 +531,6 @@ bool GUI::RenderTopBar() {
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorScheme::Primary);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorScheme::PrimaryActive);
 
-    // ImGui::ImageButton("##graph", (ImTextureID)m_graphIconTexture, ImVec2(32, 32));
-    // if (ImGui::IsItemHovered())
-    //     ImGui::SetTooltip("Shuffle Layout");
-
-    ImGui::SameLine(0, btnGap);
     if (ImGui::ImageButton("##dice", (ImTextureID)m_diceIconTexture, ImVec2(32, 32)))
         m_controlData.graph.addRandomPage.store(true, std::memory_order_relaxed);
     if (ImGui::IsItemHovered())
@@ -913,13 +943,16 @@ bool GUI::RenderTopBar() {
                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar |
                          ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking);
 
-        std::string selectedSuggestion;
+        std::pair<std::string, std::string> selectedSuggestion;
+        bool lockOk = false;
+        int renderCount = 0;
 
         if (m_controlData.app.searchSuggestionsMutex.try_lock()) {
+            lockOk = true;
             s_cachedSuggestions.clear();
             int count = 0;
             for (size_t i = 0; i < m_controlData.app.searchSuggestions.size(); i++) {
-                if (m_controlData.app.searchSuggestions[i].empty())
+                if (m_controlData.app.searchSuggestions[i].first.empty())
                     continue;
                 s_cachedSuggestions.push_back(m_controlData.app.searchSuggestions[i]);
 
@@ -930,7 +963,7 @@ bool GUI::RenderTopBar() {
                 if (isHighlighted)
                     ImGui::PushStyleColor(ImGuiCol_Header, ColorScheme::Primary);
 
-                if (ImGui::Selectable(m_controlData.app.searchSuggestions[i].c_str(), isHighlighted)) {
+                if (ImGui::Selectable(m_controlData.app.searchSuggestions[i].second.c_str(), isHighlighted)) {
                     selectedSuggestion = m_controlData.app.searchSuggestions[i];
                 }
 
@@ -942,13 +975,25 @@ bool GUI::RenderTopBar() {
 
                 count++;
             }
+            renderCount = count;
+            
+            if (renderCount == 0 && !s_cachedUserQuery.empty()) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                if (m_controlData.app.searchSuggestionsLoading.load(std::memory_order_acquire)) {
+                    ImGui::Selectable("Loading...", false, ImGuiSelectableFlags_Disabled);
+                } else {
+                    ImGui::Selectable("No results found", false, ImGuiSelectableFlags_Disabled);
+                }
+                ImGui::PopStyleColor();
+            }
+            
             m_controlData.app.searchSuggestionsMutex.unlock();
 
-            if (!selectedSuggestion.empty()) {
-                s_pendingSetQuery = selectedSuggestion;
+            if (!selectedSuggestion.first.empty()) {
+                s_pendingSetQuery = selectedSuggestion.second;
                 {
                     std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
-                    m_controlData.graph.searchString = selectedSuggestion;
+                    m_controlData.graph.searchString = selectedSuggestion.first;
                 }
                 m_controlData.graph.searching.store(true);
                 suggestionsVisible = false;
@@ -979,11 +1024,11 @@ bool GUI::RenderTopBar() {
                 s_highlightedIdx = (s_highlightedIdx - 1 + total) % total;
             }
             if (ImGui::IsKeyPressed(ImGuiKey_Tab) && s_highlightedIdx >= 0 && s_highlightedIdx < total) {
-                const std::string &chosen = s_cachedSuggestions[s_highlightedIdx];
-                s_pendingSetQuery = chosen;
+                const auto &chosen = s_cachedSuggestions[s_highlightedIdx];
+                s_pendingSetQuery = chosen.second;
                 {
                     std::lock_guard<std::mutex> lock(m_controlData.graph.searchStringMutex);
-                    m_controlData.graph.searchString = chosen;
+                    m_controlData.graph.searchString = chosen.first;
                 }
                 m_controlData.graph.searching.store(true);
                 suggestionsVisible = false;

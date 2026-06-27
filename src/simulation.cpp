@@ -414,7 +414,7 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         std::string query = m_controlData.graph.searchString;
         m_controlData.graph.searching.store(false, std::memory_order_relaxed);
 
-        globalLogger->info("[search] Starting async fetch for '{}'", query);
+        globalLogger->info("[search] Loading graph data for '{}'", query);
 
         auto startTime = std::chrono::steady_clock::now();
         int limit = m_controlData.engine.searchResultLimit;
@@ -451,7 +451,7 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
         m_pendingSearch = PendingSearch{std::move(future), query, startTime};
 
         snprintf(m_controlData.engine.asyncOpDesc, sizeof(m_controlData.engine.asyncOpDesc),
-                 "Searching '%s'...", query.c_str());
+                 "Loading nodes for '%s'...", query.c_str());
         m_controlData.engine.asyncOpActive.store(true, std::memory_order_release);
     }
 
@@ -527,7 +527,7 @@ bool GraphEngine::processControls(GS::Graph *readGraph, GS::Graph *writeGraph, S
             m_pendingExpansion = PendingNodeExpansion{std::move(future), static_cast<uint32_t>(sourceNode), nodeName};
 
             snprintf(m_controlData.engine.asyncOpDesc, sizeof(m_controlData.engine.asyncOpDesc),
-                     "Expanding '%s'...", nodeName.c_str());
+                     "Loading links for '%s'...", nodeName.c_str());
             m_controlData.engine.asyncOpActive.store(true, std::memory_order_release);
 
             globalLogger->info("Started async node expansion for: " + nodeName);
