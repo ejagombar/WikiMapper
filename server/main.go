@@ -278,9 +278,14 @@ func randomConnectedPageHandler(client *Neo4jClient) http.HandlerFunc {
 			return
 		}
 
+		// Pick random names from the list (up to 10 tries) — avoids full-graph scan.
 		cypher := `
+			WITH $names AS names, rand() AS seed
+			UNWIND range(0, 9) AS attempt
+			WITH names[toInteger((seed + attempt * 0.618) * 100000) % size(names)] AS pick
+			WITH collect(DISTINCT pick) AS picks
 			MATCH (a:PAGE)-[]-(neighbor:PAGE)
-			WHERE a.pageName IN $names
+			WHERE a.pageName IN picks
 			AND NOT neighbor.pageName IN $names
 			WITH neighbor, rand() AS r
 			ORDER BY r
@@ -486,6 +491,17 @@ func main() {
 	}
 
 	client := NewNeo4jClient(neo4jURL, username, password)
+
+	// Ensure pageName index exists for fast lookups.
+	_, err := client.ExecuteCypher(
+		"CREATE INDEX page_pageName_idx IF NOT EXISTS FOR (n:PAGE) ON (n.pageName)",
+		map[string]any{},
+	)
+	if err != nil {
+		log.Printf("Warning: could not create pageName index: %v", err)
+	} else {
+		log.Println("pageName index ready")
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/linked-pages/", linkedPagesHandler(client))

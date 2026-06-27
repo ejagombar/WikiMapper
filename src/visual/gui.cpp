@@ -603,7 +603,7 @@ bool GUI::RenderTopBar() {
                 dl->AddCircleFilled(ImVec2(spinnerCenter.x + dx, spinnerCenter.y + dy), dotRadius, col);
             }
 
-            const float maxTextW = 250.0f;
+            const float maxTextW = 350.0f;
             std::string desc(m_controlData.engine.asyncOpDesc);
             ImVec2 textSz = ImGui::CalcTextSize(desc.c_str());
             if (textSz.x > maxTextW) {
@@ -976,7 +976,7 @@ bool GUI::RenderTopBar() {
                 count++;
             }
             renderCount = count;
-            
+
             if (renderCount == 0 && !s_cachedUserQuery.empty()) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
                 if (m_controlData.app.searchSuggestionsLoading.load(std::memory_order_acquire)) {
@@ -986,7 +986,7 @@ bool GUI::RenderTopBar() {
                 }
                 ImGui::PopStyleColor();
             }
-            
+
             m_controlData.app.searchSuggestionsMutex.unlock();
 
             if (!selectedSuggestion.first.empty()) {
