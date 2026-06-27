@@ -577,7 +577,7 @@ std::vector<NodeData> HttpInterface::GetRandomConnectedPage(const std::vector<st
 
     try {
         json body = {{"names", existingNames}};
-        json data = PostHttpResults("/random-connected-page", body);
+        json data = PostHttpResults("/random-connected-page", body, 30000);
         return HttpParsePagesFromResult(data);
     } catch (const std::exception &e) {
         globalLogger->error("GetRandomConnectedPage failed: {}", e.what());

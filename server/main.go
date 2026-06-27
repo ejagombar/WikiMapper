@@ -33,7 +33,9 @@ func NewNeo4jClient(url, username, password string) *Neo4jClient {
 		URL:      url,
 		Username: username,
 		Password: password,
-		Client:   &http.Client{},
+		Client: &http.Client{
+			Timeout: 20 * time.Second,
+		},
 	}
 }
 
@@ -277,13 +279,13 @@ func randomConnectedPageHandler(client *Neo4jClient) http.HandlerFunc {
 		}
 
 		cypher := `
-			UNWIND $names AS name
-			MATCH (a:PAGE {pageName: name})-[]-(neighbor:PAGE)
-			WHERE NOT neighbor.pageName IN $names
+			MATCH (a:PAGE)-[]-(neighbor:PAGE)
+			WHERE a.pageName IN $names
+			AND NOT neighbor.pageName IN $names
 			WITH neighbor, rand() AS r
 			ORDER BY r
-			RETURN neighbor
-			LIMIT 1`
+			LIMIT 1
+			RETURN neighbor`
 		params := map[string]any{"names": body.Names}
 
 		data, err := client.ExecuteCypher(cypher, params)
