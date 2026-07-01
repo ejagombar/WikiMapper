@@ -538,7 +538,7 @@ std::vector<NodeData> HttpInterface::GetLinkedPages(const std::string &pageName)
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/linked-pages/" + urlEncode(pageName)));
+        return HttpParsePagesFromResult(GetHttpResults("/linked-pages/" + urlEncode(pageName), 30000));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkedPages failed for '" + pageName + "': " + std::string(e.what()));
         return {};
@@ -551,7 +551,7 @@ std::vector<NodeData> HttpInterface::GetLinkingPages(const std::string &pageName
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/linking-pages/" + urlEncode(pageName)));
+        return HttpParsePagesFromResult(GetHttpResults("/linking-pages/" + urlEncode(pageName), 30000));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetLinkingPages failed for '" + pageName + "': " + std::string(e.what()));
         return {};
@@ -564,7 +564,7 @@ std::vector<NodeData> HttpInterface::FindShortestPath(const std::string &startPa
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/shortest-path?start=" + urlEncode(startPage) + "&end=" + urlEncode(endPage)));
+        return HttpParsePagesFromResult(GetHttpResults("/shortest-path?start=" + urlEncode(startPage) + "&end=" + urlEncode(endPage), 30000));
     } catch (const std::exception &e) {
         throw std::runtime_error("FindShortestPath failed for '" + startPage + " to " + endPage + "': " + std::string(e.what()));
         return {};
@@ -591,7 +591,7 @@ std::vector<NodeData> HttpInterface::GetRandomPages(uint32_t count) {
     }
 
     try {
-        return HttpParsePagesFromResult(GetHttpResults("/random-pages?count=" + std::to_string(count)));
+        return HttpParsePagesFromResult(GetHttpResults("/random-pages?count=" + std::to_string(count), 30000));
     } catch (const std::exception &e) {
         throw std::runtime_error("GetRandomPages failed : " + std::string(e.what()));
         return {};
@@ -624,7 +624,7 @@ GraphUpdateData HttpInterface::GetLocalSubgraph(const std::string &centerPageNam
 
     try {
         json body = {{"name", centerPageName}, {"limit", limit}};
-        json data = PostHttpResults("/local-subgraph", body);
+        json data = PostHttpResults("/local-subgraph", body, 30000);
         return HttpParseGraphResult(data);
     } catch (const std::exception &e) {
         globalLogger->error("GetLocalSubgraph failed: {}", e.what());
@@ -656,7 +656,7 @@ std::vector<NodeData> HttpInterface::SearchPages(const std::string &queryString)
     try {
         const std::string endpoint = "/search-pages?query=" + urlEncode(queryString);
 
-        json data = GetHttpResults(endpoint);
+        json data = GetHttpResults(endpoint, 15000);
 
         pages = HttpParsePagesFromResult(data);
 
